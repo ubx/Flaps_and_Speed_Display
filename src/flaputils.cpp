@@ -1,60 +1,135 @@
 #include "flaputils.hpp"
 
-#include <array>
+#include <vector>
+#include <string>
 #include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <algorithm>
+#if __has_include(<cjson/cJSON.h>)
+#include <cjson/cJSON.h>
+#else
+#include "cJSON.h"
+#endif
 
 namespace flaputils {
 
-// --- Data embedded from data/flapDescriptor.json ---
+struct FlapEntry {
+    int position;
+    std::string symbol;
+};
 
-struct FlapEntry { int position; const char* symbol; };
+static int kTolerance = 6;
+static std::vector<FlapEntry> kFlapTable;
+static std::vector<int> kWeights;
+static double kEmptyMassKg = 0.0;
 
-static constexpr int kTolerance = 6; // flap2symbol.tolerance
-static constexpr std::array<FlapEntry, 8> kFlapTable{{
-    {94,  "L"},
-    {167, "+2"},
-    {243, "+1"},
-    {84,  "0"},
-    {156, "-1"},
-    {191, "-2"},
-    {230, "S"},
-    {250, "S1"}
-}};
-
-static constexpr std::array<int, 4> kWeights{{390, 430, 550, 600}}; // kg
-
-// For each Bereich (range group), keep wk and speed ranges per weight index.
-// Use {-1,-1} to indicate "no data" for that weight.
 struct Range { double vmin; double vmax; };
-struct Bereich { const char* wk; std::array<Range, kWeights.size()> ranges; };
+struct Bereich {
+    std::string wk;
+    std::vector<Range> ranges;
+};
+static std::vector<Bereich> kBereiche;
 
-static constexpr double kEmptyMassKg = 373.15; // speedpolar.empty_mass_kg
+bool load_data(const char* filepath) {
+    FILE* f = fopen(filepath, "rb");
+    if (!f) return false;
 
-static constexpr Range NA{-1.0, -1.0};
+    fseek(f, 0, SEEK_END);
+    long len = ftell(f);
+    fseek(f, 0, SEEK_SET);
 
-static constexpr std::array<Bereich, 7> kBereiche{{
-    // "L"
-    {"L",  std::array<Range, kWeights.size()>{ Range{0, 76},   Range{0, 80},   Range{0, 90},   Range{0, 94} }},
-    // "+2"
-    {"+2", std::array<Range, kWeights.size()>{ Range{76, 80},  Range{80, 83},  Range{90, 94},  Range{94, 98} }},
-    // "+1"
-    {"+1", std::array<Range, kWeights.size()>{ Range{80, 90},  Range{83, 94},  Range{94, 106}, Range{98, 111} }},
-    // "0"
-    {"0",  std::array<Range, kWeights.size()>{ Range{90, 122}, Range{94, 128}, Range{106,145}, Range{111,151} }},
-    // "-1"
-    {"-1", std::array<Range, kWeights.size()>{ Range{122,150}, Range{128,158}, Range{145,179}, Range{151,187} }},
-    // "-2"
-    {"-2", std::array<Range, kWeights.size()>{ Range{150,169}, Range{158,178}, Range{179,201}, Range{187,210} }},
-    // "S"
-    {"S",  std::array<Range, kWeights.size()>{ Range{169,188}, Range{178,198}, Range{201,224}, Range{210,234} }},
-    // "S1"
-}};
+    char* buffer = (char*)malloc(len + 1);
+    if (!buffer) {
+        fclose(f);
+        return false;
+    }
+    size_t read_len = fread(buffer, 1, len, f);
+    fclose(f);
+    buffer[read_len] = '\0';
 
-static constexpr std::array<Bereich, 1> kBereiche_S1{{
-    {"S1", std::array<Range, kWeights.size()>{ Range{188,280}, Range{198,280}, Range{224,280}, Range{234,280} }}
-}};
+    cJSON* root = cJSON_Parse(buffer);
+    if (!root) {
+        free(buffer);
+        return false;
+    }
 
-// --- Public API implementations ---
+    // Clear existing data
+    kFlapTable.clear();
+    kWeights.clear();
+    kBereiche.clear();
+
+    // 1. flap2symbol
+    cJSON* f2s = cJSON_GetObjectItem(root, "flap2symbol");
+    if (f2s) {
+        cJSON* tol = cJSON_GetObjectItem(f2s, "tolerance");
+        if (tol) kTolerance = tol->valueint;
+
+        cJSON* table = cJSON_GetObjectItem(f2s, "table");
+        if (table && cJSON_IsArray(table)) {
+            int sz = cJSON_GetArraySize(table);
+            for (int i = 0; i < sz; i++) {
+                cJSON* item = cJSON_GetArrayItem(table, i);
+                if (cJSON_IsArray(item) && cJSON_GetArraySize(item) >= 2) {
+                    int pos = cJSON_GetArrayItem(item, 0)->valueint;
+                    cJSON* sym_item = cJSON_GetArrayItem(item, 1);
+                    if (sym_item && sym_item->valuestring) {
+                        kFlapTable.push_back({pos, sym_item->valuestring});
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. speedpolar
+    cJSON* sp = cJSON_GetObjectItem(root, "speedpolar");
+    if (sp) {
+        cJSON* em = cJSON_GetObjectItem(sp, "empty_mass_kg");
+        if (em) kEmptyMassKg = em->valuedouble;
+
+        cJSON* opt = cJSON_GetObjectItem(sp, "optimale_fluggeschwindigkeit_kmh");
+        if (opt) {
+            cJSON* w_arr = cJSON_GetObjectItem(opt, "gewicht_kg");
+            if (w_arr && cJSON_IsArray(w_arr)) {
+                int sz = cJSON_GetArraySize(w_arr);
+                for (int i = 0; i < sz; i++) {
+                    kWeights.push_back(cJSON_GetArrayItem(w_arr, i)->valueint);
+                }
+            }
+
+            cJSON* b_arr = cJSON_GetObjectItem(opt, "bereiche");
+            if (b_arr && cJSON_IsArray(b_arr)) {
+                int b_sz = cJSON_GetArraySize(b_arr);
+                for (int i = 0; i < b_sz; i++) {
+                    cJSON* b_item = cJSON_GetArrayItem(b_arr, i);
+                    Bereich b;
+                    cJSON* wk = cJSON_GetObjectItem(b_item, "wk");
+                    if (wk && wk->valuestring) b.wk = wk->valuestring;
+
+                    cJSON* g_obj = cJSON_GetObjectItem(b_item, "geschwindigkeit");
+                    if (g_obj) {
+                        for (int w : kWeights) {
+                            char w_str[16];
+                            snprintf(w_str, sizeof(w_str), "%d", w);
+                            cJSON* r_arr = cJSON_GetObjectItem(g_obj, w_str);
+                            if (r_arr && cJSON_IsArray(r_arr) && cJSON_GetArraySize(r_arr) >= 2) {
+                                b.ranges.push_back({cJSON_GetArrayItem(r_arr, 0)->valuedouble,
+                                                    cJSON_GetArrayItem(r_arr, 1)->valuedouble});
+                            } else {
+                                b.ranges.push_back({-1.0, -1.0}); // NA
+                            }
+                        }
+                    }
+                    kBereiche.push_back(b);
+                }
+            }
+        }
+    }
+
+    cJSON_Delete(root);
+    free(buffer);
+    return true;
+}
 
 double get_empty_mass() { return kEmptyMassKg; }
 
@@ -62,58 +137,54 @@ FlapSymbolResult get_flap_symbol(int position) {
     for (std::size_t i = 0; i < kFlapTable.size(); ++i) {
         const auto& e = kFlapTable[i];
         if (std::abs(position - e.position) <= kTolerance) {
-            return {e.symbol, static_cast<int>(i)};
+            return {e.symbol.c_str(), static_cast<int>(i)};
         }
     }
     return {nullptr, -1};
 }
 
-// Helper to find interpolation indices and factor for a given weight.
 static inline void weight_bracket(double w, int& i1, int& i2, double& factor) {
-    if (w <= kWeights.front()) { i1 = i2 = 0; factor = 0.0; return; }
-    if (w >= kWeights.back())  { i1 = i2 = static_cast<int>(kWeights.size()-1); factor = 0.0; return; }
-    // find interval
+    if (kWeights.empty()) {
+        i1 = i2 = 0; factor = 0.0; return;
+    }
+    if (w <= kWeights.front()) {
+        i1 = i2 = 0; factor = 0.0; return;
+    }
+    if (w >= kWeights.back()) {
+        i1 = i2 = static_cast<int>(kWeights.size() - 1); factor = 0.0; return;
+    }
     for (std::size_t i = 0; i + 1 < kWeights.size(); ++i) {
-        if (w >= kWeights[i] && w <= kWeights[i+1]) {
+        if (w >= kWeights[i] && w <= kWeights[i + 1]) {
             i1 = static_cast<int>(i);
-            i2 = static_cast<int>(i+1);
-            const double w1 = static_cast<double>(kWeights[i1]);
-            const double w2 = static_cast<double>(kWeights[i2]);
-            factor = (w - w1) / (w2 - w1);
+            i2 = static_cast<int>(i + 1);
+            factor = (w - kWeights[i1]) / (double)(kWeights[i2] - kWeights[i1]);
             return;
         }
     }
-    // Fallback (should not reach here)
     i1 = i2 = 0; factor = 0.0;
 }
 
 static inline bool has_range(const Range& r) { return r.vmin >= 0.0 && r.vmax >= 0.0; }
 
 const char* get_optimal_flap(double gewicht_kg, double geschwindigkeit_kmh) {
+    if (kBereiche.empty() || kWeights.empty()) return nullptr;
+
     int i1 = 0, i2 = 0; double f = 0.0;
     weight_bracket(gewicht_kg, i1, i2, f);
 
-    auto in_interpolated = [&](const Bereich& b) -> bool {
-        const Range r1 = b.ranges[static_cast<std::size_t>(i1)];
-        const Range r2 = b.ranges[static_cast<std::size_t>(i2)];
+    for (const auto& b : kBereiche) {
+        if (b.ranges.size() <= (std::size_t)std::max(i1, i2)) continue;
+        const Range r1 = b.ranges[i1];
+        const Range r2 = b.ranges[i2];
         if (has_range(r1) && has_range(r2)) {
             const double vmin = r1.vmin + f * (r2.vmin - r1.vmin);
             const double vmax = r1.vmax + f * (r2.vmax - r1.vmax);
-            return (geschwindigkeit_kmh >= vmin && geschwindigkeit_kmh <= vmax);
+            if (geschwindigkeit_kmh >= vmin && geschwindigkeit_kmh <= vmax) return b.wk.c_str();
         } else if (has_range(r1)) {
-            return (geschwindigkeit_kmh >= r1.vmin && geschwindigkeit_kmh <= r1.vmax);
+            if (geschwindigkeit_kmh >= r1.vmin && geschwindigkeit_kmh <= r1.vmax) return b.wk.c_str();
         } else if (has_range(r2)) {
-            return (geschwindigkeit_kmh >= r2.vmin && geschwindigkeit_kmh <= r2.vmax);
+            if (geschwindigkeit_kmh >= r2.vmin && geschwindigkeit_kmh <= r2.vmax) return b.wk.c_str();
         }
-        return false;
-    };
-
-    // Iterate through ranges in the same logical order as JSON
-    for (const auto& b : kBereiche) {
-        if (in_interpolated(b)) return b.wk;
-    }
-    for (const auto& b : kBereiche_S1) {
-        if (in_interpolated(b)) return b.wk;
     }
     return nullptr;
 }

@@ -1,0 +1,230 @@
+{
+  "flap2symbol": {
+    "Description": "Flap position to symbol",
+    "tolerance": 6,
+    "table": [
+      [
+        94,
+        "L"
+      ],
+      [
+        167,
+        "+2"
+      ],
+      [
+        243,
+        "+1"
+      ],
+      [
+        84,
+        "0"
+      ],
+      [
+        156,
+        "-1"
+      ],
+      [
+        191,
+        "-2"
+      ],
+      [
+        230,
+        "S"
+      ],
+      [
+        250,
+        "S1"
+      ]
+    ]
+  },
+  "speedpolar": {
+    "flugelspannweite_m": 18,
+    "empty_mass_kg": 373.15,
+    "optimale_fluggeschwindigkeit_kmh": {
+      "gewicht_kg": [
+        390,
+        430,
+        550,
+        600
+      ],
+      "bereiche": [
+        {
+          "verwendung": "Langsamflug (Geradeausflug)",
+          "wk": "L",
+          "geschwindigkeit": {
+            "390": [
+              0,
+              76
+            ],
+            "430": [
+              0,
+              80
+            ],
+            "550": [
+              0,
+              90
+            ],
+            "600": [
+              0,
+              94
+            ]
+          }
+        },
+        {
+          "verwendung": "Langsamflug (Geradeausflug)",
+          "wk": "+2",
+          "geschwindigkeit": {
+            "390": [
+              76,
+              80
+            ],
+            "430": [
+              80,
+              83
+            ],
+            "550": [
+              90,
+              94
+            ],
+            "600": [
+              94,
+              98
+            ]
+          }
+        },
+        {
+          "verwendung": "Langsamflug (Geradeausflug)",
+          "wk": "+1",
+          "geschwindigkeit": {
+            "390": [
+              80,
+              90
+            ],
+            "430": [
+              83,
+              94
+            ],
+            "550": [
+              94,
+              106
+            ],
+            "600": [
+              98,
+              111
+            ]
+          }
+        },
+        {
+          "verwendung": "Bestes Gleiten",
+          "wk": "0",
+          "geschwindigkeit": {
+            "390": [
+              90,
+              122
+            ],
+            "430": [
+              94,
+              128
+            ],
+            "550": [
+              106,
+              145
+            ],
+            "600": [
+              111,
+              151
+            ]
+          }
+        },
+        {
+          "verwendung": "Vorfliegen zwischen Thermik und Schnellflug",
+          "wk": "-1",
+          "geschwindigkeit": {
+            "390": [
+              122,
+              150
+            ],
+            "430": [
+              128,
+              158
+            ],
+            "550": [
+              145,
+              179
+            ],
+            "600": [
+              151,
+              187
+            ]
+          }
+        },
+        {
+          "verwendung": "Vorfliegen zwischen Thermik und Schnellflug",
+          "wk": "-2",
+          "geschwindigkeit": {
+            "390": [
+              150,
+              169
+            ],
+            "430": [
+              158,
+              178
+            ],
+            "550": [
+              179,
+              201
+            ],
+            "600": [
+              187,
+              210
+            ]
+          }
+        },
+        {
+          "verwendung": "Schnellflug",
+          "wk": "S",
+          "geschwindigkeit": {
+            "390": [
+              169,
+              188
+            ],
+            "430": [
+              178,
+              198
+            ],
+            "550": [
+              201,
+              224
+            ],
+            "600": [
+              210,
+              234
+            ]
+          }
+        },
+        {
+          "verwendung": "Schnellflug",
+          "wk": "S1",
+          "geschwindigkeit": {
+            "390": [
+              188,
+              280
+            ],
+            "430": [
+              198,
+              280
+            ],
+            "550": [
+              224,
+              280
+            ],
+            "600": [
+              234,
+              280
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

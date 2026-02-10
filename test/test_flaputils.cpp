@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string>
 #include <vector>
-#include "flaputils.hpp"
+#include "../src/flaputils.hpp"
 
 // PlatformIO/ESP-IDF test entry point is often app_main or similar, 
 // but for a standalone "as in __main__" test, we can provide a function 
@@ -9,8 +9,17 @@
 // Since it's ESP-IDF, we'll use app_main if it's meant to run on the device,
 // but usually, simple prints go to stdout.
 
-extern "C" void app_main(void) {
+void run_tests() {
     using namespace flaputils;
+
+    const char* candidates[] = {"data/flapDescriptor.json", "flapDescriptor.json", "/spiffs/flapDescriptor.json"};
+    bool loaded = false;
+    for (const char* p : candidates) {
+        if (load_data(p)) { printf("Loaded flap data from %s\n", p); loaded = true; break; }
+    }
+    if (!loaded) {
+        printf("WARNING: Failed to load flapDescriptor.json. Functions may return no data.\n");
+    }
 
     printf("Empty Mass (function): %.2f kg\n", get_empty_mass());
     
@@ -54,3 +63,14 @@ extern "C" void app_main(void) {
                tc.w, tc.v, res ? res : "None", tc.expected ? tc.expected : "None", ok ? "OK" : "NOK");
     }
 }
+
+#ifdef NATIVE_BUILD
+int main() {
+    run_tests();
+    return 0;
+}
+#else
+extern "C" void app_main(void) {
+    run_tests();
+}
+#endif

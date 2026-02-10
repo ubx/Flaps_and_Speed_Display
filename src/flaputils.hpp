@@ -8,6 +8,9 @@ namespace flaputils {
 // Returns the empty mass of the aircraft in kg (taken from flapDescriptor.json)
 double get_empty_mass();
 
+// Loads the flap data from a JSON file. Returns true on success.
+bool load_data(const char* filepath);
+
 // Returns the flap symbol for a given raw position and the index in the table.
 // If no match is found within tolerance, returns {nullptr, -1}.
 struct FlapSymbolResult {
