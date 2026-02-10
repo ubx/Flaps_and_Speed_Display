@@ -54,6 +54,12 @@ struct FlightData {
         if (key == "pilot_mass") pilot_mass = value;
         else if (key == "enl") enl = value;
     }
+
+    void print() {
+        std::lock_guard<std::mutex> lock(mtx);
+        printf("FlightData: IAS=%.2f, TAS=%.2f, CAS=%.2f, ALT=%.2f, Vario=%.2f, Flap=%d, Lat=%.7f, Lon=%.7f, GS=%.2f, TT=%.2f, PilotMass=%u, ENL=%u\n",
+               ias, tas, cas, alt, vario, flap, lat, lon, gs, tt, pilot_mass, enl);
+    }
 };
 
 class CANReceiver {
@@ -135,6 +141,14 @@ private:
 static FlightData flight_state;
 static CANReceiver receiver(flight_state);
 
+void print_task(void *arg) {
+    FlightData *data = (FlightData *)arg;
+    while (true) {
+        data->print();
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+}
+
 extern "C" void app_main(void)
 {
     // Initialize TWAI driver
@@ -146,6 +160,7 @@ extern "C" void app_main(void)
         if (twai_start() == ESP_OK) {
             ESP_LOGI(TAG, "TWAI Driver started");
             receiver.start();
+            xTaskCreate(print_task, "print_task", 4096, &flight_state, 2, NULL);
         } else {
             ESP_LOGE(TAG, "Failed to start TWAI driver");
         }
