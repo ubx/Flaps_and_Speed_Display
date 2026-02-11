@@ -29,7 +29,7 @@ struct FlightData
     double lon = 0;
     float gs = 0;
     float tt = 0;
-    uint16_t pilot_mass = 0;
+    uint16_t dry_and_ballast_mass = 0;
     uint16_t enl = 0;
 
     void update_float(const std::string& key, float value)
@@ -60,7 +60,7 @@ struct FlightData
     void update_uint16(const std::string& key, uint16_t value)
     {
         std::lock_guard<std::mutex> lock(mtx);
-        if (key == "pilot_mass") pilot_mass = value;
+        if (key == "dry_and_ballast_mass") dry_and_ballast_mass = value;
         else if (key == "enl") enl = value;
     }
 
@@ -68,11 +68,14 @@ struct FlightData
     {
         std::lock_guard<std::mutex> lock(mtx);
         printf(
-            "FlightData: IAS=%.2f, TAS=%.2f, CAS=%.2f, ALT=%.2f, Vario=%.2f, Flap=%d, Lat=%.7f, Lon=%.7f, GS=%.2f, TT=%.2f, PilotMass=%u, ENL=%u\n",
-            ias * 3.6, tas, cas, alt, vario, flap, lat, lon, gs, tt, pilot_mass, enl);
+            "FlightData: IAS=%.2f, TAS=%.2f, CAS=%.2f, ALT=%.2f, Vario=%.2f, Flap=%d, Lat=%.7f, Lon=%.7f, GS=%.2f, TT=%.2f, Dry + Ballast Mass=%u, ENL=%u\n",
+            ias * 3.6, tas, cas, alt, vario, flap, lat, lon, gs, tt, dry_and_ballast_mass / 10, enl);
 
-        const char* optimal = flaputils::get_optimal_flap(pilot_mass + 600.0, ias * 3.6);
-        printf("Target: Flap=%s\n", optimal ? optimal : "N/A");
+        const char* optimal = flaputils::get_optimal_flap((dry_and_ballast_mass / 10.0) + 84, ias * 3.6);
+        const flaputils::FlapSymbolResult actual = flaputils::get_flap_symbol(flap);
+        printf("Flaps: Optimal=%s, Actual=%s\n", 
+               optimal ? optimal : "N/A", 
+               actual.symbol ? actual.symbol : "N/A");
     }
 };
 
@@ -137,7 +140,7 @@ private:
                 break;
             case 1040: flight_data.update_float("tt", get_float(msg.data));
                 break;
-            case 1316: flight_data.update_uint16("pilot_mass", get_ushort(msg.data));
+            case 1515: flight_data.update_uint16("dry_and_ballast_mass", get_ushort(msg.data)); // glide polar mass dry and ballast [ushort kg*10^1]
                 break;
             case 1506: flight_data.update_uint16("enl", get_ushort(msg.data));
                 break;
