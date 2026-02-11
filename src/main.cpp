@@ -143,28 +143,19 @@ private:
 
     float get_float(const uint8_t* data)
     {
-        uint32_t val;
-        memcpy(&val, &data[4], 4);
-        val = be32toh(val);
-        float f;
-        memcpy(&f, &val, 4);
-        return f;
+        uint32_t raw = __builtin_bswap32(*(const uint32_t*)(data + 4));
+        return std::bit_cast<float>(raw);   // C++20
     }
-
+    
     double get_double_l(const uint8_t* data)
     {
-        uint32_t val;
-        memcpy(&val, &data[4], 4);
-        val = be32toh(val);
-        int32_t l = (int32_t)val;
-        return l / 1E7;
+        uint32_t raw = __builtin_bswap32(*(const uint32_t*)(data + 4));
+        return (int32_t)raw / 1E7;
     }
 
     uint16_t get_ushort(const uint8_t* data)
     {
-        uint16_t val;
-        memcpy(&val, &data[4], 2);
-        return be16toh(val);
+        return __builtin_bswap16(*(const uint16_t*)(data + 4));
     }
 
     int get_char(const uint8_t* data)
