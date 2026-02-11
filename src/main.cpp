@@ -9,8 +9,10 @@
 #include "driver/twai.h"
 #include "esp_log.h"
 #include "esp_spiffs.h"
+#ifdef ENABLE_DIAGNOSTICS
 #include "esp_partition.h"
 #include <dirent.h>
+#endif
 
 #include "flaputils.hpp"
 
@@ -180,9 +182,21 @@ static CANReceiver receiver(flight_state);
 void print_task(void* arg)
 {
     FlightData* data = (FlightData*)arg;
+    int cnt = 0;
     while (true)
     {
         data->print();
+
+        cnt++;
+#if defined(ENABLE_DIAGNOSTICS) && (configGENERATE_RUN_TIME_STATS == 1) && (configUSE_STATS_FORMATTING_FUNCTIONS == 1)
+        if (cnt % 10 == 0)
+        {
+            char stats[512];
+            vTaskGetRunTimeStats(stats);
+            printf("Task runtime stats:\n%s\n", stats);
+        }
+#endif
+
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
@@ -192,6 +206,7 @@ extern "C" void app_main(void)
     vTaskDelay(pdMS_TO_TICKS(2000));
     // Initialize SPIFFS
 
+#ifdef ENABLE_DIAGNOSTICS
     // Check if the partition exists
     const esp_partition_t* partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_SPIFFS, "spiffs");
     if (partition == NULL) {
@@ -207,6 +222,7 @@ extern "C" void app_main(void)
     } else {
         ESP_LOGI(TAG, "Found SPIFFS partition at offset 0x%lx, size 0x%lx", (unsigned long)partition->address, (unsigned long)partition->size);
     }
+#endif
 
     esp_vfs_spiffs_conf_t conf = {
         .base_path = "/spiffs",
@@ -236,6 +252,7 @@ extern "C" void app_main(void)
             }
         }
 
+#ifdef ENABLE_DIAGNOSTICS
         ESP_LOGI(TAG, "Listing files in /spiffs:");
         DIR* dir = opendir("/spiffs");
         if (dir) {
@@ -247,6 +264,7 @@ extern "C" void app_main(void)
         } else {
             ESP_LOGE(TAG, "Failed to open /spiffs directory");
         }
+#endif
 
         if (flaputils::load_data("/spiffs/flapDescriptor.json")) {
             ESP_LOGI(TAG, "Flap data loaded successfully");
