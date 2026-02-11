@@ -8,7 +8,9 @@
 #include "freertos/task.h"
 #include "driver/twai.h"
 #include "esp_log.h"
-#include <endian.h>
+#include "esp_spiffs.h"
+
+#include "flaputils.hpp"
 
 static const char* TAG = "CANReceiver";
 
@@ -66,6 +68,9 @@ struct FlightData
         printf(
             "FlightData: IAS=%.2f, TAS=%.2f, CAS=%.2f, ALT=%.2f, Vario=%.2f, Flap=%d, Lat=%.7f, Lon=%.7f, GS=%.2f, TT=%.2f, PilotMass=%u, ENL=%u\n",
             ias * 3.6, tas, cas, alt, vario, flap, lat, lon, gs, tt, pilot_mass, enl);
+
+        const char* optimal = flaputils::get_optimal_flap(pilot_mass + 600.0, ias * 3.6);
+        printf("Target: Flap=%s\n", optimal ? optimal : "N/A");
     }
 };
 
@@ -179,6 +184,40 @@ void print_task(void* arg)
 
 extern "C" void app_main(void)
 {
+    sleep(2);
+    // Initialize SPIFFS
+    esp_vfs_spiffs_conf_t conf = {
+        .base_path = "/spiffs",
+        .partition_label = NULL,
+        .max_files = 5,
+        .format_if_mount_failed = true
+    };
+
+    esp_err_t ret = esp_vfs_spiffs_register(&conf);
+    if (ret != ESP_OK) {
+        if (ret == ESP_FAIL) {
+            ESP_LOGE(TAG, "Failed to mount or format filesystem");
+        } else if (ret == ESP_ERR_NOT_FOUND) {
+            ESP_LOGE(TAG, "Failed to find SPIFFS partition");
+        } else {
+            ESP_LOGE(TAG, "Failed to initialize SPIFFS (%s)", esp_err_to_name(ret));
+        }
+    } else {
+        size_t total = 0, used = 0;
+        ret = esp_spiffs_info(NULL, &total, &used);
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to get SPIFFS partition information (%s)", esp_err_to_name(ret));
+        } else {
+            ESP_LOGI(TAG, "Partition size: total: %d, used: %d", total, used);
+        }
+
+        if (flaputils::load_data("/spiffs/flapDescriptor.json")) {
+            ESP_LOGI(TAG, "Flap data loaded successfully");
+        } else {
+            ESP_LOGE(TAG, "Failed to load flap data from SPIFFS");
+        }
+    }
+
     // Initialize TWAI driver
     twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT((gpio_num_t)TWAI_TX_GPIO, (gpio_num_t)TWAI_RX_GPIO,
                                                                  TWAI_MODE_NORMAL);
