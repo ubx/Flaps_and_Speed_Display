@@ -33,14 +33,24 @@ static std::vector<Bereich> kBereiche;
 
 bool load_data(const char* filepath) {
     FILE* f = fopen(filepath, "rb");
-    if (!f) return false;
+    if (!f) {
+        printf("flaputils: Failed to open %s\n", filepath);
+        return false;
+    }
 
     fseek(f, 0, SEEK_END);
     long len = ftell(f);
     fseek(f, 0, SEEK_SET);
 
+    if (len <= 0) {
+        printf("flaputils: File %s is empty\n", filepath);
+        fclose(f);
+        return false;
+    }
+
     char* buffer = (char*)malloc(len + 1);
     if (!buffer) {
+        printf("flaputils: Failed to allocate %ld bytes\n", len + 1);
         fclose(f);
         return false;
     }
@@ -50,6 +60,7 @@ bool load_data(const char* filepath) {
 
     cJSON* root = cJSON_Parse(buffer);
     if (!root) {
+        printf("flaputils: Failed to parse JSON\n");
         free(buffer);
         return false;
     }

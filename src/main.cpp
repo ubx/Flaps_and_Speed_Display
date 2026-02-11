@@ -9,6 +9,8 @@
 #include "driver/twai.h"
 #include "esp_log.h"
 #include "esp_spiffs.h"
+#include "esp_partition.h"
+#include <dirent.h>
 
 #include "flaputils.hpp"
 
@@ -184,13 +186,30 @@ void print_task(void* arg)
 
 extern "C" void app_main(void)
 {
-    sleep(2);
+    vTaskDelay(pdMS_TO_TICKS(2000));
     // Initialize SPIFFS
+
+    // Check if the partition exists
+    const esp_partition_t* partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_SPIFFS, "spiffs");
+    if (partition == NULL) {
+        ESP_LOGE(TAG, "Failed to find SPIFFS partition labeled 'spiffs' in the partition table!");
+        // List all data partitions for debugging
+        esp_partition_iterator_t it = esp_partition_find(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, NULL);
+        while (it != NULL) {
+            const esp_partition_t* p = esp_partition_get(it);
+            ESP_LOGI(TAG, "Found data partition: label=%s, type=%d, subtype=%d, offset=0x%lx, size=0x%lx", 
+                     p->label, p->type, p->subtype, (unsigned long)p->address, (unsigned long)p->size);
+            it = esp_partition_next(it);
+        }
+    } else {
+        ESP_LOGI(TAG, "Found SPIFFS partition at offset 0x%lx, size 0x%lx", (unsigned long)partition->address, (unsigned long)partition->size);
+    }
+
     esp_vfs_spiffs_conf_t conf = {
         .base_path = "/spiffs",
-        .partition_label = NULL,
+        .partition_label = "spiffs",
         .max_files = 5,
-        .format_if_mount_failed = true
+        .format_if_mount_failed = false
     };
 
     esp_err_t ret = esp_vfs_spiffs_register(&conf);
@@ -204,11 +223,26 @@ extern "C" void app_main(void)
         }
     } else {
         size_t total = 0, used = 0;
-        ret = esp_spiffs_info(NULL, &total, &used);
+        ret = esp_spiffs_info("spiffs", &total, &used);
         if (ret != ESP_OK) {
             ESP_LOGE(TAG, "Failed to get SPIFFS partition information (%s)", esp_err_to_name(ret));
         } else {
-            ESP_LOGI(TAG, "Partition size: total: %d, used: %d", total, used);
+            ESP_LOGI(TAG, "Partition size: total: %u, used: %u", (unsigned int)total, (unsigned int)used);
+            if (used == 0) {
+                ESP_LOGW(TAG, "SPIFFS partition is empty! Did you run 'pio run -t uploadfs'?");
+            }
+        }
+
+        ESP_LOGI(TAG, "Listing files in /spiffs:");
+        DIR* dir = opendir("/spiffs");
+        if (dir) {
+            struct dirent* ent;
+            while ((ent = readdir(dir)) != NULL) {
+                ESP_LOGI(TAG, "Found file: %s", ent->d_name);
+            }
+            closedir(dir);
+        } else {
+            ESP_LOGE(TAG, "Failed to open /spiffs directory");
         }
 
         if (flaputils::load_data("/spiffs/flapDescriptor.json")) {
