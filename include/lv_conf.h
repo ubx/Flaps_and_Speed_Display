@@ -12,13 +12,10 @@
  */
 
 /* clang-format off */
-#if 0 /* Set this to "1" to enable content */
+#if 1 /* Set this to "1" to enable content */
 
 #ifndef LV_CONF_H
 #define LV_CONF_H
-
-#define LV_FONT_MONTSERRAT_26  1
-#define LV_FONT_UNSCII_16      1
 
 /* If you need to include anything here, do it inside the `__ASSEMBLY__` guard */
 #if  0 && defined(__ASSEMBLY__)
@@ -595,7 +592,7 @@
 #define LV_FONT_MONTSERRAT_20 0
 #define LV_FONT_MONTSERRAT_22 0
 #define LV_FONT_MONTSERRAT_24 0
-#define LV_FONT_MONTSERRAT_26 0
+#define LV_FONT_MONTSERRAT_26 1
 #define LV_FONT_MONTSERRAT_28 0
 #define LV_FONT_MONTSERRAT_30 0
 #define LV_FONT_MONTSERRAT_32 0
@@ -618,7 +615,7 @@
 
 /** Pixel perfect monospaced fonts */
 #define LV_FONT_UNSCII_8  0
-#define LV_FONT_UNSCII_16 0
+#define LV_FONT_UNSCII_16 1
 
 /** Optionally declare custom fonts here.
  *
