@@ -1,3 +1,4 @@
+#ifndef NATIVE_BUILD
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -15,6 +16,7 @@
 #endif
 
 #include "flaputils.hpp"
+#include "display.hpp"
 
 static const char* TAG = "CANReceiver";
 
@@ -179,6 +181,12 @@ private:
 static FlightData flight_state;
 static CANReceiver receiver(flight_state);
 
+float get_ias_kmh()
+{
+    std::lock_guard<std::mutex> lock(flight_state.mtx);
+    return flight_state.ias * 3.6f;
+}
+
 void print_task(void* arg)
 {
     FlightData* data = (FlightData*)arg;
@@ -286,6 +294,7 @@ extern "C" void app_main(void)
             ESP_LOGI(TAG, "TWAI Driver started");
             receiver.start();
             xTaskCreate(print_task, "print_task", 4096, &flight_state, 2, NULL);
+            display_start();
         }
         else
         {
@@ -297,3 +306,4 @@ extern "C" void app_main(void)
         ESP_LOGE(TAG, "Failed to install TWAI driver");
     }
 }
+#endif // NATIVE_BUILD
