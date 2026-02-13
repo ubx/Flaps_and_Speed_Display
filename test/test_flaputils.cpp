@@ -12,7 +12,7 @@
 void run_tests() {
     using namespace flaputils;
 
-    const char* candidates[] = {"data/flapDescriptor.json", "flapDescriptor.json", "/spiffs/flapDescriptor.json"};
+    const char* candidates[] = {"spiffs_data/flapDescriptor.json", "flapDescriptor.json", "/spiffs/flapDescriptor.json"};
     bool loaded = false;
     for (const char* p : candidates) {
         if (load_data(p)) { printf("Loaded flap data from %s\n", p); loaded = true; break; }
