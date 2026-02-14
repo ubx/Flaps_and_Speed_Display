@@ -13,7 +13,7 @@ This directory contains the test suite for the `flaputils` library.
    ```bash
    .pio/build/native/program
    ```
-   *Note: Ensure you are in the project root directory so the program can find `data/flapDescriptor.json`.*
+   *Note: Ensure you are in the project root directory so the program can find `spiffs_data/flapDescriptor.json`.*
 
 #### Option B: Plain g++
 1. Install `cJSON` (e.g., `sudo apt-get install libcjson-dev` on Ubuntu).
@@ -29,6 +29,6 @@ This directory contains the test suite for the `flaputils` library.
    ```
 
 ### Notes
-- The test loads data from `data/flapDescriptor.json`.
+- The test loads data from `spiffs_data/flapDescriptor.json`.
 - It verifies empty mass, flap symbol lookup, and optimal flap interpolation.
 - The same test file can also be run on ESP-IDF targets.
