@@ -17,16 +17,17 @@ float get_ias_kmh();
 
 static const char *TAG = "display";
 
-#define LCD_H_RES              454
-#define LCD_V_RES              454
+#define LCD_H_RES              390
+#define LCD_V_RES              450
 
-#define LCD_PIN_NUM_QSPI_PCLK  10
-#define LCD_PIN_NUM_QSPI_CS    9
-#define LCD_PIN_NUM_QSPI_D0    11
-#define LCD_PIN_NUM_QSPI_D1    12
-#define LCD_PIN_NUM_QSPI_D2    13
-#define LCD_PIN_NUM_QSPI_D3    14
-#define LCD_PIN_NUM_LCD_RST    21
+#define LCD_PIN_NUM_QSPI_PCLK  6
+#define LCD_PIN_NUM_QSPI_CS    7
+#define LCD_PIN_NUM_QSPI_D0    8
+#define LCD_PIN_NUM_QSPI_D1    9
+#define LCD_PIN_NUM_QSPI_D2    10
+#define LCD_PIN_NUM_QSPI_D3    11
+#define LCD_PIN_NUM_LCD_RST    12
+#define LCD_PIN_NUM_LCD_PWR    15
 
 static lv_obj_t* s_scale = nullptr;
 static lv_obj_t* s_needle = nullptr;
@@ -59,7 +60,7 @@ static void create_speed_gauge()
     // Create a round inner scale acting as a speedometer: 40..280 km/h
     s_scale = lv_scale_create(lv_screen_active());
     lv_obj_center(s_scale);
-    lv_obj_set_size(s_scale, 280, 280); // Increased size for 454x454 screen
+    lv_obj_set_size(s_scale, 320, 320); // Adjusted size for 390x450 screen
 
     lv_scale_set_mode(s_scale, LV_SCALE_MODE_ROUND_INNER);
     lv_scale_set_range(s_scale, 40, 280);
@@ -84,7 +85,7 @@ static void create_speed_gauge()
 
     // Center circle with value + unit
     lv_obj_t* center = lv_obj_create(lv_screen_active());
-    lv_obj_set_size(center, 150, 150); // Increased size for 454x454 screen
+    lv_obj_set_size(center, 140, 140); // Adjusted size for 390x450 screen
     lv_obj_center(center);
     lv_obj_set_style_radius(center, LV_RADIUS_CIRCLE, 0);
     lv_obj_set_style_bg_opa(center, LV_OPA_COVER, 0);
@@ -143,6 +144,18 @@ void display_start()
     static bool inited = false;
     if (!inited) {
         inited = true;
+
+        ESP_LOGI(TAG, "Initialize LCD Power");
+        gpio_config_t pwr_gpio_config = {
+            .pin_bit_mask = 1ULL << LCD_PIN_NUM_LCD_PWR,
+            .mode = GPIO_MODE_OUTPUT,
+            .pull_up_en = GPIO_PULLUP_DISABLE,
+            .pull_down_en = GPIO_PULLDOWN_DISABLE,
+            .intr_type = GPIO_INTR_DISABLE,
+        };
+        ESP_ERROR_CHECK(gpio_config(&pwr_gpio_config));
+        ESP_ERROR_CHECK(gpio_set_level((gpio_num_t)LCD_PIN_NUM_LCD_PWR, 1));
+        vTaskDelay(pdMS_TO_TICKS(100)); // Give some time for power to stabilize
 
         ESP_LOGI(TAG, "Initialize SPI bus");
         const spi_bus_config_t buscfg = SH8601_PANEL_BUS_QSPI_CONFIG(LCD_PIN_NUM_QSPI_PCLK,
