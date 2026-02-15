@@ -35,11 +35,19 @@ static lv_obj_t* s_value_label = nullptr;
 static lv_display_t* s_disp = nullptr;
 static esp_lcd_panel_handle_t s_panel_handle = nullptr;
 
+static const sh8601_lcd_init_cmd_t custom_init_cmds[] = {
+    {0x11, nullptr, 0, 120}, // Sleep Out
+    {0x44, (uint8_t[]){0x00, 0xc8}, 2, 0},
+    {0x35, (uint8_t[]){0x00}, 0, 0},
+    {0x53, (uint8_t[]){0x20}, 1, 10},
+    {0x29, nullptr, 0, 20}, // Display On
+};
+
 static bool notify_lvgl_flush_ready(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_event_data_t *edata, void *user_ctx)
 {
-    lv_display_t * disp = lv_display_get_default();
-    if (disp) {
-        lv_display_flush_ready(disp);
+    lv_display_t ** disp_ptr = (lv_display_t **)user_ctx;
+    if (disp_ptr && *disp_ptr) {
+        lv_display_flush_ready(*disp_ptr);
     }
     return false;
 }
@@ -57,8 +65,12 @@ static void example_lvgl_flush_cb(lv_display_t * disp, const lv_area_t * area, u
 
 static void create_speed_gauge()
 {
+    lv_obj_t* scr = lv_screen_active();
+    lv_obj_set_style_bg_color(scr, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, LV_PART_MAIN);
+
     // Create a round inner scale acting as a speedometer: 40..280 km/h
-    s_scale = lv_scale_create(lv_screen_active());
+    s_scale = lv_scale_create(scr);
     lv_obj_center(s_scale);
     lv_obj_set_size(s_scale, 320, 320); // Adjusted size for 390x450 screen
 
@@ -103,7 +115,7 @@ static void create_speed_gauge()
     lv_obj_align(unit, LV_ALIGN_BOTTOM_MID, 0, -15);
 
     // Set initial needle value
-    lv_scale_set_line_needle_value(s_scale, s_needle, 0, 40);
+    lv_scale_set_line_needle_value(s_scale, s_needle, 22, 40);
 }
 
 static void lvgl_task(void* /*arg*/)
@@ -127,7 +139,7 @@ static void lvgl_task(void* /*arg*/)
             if (v > 280.0f) v = 280.0f;
 
             if (s_scale && s_needle) {
-                lv_scale_set_line_needle_value(s_scale, s_needle, 0, static_cast<int32_t>(v));
+                lv_scale_set_line_needle_value(s_scale, s_needle, 22, static_cast<int32_t>(v));
             }
             if (s_value_label) {
                 lv_label_set_text_fmt(s_value_label, "%d", static_cast<int>(v + 0.5f));
@@ -163,18 +175,20 @@ void display_start()
                                                                     LCD_PIN_NUM_QSPI_D1,
                                                                     LCD_PIN_NUM_QSPI_D2,
                                                                     LCD_PIN_NUM_QSPI_D3,
-                                                                    LCD_H_RES * LCD_V_RES * sizeof(lv_color_t) / 4);
+                                                                    65535);
         ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST, &buscfg, SPI_DMA_CH_AUTO));
 
         ESP_LOGI(TAG, "Install panel IO");
         esp_lcd_panel_io_handle_t io_handle = NULL;
         const esp_lcd_panel_io_spi_config_t io_config = SH8601_PANEL_IO_QSPI_CONFIG(LCD_PIN_NUM_QSPI_CS,
                                                                                     notify_lvgl_flush_ready,
-                                                                                    nullptr); // Will set user_data later
+                                                                                    &s_disp);
         ESP_ERROR_CHECK(esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)SPI2_HOST, &io_config, &io_handle));
 
         ESP_LOGI(TAG, "Install SH8601 panel driver");
         const sh8601_vendor_config_t vendor_config = {
+            .init_cmds = custom_init_cmds,
+            .init_cmds_size = sizeof(custom_init_cmds) / sizeof(custom_init_cmds[0]),
             .flags = {
                 .use_qspi_interface = 1,
             },
@@ -182,7 +196,9 @@ void display_start()
         const esp_lcd_panel_dev_config_t panel_config = {
             .reset_gpio_num = LCD_PIN_NUM_LCD_RST,
             .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
+            .data_endian = {},
             .bits_per_pixel = 16,
+            .flags = {},
             .vendor_config = (void*)&vendor_config,
         };
         ESP_ERROR_CHECK(esp_lcd_new_panel_sh8601(io_handle, &panel_config, &s_panel_handle));
