@@ -129,7 +129,7 @@ void display_start()
         create_speed_gauge();
 
         // Start LVGL/ticker task
-        xTaskCreatePinnedToCore(lvgl_task, "lvgl", 4096, nullptr, 5, nullptr, tskNO_AFFINITY);
+        xTaskCreatePinnedToCore(lvgl_task, "lvgl", 8192, nullptr, 5, nullptr, tskNO_AFFINITY);
     }
 }
 
