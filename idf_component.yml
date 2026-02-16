@@ -1,0 +1,2 @@
+dependencies:
+  waveshare/esp32_s3_touch_amoled_1_75: "^2.0.6"
