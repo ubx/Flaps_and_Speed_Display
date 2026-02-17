@@ -2,7 +2,7 @@ Import("env")
 from pathlib import Path
 
 proj = Path(env["PROJECT_DIR"])
-cmake = proj / "managed_components" / "espressif__esp_lvgl_adapter" / "CMakeLists.txt"
+cmake = proj / "components" / "espressif__esp_lvgl_adapter" / "CMakeLists.txt"
 
 def patch():
     if not cmake.exists():
@@ -19,6 +19,8 @@ def patch():
         'target_compile_options(${lvgl_comp_lib} PUBLIC -include "${CMAKE_CURRENT_SOURCE_DIR}/src/display/ports/lvgl_port_alignment.h")',
         'target_compile_options(${lvgl_comp_lib} PUBLIC "-include${CMAKE_CURRENT_SOURCE_DIR}/src/display/ports/lvgl_port_alignment.h")',
     )
+dependencies:
+  waveshare/esp32_s3_touch_amoled_1_75: "^2.0.6"
 
     if s2 != s:
         cmake.write_text(s2, encoding="utf-8")
