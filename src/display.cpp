@@ -73,7 +73,7 @@ static void ui_create_gauge()
     lv_scale_set_label_show(s_scale, true);
 
     lv_obj_set_style_text_color(s_scale, lv_color_white(), 0);
-    lv_obj_set_style_text_font(s_scale, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_font(s_scale, &lv_font_montserrat_16, 0);
 
     // Needle
     s_needle = lv_line_create(s_scale);
@@ -84,14 +84,14 @@ static void ui_create_gauge()
     // Center value
     s_label = lv_label_create(scr);
     lv_obj_set_style_text_color(s_label, lv_color_white(), 0);
-    lv_obj_set_style_text_font(s_label, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_font(s_label, &lv_font_montserrat_16, 0);
     lv_label_set_text(s_label, "40");
     lv_obj_center(s_label);
 
     // Unit
     lv_obj_t *unit = lv_label_create(scr);
     lv_obj_set_style_text_color(unit, lv_color_white(), 0);
-    lv_obj_set_style_text_font(unit, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_font(unit, &lv_font_montserrat_16, 0);
     lv_label_set_text(unit, "km/h");
     lv_obj_align(unit, LV_ALIGN_CENTER, 0, 30);
 
