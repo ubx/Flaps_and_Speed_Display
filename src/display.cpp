@@ -18,6 +18,41 @@ static lv_obj_t *s_scale  = nullptr;
 static lv_obj_t *s_needle = nullptr;
 static lv_obj_t *s_label  = nullptr;
 
+// Needle dimensions
+static constexpr int32_t NEEDLE_INNER_RADIUS = 60;
+static constexpr int32_t NEEDLE_OUTER_RADIUS = 150;
+
+/**
+ * Custom needle update that supports an inner radius (gap from center)
+ */
+static void ui_set_line_needle_value(lv_obj_t *scale_obj, lv_obj_t *needle_line, int32_t inner_length, int32_t outer_length, int32_t value)
+{
+    lv_obj_align(needle_line, LV_ALIGN_TOP_LEFT, 0, 0);
+
+    int32_t rotation = lv_scale_get_rotation(scale_obj);
+    int32_t angle_range = lv_scale_get_angle_range(scale_obj);
+    int32_t min = lv_scale_get_range_min_value(scale_obj);
+    int32_t max = lv_scale_get_range_max_value(scale_obj);
+    int32_t width = lv_obj_get_style_width(scale_obj, LV_PART_MAIN);
+    int32_t height = lv_obj_get_style_height(scale_obj, LV_PART_MAIN);
+
+    int32_t angle = 0;
+    if (value > min) {
+        if (value > max) angle = angle_range;
+        else angle = (int32_t)((int64_t)angle_range * (value - min) / (max - min));
+    }
+
+    int32_t total_angle = rotation + angle;
+
+    static lv_point_precise_t points[2];
+    points[0].x = (width / 2) + ((inner_length * lv_trigo_cos(total_angle)) >> LV_TRIGO_SHIFT);
+    points[0].y = (height / 2) + ((inner_length * lv_trigo_sin(total_angle)) >> LV_TRIGO_SHIFT);
+    points[1].x = (width / 2) + ((outer_length * lv_trigo_cos(total_angle)) >> LV_TRIGO_SHIFT);
+    points[1].y = (height / 2) + ((outer_length * lv_trigo_sin(total_angle)) >> LV_TRIGO_SHIFT);
+
+    lv_line_set_points(needle_line, points, 2);
+}
+
 static void ui_create_gauge()
 {
     lv_obj_t *scr = lv_screen_active();
@@ -61,7 +96,7 @@ static void ui_create_gauge()
     lv_obj_align(unit, LV_ALIGN_CENTER, 0, 30);
 
     // Initial position
-    lv_scale_set_line_needle_value(s_scale, s_needle, 120, 40);
+    ui_set_line_needle_value(s_scale, s_needle, NEEDLE_INNER_RADIUS, NEEDLE_OUTER_RADIUS, 40);
 }
 
 static void ui_update_timer_cb(lv_timer_t * /*t*/)
@@ -74,7 +109,7 @@ static void ui_update_timer_cb(lv_timer_t * /*t*/)
     const int32_t vi = (int32_t)(v + 0.5f);
 
     if (s_scale && s_needle) {
-        lv_scale_set_line_needle_value(s_scale, s_needle, 120, vi);
+        ui_set_line_needle_value(s_scale, s_needle, NEEDLE_INNER_RADIUS, NEEDLE_OUTER_RADIUS, vi);
     }
     if (s_label) {
         lv_label_set_text_fmt(s_label, "%d", (int)vi);
