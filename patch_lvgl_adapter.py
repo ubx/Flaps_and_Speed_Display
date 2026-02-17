@@ -6,9 +6,10 @@ cmake = proj / "components" / "espressif__esp_lvgl_adapter" / "CMakeLists.txt"
 
 def patch():
     if not cmake.exists():
+        print(">>> NOTHING PATCHED")
         return
 
-    print(">>> PATCH.....")
+    print(">>> PATCH ", cmake)
     s = cmake.read_text(encoding="utf-8")
 
     # Replace the split -include form with the sticky form (prevents argument splitting)
@@ -19,8 +20,6 @@ def patch():
         'target_compile_options(${lvgl_comp_lib} PUBLIC -include "${CMAKE_CURRENT_SOURCE_DIR}/src/display/ports/lvgl_port_alignment.h")',
         'target_compile_options(${lvgl_comp_lib} PUBLIC "-include${CMAKE_CURRENT_SOURCE_DIR}/src/display/ports/lvgl_port_alignment.h")',
     )
-dependencies:
-  waveshare/esp32_s3_touch_amoled_1_75: "^2.0.6"
 
     if s2 != s:
         cmake.write_text(s2, encoding="utf-8")

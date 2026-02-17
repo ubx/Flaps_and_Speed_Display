@@ -10,7 +10,7 @@ dependencies:
       require: private
       version: '>=4.0'
     source:
-      registry_url: https://components.espressif.com
+      registry_url: https://components.espressif.com/
       type: service
     version: 4.1.5
   espressif/cmake_utilities:
@@ -96,7 +96,7 @@ dependencies:
       require: private
       version: '>=4.4.2'
     source:
-      registry_url: https://components.espressif.com
+      registry_url: https://components.espressif.com/
       type: service
     version: 1.2.1
   espressif/esp_lv_decoder:
@@ -118,7 +118,7 @@ dependencies:
       require: private
       version: '>=8,<10'
     source:
-      registry_url: https://components.espressif.com
+      registry_url: https://components.espressif.com/
       type: service
     targets:
     - esp32
@@ -149,46 +149,14 @@ dependencies:
       require: private
       version: '>=8,<10'
     source:
-      registry_url: https://components.espressif.com
+      registry_url: https://components.espressif.com/
       type: service
     version: 1.0.1
   espressif/esp_lvgl_adapter:
-    component_hash: a86c36e1f762bca480672f17ecd759f54d38fd802a709fff142ccfac4d8466a6
-    dependencies:
-    - name: espressif/button
-      registry_url: https://components.espressif.com
-      require: public
-      version: 4.*
-    - name: espressif/esp_lcd_touch
-      registry_url: https://components.espressif.com
-      require: public
-      version: 1.*
-    - name: espressif/esp_lv_decoder
-      registry_url: https://components.espressif.com
-      require: public
-      version: 0.*
-    - name: espressif/esp_lv_fs
-      registry_url: https://components.espressif.com
-      require: public
-      version: 1.*
-    - name: espressif/freetype
-      registry_url: https://components.espressif.com
-      require: public
-      version: 2.*
-    - name: espressif/knob
-      registry_url: https://components.espressif.com
-      require: public
-      version: 1.*
-    - name: idf
-      require: private
-      version: '>=5.5'
-    - name: lvgl/lvgl
-      registry_url: https://components.espressif.com
-      require: private
-      version: '>=8,<10'
+    dependencies: []
     source:
-      registry_url: https://components.espressif.com
-      type: service
+      path: /media/andreas/data2/workspace2/Flaps_and_Speed_Display/components/espressif__esp_lvgl_adapter
+      type: local
     version: 0.1.4
   espressif/esp_mmap_assets:
     component_hash: 91d785326b03db15e2f7f1314d8c976d38f21aa5759b570dcbbc89bcf247fd27
@@ -227,7 +195,7 @@ dependencies:
       require: private
       version: '>=4.4'
     source:
-      registry_url: https://components.espressif.com
+      registry_url: https://components.espressif.com/
       type: service
     version: 2.13.3~1
   espressif/knob:
@@ -241,7 +209,7 @@ dependencies:
       require: private
       version: '>=4.4.1'
     source:
-      registry_url: https://components.espressif.com
+      registry_url: https://components.espressif.com/
       type: service
     version: 1.0.2
   espressif/libpng:
@@ -276,7 +244,7 @@ dependencies:
     component_hash: 17e68bfd21f0edf4c3ee838e2273da840bf3930e5dbc3bfa6c1190c3aed41f9f
     dependencies: []
     source:
-      registry_url: https://components.espressif.com
+      registry_url: https://components.espressif.com/
       type: service
     version: 9.4.0
   waveshare/esp32_s3_touch_amoled_1_75:
@@ -334,7 +302,16 @@ dependencies:
       type: service
     version: 1.0.4
 direct_dependencies:
+- espressif/button
+- espressif/esp_lcd_touch
+- espressif/esp_lv_decoder
+- espressif/esp_lv_fs
+- espressif/esp_lvgl_adapter
+- espressif/freetype
+- espressif/knob
+- idf
+- lvgl/lvgl
 - waveshare/esp32_s3_touch_amoled_1_75
-manifest_hash: 92593f0a3d9061de3d3ba4e3f75f7062efedc2093846fc50a08f8a7f939179af
+manifest_hash: e6ec607d63d68d2a529f3bffd4d4f6f244027c13e4cce96f5fd25d40884a76f4
 target: esp32s3
 version: 2.0.0
