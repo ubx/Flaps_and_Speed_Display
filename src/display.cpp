@@ -61,7 +61,7 @@ static void ui_create_gauge()
     lv_obj_align(unit, LV_ALIGN_CENTER, 0, 30);
 
     // Initial position
-    lv_scale_set_line_needle_value(s_scale, s_needle, 20, 40);
+    lv_scale_set_line_needle_value(s_scale, s_needle, 120, 40);
 }
 
 static void ui_update_timer_cb(lv_timer_t * /*t*/)
@@ -74,7 +74,7 @@ static void ui_update_timer_cb(lv_timer_t * /*t*/)
     const int32_t vi = (int32_t)(v + 0.5f);
 
     if (s_scale && s_needle) {
-        lv_scale_set_line_needle_value(s_scale, s_needle, 100, vi);
+        lv_scale_set_line_needle_value(s_scale, s_needle, 120, vi);
     }
     if (s_label) {
         lv_label_set_text_fmt(s_label, "%d", (int)vi);
@@ -109,10 +109,14 @@ void display_start()
     }
 
     // Build UI
-    ui_create_gauge();
+    if (bsp_display_lock(-1) == ESP_OK) {
+        ui_create_gauge();
 
-    // Update at 10 Hz inside LVGL context (no extra FreeRTOS LVGL tasks needed)
-    lv_timer_create(ui_update_timer_cb, 100, nullptr);
+        // Update at 10 Hz inside LVGL context (no extra FreeRTOS LVGL tasks needed)
+        lv_timer_create(ui_update_timer_cb, 100, nullptr);
+
+        bsp_display_unlock();
+    }
 
     ESP_LOGI(TAG, "Display UI ready");
 }
