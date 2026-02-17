@@ -74,7 +74,7 @@ static void ui_update_timer_cb(lv_timer_t * /*t*/)
     const int32_t vi = (int32_t)(v + 0.5f);
 
     if (s_scale && s_needle) {
-        lv_scale_set_line_needle_value(s_scale, s_needle, 20, vi);
+        lv_scale_set_line_needle_value(s_scale, s_needle, 100, vi);
     }
     if (s_label) {
         lv_label_set_text_fmt(s_label, "%d", (int)vi);
@@ -89,9 +89,22 @@ void display_start()
     // - correct SPI host (SPI2 on this board)
     // - correct pins (PCLK=38, CS=12, D0..D3=4..7, RST=39)
     // - power / panel init sequence
-    lv_display_t *disp = bsp_display_start();
+    // Configure LVGL adapter to run its task on CPU1 to prevent starving IDLE0 watchdog on CPU0
+    bsp_display_cfg_t cfg = {
+        .lv_adapter_cfg = ESP_LV_ADAPTER_DEFAULT_CONFIG(),
+        .rotation = ESP_LV_ADAPTER_ROTATE_0,
+        .tear_avoid_mode = ESP_LV_ADAPTER_TEAR_AVOID_MODE_NONE,
+        .touch_flags = {
+            .swap_xy = 0,
+            .mirror_x = 1,
+            .mirror_y = 1
+        }
+    };
+    cfg.lv_adapter_cfg.task_core_id = 1; // Pin LVGL task to CPU1
+
+    lv_display_t *disp = bsp_display_start_with_config(&cfg);
     if (!disp) {
-        ESP_LOGE(TAG, "bsp_display_start() failed");
+        ESP_LOGE(TAG, "bsp_display_start_with_config() failed");
         return;
     }
 
