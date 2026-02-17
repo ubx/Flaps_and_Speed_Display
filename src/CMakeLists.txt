@@ -1,0 +1,9 @@
+idf_component_register(
+        SRCS
+        "main.cpp"
+        "display.cpp"
+        "flaputils.cpp"
+        INCLUDE_DIRS
+        "."
+        "../include"
+)
