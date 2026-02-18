@@ -1,8 +1,8 @@
 # Flaps and Speed Display
 
-An ESP32-S3 based flight instrument display for flaps and speed data. 
 It uses an AMOLED display with LVGL to provide a graphical gauge for indicated airspeed (IAS) \
 and flaps position, receiving real-time data via the CAN bus (TWAI).
+
 
 ### todo
 - adjust speed gauge size and layout
