@@ -70,6 +70,7 @@ struct FlightData
 
     void print()
     {
+#ifndef ENABLE_DIAGNOSTICS
         std::lock_guard<std::mutex> lock(mtx);
         printf(
             "FlightData: IAS=%.2f, TAS=%.2f, CAS=%.2f, ALT=%.2f, Vario=%.2f, Flap=%d, Lat=%.7f, Lon=%.7f, GS=%.2f, TT=%.2f, Dry + Ballast Mass=%u, ENL=%u\n",
@@ -81,6 +82,7 @@ struct FlightData
         printf("Flaps: Optimal=%s, Actual=%s\n",
                optimal.symbol ? optimal.symbol : "N/A",
                actual.symbol ? actual.symbol : "N/A");
+#endif
     }
 };
 
