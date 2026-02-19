@@ -11,5 +11,6 @@ and flaps position, receiving real-time data via the CAN bus (TWAI).
 - calculate and display the optimal flap position (flaputils::get_optimal_flap)
 - show display invalid when nothing is received after 10 sec
 - design a graphical actual/optimal display
+- on start start display firmare and version 
 - 3D print housing
 - PCB board 
