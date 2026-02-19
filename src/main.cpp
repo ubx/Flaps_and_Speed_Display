@@ -75,10 +75,11 @@ struct FlightData
             "FlightData: IAS=%.2f, TAS=%.2f, CAS=%.2f, ALT=%.2f, Vario=%.2f, Flap=%d, Lat=%.7f, Lon=%.7f, GS=%.2f, TT=%.2f, Dry + Ballast Mass=%u, ENL=%u\n",
             ias * 3.6, tas, cas, alt, vario, flap, lat, lon, gs, tt, dry_and_ballast_mass / 10, enl);
 
-        const flaputils::FlapSymbolResult optimal = flaputils::get_optimal_flap((dry_and_ballast_mass / 10.0) + 84, ias * 3.6);
+        const flaputils::FlapSymbolResult optimal = flaputils::get_optimal_flap(
+            (dry_and_ballast_mass / 10.0) + 84, ias * 3.6);
         const flaputils::FlapSymbolResult actual = flaputils::get_flap_symbol(flap);
-        printf("Flaps: Optimal=%s, Actual=%s\n", 
-               optimal.symbol ? optimal.symbol : "N/A", 
+        printf("Flaps: Optimal=%s, Actual=%s\n",
+               optimal.symbol ? optimal.symbol : "N/A",
                actual.symbol ? actual.symbol : "N/A");
     }
 };
@@ -144,7 +145,8 @@ private:
                 break;
             case 1040: flight_data.update_float("tt", get_float(msg.data));
                 break;
-            case 1515: flight_data.update_uint16("dry_and_ballast_mass", get_ushort(msg.data)); // glide polar mass dry and ballast [ushort kg*10^1]
+            case 1515: flight_data.update_uint16("dry_and_ballast_mass", get_ushort(msg.data));
+                // glide polar mass dry and ballast [ushort kg*10^1]
                 break;
             case 1506: flight_data.update_uint16("enl", get_ushort(msg.data));
                 break;
@@ -158,9 +160,9 @@ private:
     float get_float(const uint8_t* data)
     {
         uint32_t raw = __builtin_bswap32(*(const uint32_t*)(data + 4));
-        return std::bit_cast<float>(raw);   // C++20
+        return std::bit_cast<float>(raw); // C++20
     }
-    
+
     double get_double_l(const uint8_t* data)
     {
         uint32_t raw = __builtin_bswap32(*(const uint32_t*)(data + 4));
@@ -185,6 +187,20 @@ float get_ias_kmh()
 {
     std::lock_guard<std::mutex> lock(flight_state.mtx);
     return flight_state.ias * 3.6f;
+}
+
+flaputils::FlapSymbolResult get_flap_actual()
+{
+    std::lock_guard<std::mutex> lock(flight_state.mtx);
+    return flaputils::get_flap_symbol(flight_state.flap);
+}
+
+
+flaputils::FlapSymbolResult get_flap_target()
+{
+    std::lock_guard<std::mutex> lock(flight_state.mtx);
+    double weight = (flight_state.dry_and_ballast_mass / 10.0) + 84.0;
+    return flaputils::get_optimal_flap(weight, flight_state.ias * 3.6);
 }
 
 void print_task(void* arg)
@@ -216,19 +232,25 @@ extern "C" void app_main(void)
 
 #ifdef ENABLE_DIAGNOSTICS
     // Check if the partition exists
-    const esp_partition_t* partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_SPIFFS, "spiffs");
-    if (partition == NULL) {
+    const esp_partition_t* partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA,
+                                                                ESP_PARTITION_SUBTYPE_DATA_SPIFFS, "spiffs");
+    if (partition == NULL)
+    {
         ESP_LOGE(TAG, "Failed to find SPIFFS partition labeled 'spiffs' in the partition table!");
         // List all data partitions for debugging
         esp_partition_iterator_t it = esp_partition_find(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, NULL);
-        while (it != NULL) {
+        while (it != NULL)
+        {
             const esp_partition_t* p = esp_partition_get(it);
-            ESP_LOGI(TAG, "Found data partition: label=%s, type=%d, subtype=%d, offset=0x%lx, size=0x%lx", 
+            ESP_LOGI(TAG, "Found data partition: label=%s, type=%d, subtype=%d, offset=0x%lx, size=0x%lx",
                      p->label, p->type, p->subtype, (unsigned long)p->address, (unsigned long)p->size);
             it = esp_partition_next(it);
         }
-    } else {
-        ESP_LOGI(TAG, "Found SPIFFS partition at offset 0x%lx, size 0x%lx", (unsigned long)partition->address, (unsigned long)partition->size);
+    }
+    else
+    {
+        ESP_LOGI(TAG, "Found SPIFFS partition at offset 0x%lx, size 0x%lx", (unsigned long)partition->address,
+                 (unsigned long)partition->size);
     }
 #endif
 
@@ -240,22 +262,34 @@ extern "C" void app_main(void)
     };
 
     esp_err_t ret = esp_vfs_spiffs_register(&conf);
-    if (ret != ESP_OK) {
-        if (ret == ESP_FAIL) {
+    if (ret != ESP_OK)
+    {
+        if (ret == ESP_FAIL)
+        {
             ESP_LOGE(TAG, "Failed to mount or format filesystem");
-        } else if (ret == ESP_ERR_NOT_FOUND) {
+        }
+        else if (ret == ESP_ERR_NOT_FOUND)
+        {
             ESP_LOGE(TAG, "Failed to find SPIFFS partition");
-        } else {
+        }
+        else
+        {
             ESP_LOGE(TAG, "Failed to initialize SPIFFS (%s)", esp_err_to_name(ret));
         }
-    } else {
+    }
+    else
+    {
         size_t total = 0, used = 0;
         ret = esp_spiffs_info("spiffs", &total, &used);
-        if (ret != ESP_OK) {
+        if (ret != ESP_OK)
+        {
             ESP_LOGE(TAG, "Failed to get SPIFFS partition information (%s)", esp_err_to_name(ret));
-        } else {
+        }
+        else
+        {
             ESP_LOGI(TAG, "Partition size: total: %u, used: %u", (unsigned int)total, (unsigned int)used);
-            if (used == 0) {
+            if (used == 0)
+            {
                 ESP_LOGW(TAG, "SPIFFS partition is empty! Did you run 'pio run -t uploadfs'?");
             }
         }
@@ -263,20 +297,27 @@ extern "C" void app_main(void)
 #ifdef ENABLE_DIAGNOSTICS
         ESP_LOGI(TAG, "Listing files in /spiffs:");
         DIR* dir = opendir("/spiffs");
-        if (dir) {
+        if (dir)
+        {
             struct dirent* ent;
-            while ((ent = readdir(dir)) != NULL) {
+            while ((ent = readdir(dir)) != NULL)
+            {
                 ESP_LOGI(TAG, "Found file: %s", ent->d_name);
             }
             closedir(dir);
-        } else {
+        }
+        else
+        {
             ESP_LOGE(TAG, "Failed to open /spiffs directory");
         }
 #endif
 
-        if (flaputils::load_data("/spiffs/flapDescriptor.json")) {
+        if (flaputils::load_data("/spiffs/flapDescriptor.json"))
+        {
             ESP_LOGI(TAG, "Flap data loaded successfully");
-        } else {
+        }
+        else
+        {
             ESP_LOGE(TAG, "Failed to load flap data from SPIFFS");
         }
     }

@@ -9,30 +9,42 @@
 // Since it's ESP-IDF, we'll use app_main if it's meant to run on the device,
 // but usually, simple prints go to stdout.
 
-void run_tests() {
+void run_tests()
+{
     using namespace flaputils;
 
-    const char* candidates[] = {"spiffs_data/flapDescriptor.json", "flapDescriptor.json", "/spiffs/flapDescriptor.json"};
+    const char* candidates[] = {
+        "spiffs_data/flapDescriptor.json", "flapDescriptor.json", "/spiffs/flapDescriptor.json"
+    };
     bool loaded = false;
-    for (const char* p : candidates) {
-        if (load_data(p)) { printf("Loaded flap data from %s\n", p); loaded = true; break; }
+    for (const char* p : candidates)
+    {
+        if (load_data(p))
+        {
+            printf("Loaded flap data from %s\n", p);
+            loaded = true;
+            break;
+        }
     }
-    if (!loaded) {
+    if (!loaded)
+    {
         printf("WARNING: Failed to load flapDescriptor.json. Functions may return no data.\n");
     }
 
     printf("Empty Mass (function): %.2f kg\n", get_empty_mass());
-    
+
     printf("\n--- Testing get_flap_symbol ---\n");
     int test_positions[] = {94, 95, 96, 97, 84, 85, 250, 252, 0, 230, 157, 167};
-    for (int pos : test_positions) {
+    for (int pos : test_positions)
+    {
         FlapSymbolResult res = get_flap_symbol(pos);
-        printf("Position %d -> Symbol: %s, Index: %d\n", 
+        printf("Position %d -> Symbol: %s, Index: %d\n",
                pos, res.symbol ? res.symbol : "None", res.index);
     }
 
     printf("\n--- Testing get_optimal_flap (Interpolation) ---\n");
-    struct TestCase {
+    struct TestCase
+    {
         double w;
         double v;
         const char* expected;
@@ -51,12 +63,17 @@ void run_tests() {
         {580, 70, "L", 0}
     };
 
-    for (const auto& tc : test_cases) {
+    for (const auto& tc : test_cases)
+    {
         flaputils::FlapSymbolResult res = get_optimal_flap(tc.w, tc.v);
         bool ok = false;
-        if (res.symbol && tc.expected && std::string(res.symbol) == std::string(tc.expected) && res.index == tc.expected_index) {
+        if (res.symbol && tc.expected && std::string(res.symbol) == std::string(tc.expected) && res.index == tc.
+            expected_index)
+        {
             ok = true;
-        } else if (!res.symbol && !tc.expected && res.index == -1) {
+        }
+        else if (!res.symbol && !tc.expected && res.index == -1)
+        {
             ok = true;
         }
 
@@ -67,12 +84,14 @@ void run_tests() {
 }
 
 #ifdef NATIVE_BUILD
-int main() {
+int main()
+{
     run_tests();
     return 0;
 }
 #else
-extern "C" void app_main(void) {
+extern "C" void app_main(void)
+{
     run_tests();
 }
 #endif

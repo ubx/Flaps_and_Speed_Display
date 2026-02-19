@@ -3,5 +3,7 @@
 #ifndef NATIVE_BUILD
 void display_start();
 #else
-inline void display_start() {}
+inline void display_start()
+{
+}
 #endif

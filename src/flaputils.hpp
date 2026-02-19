@@ -3,28 +3,28 @@
 
 #include <cstddef>
 
-namespace flaputils {
+namespace flaputils
+{
+    // Returns the empty mass of the aircraft in kg (taken from flapDescriptor.json)
+    double get_empty_mass();
 
-// Returns the empty mass of the aircraft in kg (taken from flapDescriptor.json)
-double get_empty_mass();
+    // Loads the flap data from a JSON file. Returns true on success.
+    bool load_data(const char* filepath);
 
-// Loads the flap data from a JSON file. Returns true on success.
-bool load_data(const char* filepath);
+    // Returns the flap symbol for a given raw position and the index in the table.
+    // If no match is found within tolerance, returns {nullptr, -1}.
+    struct FlapSymbolResult
+    {
+        const char* symbol; // nullptr if not found
+        int index; // -1 if not found
+    };
 
-// Returns the flap symbol for a given raw position and the index in the table.
-// If no match is found within tolerance, returns {nullptr, -1}.
-struct FlapSymbolResult {
-    const char* symbol; // nullptr if not found
-    int index;          // -1 if not found
-};
+    FlapSymbolResult get_flap_symbol(int position);
 
-FlapSymbolResult get_flap_symbol(int position);
-
-// Returns the optimal flap symbol (e.g. "L", "+2", "0", "S1") for a given
-// total weight (kg) and indicated airspeed (km/h).
-// Returns {nullptr, -1} if no matching range is found or data is unavailable.
-FlapSymbolResult get_optimal_flap(double gewicht_kg, double geschwindigkeit_kmh);
-
+    // Returns the optimal flap symbol (e.g. "L", "+2", "0", "S1") for a given
+    // total weight (kg) and indicated airspeed (km/h).
+    // Returns {nullptr, -1} if no matching range is found or data is unavailable.
+    FlapSymbolResult get_optimal_flap(double gewicht_kg, double geschwindigkeit_kmh);
 } // namespace flaputils
 
 #endif // FLAPUTILS_HPP
