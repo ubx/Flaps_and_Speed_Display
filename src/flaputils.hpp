@@ -22,8 +22,8 @@ FlapSymbolResult get_flap_symbol(int position);
 
 // Returns the optimal flap symbol (e.g. "L", "+2", "0", "S1") for a given
 // total weight (kg) and indicated airspeed (km/h).
-// Returns nullptr if no matching range is found or data is unavailable.
-const char* get_optimal_flap(double gewicht_kg, double geschwindigkeit_kmh);
+// Returns {nullptr, -1} if no matching range is found or data is unavailable.
+FlapSymbolResult get_optimal_flap(double gewicht_kg, double geschwindigkeit_kmh);
 
 } // namespace flaputils
 

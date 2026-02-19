@@ -177,27 +177,28 @@ static inline void weight_bracket(double w, int& i1, int& i2, double& factor) {
 
 static inline bool has_range(const Range& r) { return r.vmin >= 0.0 && r.vmax >= 0.0; }
 
-const char* get_optimal_flap(double gewicht_kg, double geschwindigkeit_kmh) {
-    if (kBereiche.empty() || kWeights.empty()) return nullptr;
+FlapSymbolResult get_optimal_flap(double gewicht_kg, double geschwindigkeit_kmh) {
+    if (kBereiche.empty() || kWeights.empty()) return {nullptr, -1};
 
     int i1 = 0, i2 = 0; double f = 0.0;
     weight_bracket(gewicht_kg, i1, i2, f);
 
-    for (const auto& b : kBereiche) {
+    for (std::size_t idx = 0; idx < kBereiche.size(); ++idx) {
+        const auto& b = kBereiche[idx];
         if (b.ranges.size() <= (std::size_t)std::max(i1, i2)) continue;
         const Range r1 = b.ranges[i1];
         const Range r2 = b.ranges[i2];
         if (has_range(r1) && has_range(r2)) {
             const double vmin = r1.vmin + f * (r2.vmin - r1.vmin);
             const double vmax = r1.vmax + f * (r2.vmax - r1.vmax);
-            if (geschwindigkeit_kmh >= vmin && geschwindigkeit_kmh <= vmax) return b.wk.c_str();
+            if (geschwindigkeit_kmh >= vmin && geschwindigkeit_kmh <= vmax) return {b.wk.c_str(), static_cast<int>(idx)};
         } else if (has_range(r1)) {
-            if (geschwindigkeit_kmh >= r1.vmin && geschwindigkeit_kmh <= r1.vmax) return b.wk.c_str();
+            if (geschwindigkeit_kmh >= r1.vmin && geschwindigkeit_kmh <= r1.vmax) return {b.wk.c_str(), static_cast<int>(idx)};
         } else if (has_range(r2)) {
-            if (geschwindigkeit_kmh >= r2.vmin && geschwindigkeit_kmh <= r2.vmax) return b.wk.c_str();
+            if (geschwindigkeit_kmh >= r2.vmin && geschwindigkeit_kmh <= r2.vmax) return {b.wk.c_str(), static_cast<int>(idx)};
         }
     }
-    return nullptr;
+    return {nullptr, -1};
 }
 
 } // namespace flaputils

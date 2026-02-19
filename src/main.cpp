@@ -75,10 +75,10 @@ struct FlightData
             "FlightData: IAS=%.2f, TAS=%.2f, CAS=%.2f, ALT=%.2f, Vario=%.2f, Flap=%d, Lat=%.7f, Lon=%.7f, GS=%.2f, TT=%.2f, Dry + Ballast Mass=%u, ENL=%u\n",
             ias * 3.6, tas, cas, alt, vario, flap, lat, lon, gs, tt, dry_and_ballast_mass / 10, enl);
 
-        const char* optimal = flaputils::get_optimal_flap((dry_and_ballast_mass / 10.0) + 84, ias * 3.6);
+        const flaputils::FlapSymbolResult optimal = flaputils::get_optimal_flap((dry_and_ballast_mass / 10.0) + 84, ias * 3.6);
         const flaputils::FlapSymbolResult actual = flaputils::get_flap_symbol(flap);
         printf("Flaps: Optimal=%s, Actual=%s\n", 
-               optimal ? optimal : "N/A", 
+               optimal.symbol ? optimal.symbol : "N/A", 
                actual.symbol ? actual.symbol : "N/A");
     }
 };

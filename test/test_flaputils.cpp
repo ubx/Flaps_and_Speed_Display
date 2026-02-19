@@ -51,16 +51,16 @@ void run_tests() {
     };
 
     for (const auto& tc : test_cases) {
-        const char* res = get_optimal_flap(tc.w, tc.v);
+        flaputils::FlapSymbolResult res = get_optimal_flap(tc.w, tc.v);
         bool ok = false;
-        if (res && tc.expected && std::string(res) == std::string(tc.expected)) {
+        if (res.symbol && tc.expected && std::string(res.symbol) == std::string(tc.expected)) {
             ok = true;
-        } else if (!res && !tc.expected) {
+        } else if (!res.symbol && !tc.expected) {
             ok = true;
         }
 
         printf("Weight %.0fkg, Speed %.0fkm/h -> Optimal Flap: %s (Expected: %s) %s\n",
-               tc.w, tc.v, res ? res : "None", tc.expected ? tc.expected : "None", ok ? "OK" : "NOK");
+               tc.w, tc.v, res.symbol ? res.symbol : "None", tc.expected ? tc.expected : "None", ok ? "OK" : "NOK");
     }
 }
 

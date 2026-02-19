@@ -19,12 +19,14 @@ This directory contains the test suite for the `flaputils` library.
 1. Install `cJSON` (e.g., `sudo apt-get install libcjson-dev` on Ubuntu).
 2. Compile from the project root:
    ```bash
+   cd ..
    g++ -std=c++17 -DNATIVE_BUILD -Isrc \
        test/test_flaputils.cpp src/flaputils.cpp \
        -lcjson -o test_flaputils
    ```
 3. Run the executable:
    ```bash
+   cd ..
    ./test_flaputils
    ```
 
