@@ -30,8 +30,8 @@ static constexpr int32_t NEEDLE_OUTER_RADIUS = 150;
 /**
  * Custom needle update that supports an inner radius (gap from center)
  */
-static void ui_set_line_needle_value(lv_obj_t* scale_obj, lv_obj_t* needle_line, int32_t inner_length,
-                                     int32_t outer_length, int32_t value)
+static void ui_set_line_needle_value(lv_obj_t* scale_obj, lv_obj_t* needle_line, const int32_t inner_length,
+                                     const int32_t outer_length, int32_t value)
 {
     lv_obj_align(needle_line, LV_ALIGN_TOP_LEFT, 0, 0);
 
@@ -46,7 +46,7 @@ static void ui_set_line_needle_value(lv_obj_t* scale_obj, lv_obj_t* needle_line,
     if (value > min)
     {
         if (value > max) angle = angle_range;
-        else angle = (int32_t)((int64_t)angle_range * (value - min) / (max - min));
+        else angle = static_cast<int32_t>((int64_t)angle_range * (value - min) / (max - min));
     }
 
     int32_t total_angle = rotation + angle;
@@ -127,7 +127,7 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
     if (v < 40.0f) v = 40.0f;
     if (v > 280.0f) v = 280.0f;
 
-    const int32_t vi = (int32_t)(v + 0.5f);
+    const int32_t vi = static_cast<int32_t>(v + 0.5f);
 
     if (s_scale && s_needle)
     {
@@ -135,7 +135,7 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
     }
     if (s_label)
     {
-        lv_label_set_text_fmt(s_label, "%d", (int)vi);
+        lv_label_set_text_fmt(s_label, "%d", static_cast<int>(vi));
     }
     if (s_actual_flap_label)
     {
