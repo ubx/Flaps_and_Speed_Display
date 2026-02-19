@@ -36,31 +36,33 @@ void run_tests() {
         double w;
         double v;
         const char* expected;
+        int expected_index;
     };
 
     std::vector<TestCase> test_cases = {
-        {390, 70, "L"},
-        {390, 85, "+1"},
-        {430, 81, "+2"},
-        {600, 100, "+1"},
-        {410, 78, "L"},
-        {410, 79, "+2"},
-        {500, 130, "0"},
-        {580, 270, "S1"},
-        {580, 70, "L"}
+        {390, 70, "L", 0},
+        {390, 85, "+1", 2},
+        {430, 81, "+2", 1},
+        {600, 100, "+1", 2},
+        {410, 78, "L", 0},
+        {410, 79, "+2", 1},
+        {500, 130, "0", 3},
+        {580, 270, "S1", 7},
+        {580, 70, "L", 0}
     };
 
     for (const auto& tc : test_cases) {
         flaputils::FlapSymbolResult res = get_optimal_flap(tc.w, tc.v);
         bool ok = false;
-        if (res.symbol && tc.expected && std::string(res.symbol) == std::string(tc.expected)) {
+        if (res.symbol && tc.expected && std::string(res.symbol) == std::string(tc.expected) && res.index == tc.expected_index) {
             ok = true;
-        } else if (!res.symbol && !tc.expected) {
+        } else if (!res.symbol && !tc.expected && res.index == -1) {
             ok = true;
         }
 
-        printf("Weight %.0fkg, Speed %.0fkm/h -> Optimal Flap: %s (Expected: %s) %s\n",
-               tc.w, tc.v, res.symbol ? res.symbol : "None", tc.expected ? tc.expected : "None", ok ? "OK" : "NOK");
+        printf("Weight %.0fkg, Speed %.0fkm/h -> Optimal Flap: %s, Index: %d (Expected: %s, %d) %s\n",
+               tc.w, tc.v, res.symbol ? res.symbol : "None", res.index,
+               tc.expected ? tc.expected : "None", tc.expected_index, ok ? "OK" : "NOK");
     }
 }
 
