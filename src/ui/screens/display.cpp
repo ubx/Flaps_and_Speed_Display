@@ -4,7 +4,7 @@
 
 #include "esp_log.h"
 #include "lvgl.h"
-#include "flaputils.hpp"
+#include "../../flaputils.hpp"
 
 // Waveshare BSP for this exact board (handles power rails + CO5300 + pins)
 #include "bsp/esp32_s3_touch_amoled_1_75.h"

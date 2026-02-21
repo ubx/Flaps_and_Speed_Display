@@ -16,7 +16,7 @@
 #endif
 
 #include "flaputils.hpp"
-#include "display.hpp"
+#include "ui/screens/display.hpp"
 
 static const char* TAG = "CANReceiver";
 

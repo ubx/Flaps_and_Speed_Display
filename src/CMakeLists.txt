@@ -1,7 +1,7 @@
 idf_component_register(
         SRCS
         "main.cpp"
-        "display.cpp"
+        "ui/screens/display.cpp"
         "flaputils.cpp"
         INCLUDE_DIRS
         "."
