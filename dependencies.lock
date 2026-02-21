@@ -312,6 +312,6 @@ direct_dependencies:
 - idf
 - lvgl/lvgl
 - waveshare/esp32_s3_touch_amoled_1_75
-manifest_hash: e6ec607d63d68d2a529f3bffd4d4f6f244027c13e4cce96f5fd25d40884a76f4
+manifest_hash: 59c66c63cce569612e897248ddef9f4c54ce1e5a494b45d0f0fc9b2d5ea7f4f6
 target: esp32s3
 version: 2.0.0
