@@ -7,10 +7,12 @@ This directory contains the test suite for the `flaputils` library.
 1. Ensure you have PlatformIO installed (`pip install platformio`).
 2. Build the native environment:
    ```bash
+   cd ..
    pio run -e native
    ```
 3. Run the compiled program:
    ```bash
+   cd ..
    .pio/build/native/program
    ```
    *Note: Ensure you are in the project root directory so the program can find `spiffs_data/flapDescriptor.json`.*
@@ -20,7 +22,7 @@ This directory contains the test suite for the `flaputils` library.
 2. Compile from the project root:
    ```bash
    cd ..
-   g++ -std=c++17 -DNATIVE_BUILD -Isrc \
+   g++ -std=c++17 -DNATIVE_TEST_BUILD -Isrc \
        test/test_flaputils.cpp src/flaputils.cpp \
        -lcjson -o test_flaputils
    ```

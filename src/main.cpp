@@ -1,4 +1,4 @@
-#ifndef NATIVE_BUILD
+#ifndef NATIVE_TEST_BUILD
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -349,4 +349,4 @@ extern "C" void app_main(void)
         ESP_LOGE(TAG, "Failed to install TWAI driver");
     }
 }
-#endif // NATIVE_BUILD
+#endif // NATIVE_TEST_BUILD

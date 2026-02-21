@@ -1,6 +1,6 @@
 #include <cmath>
 
-#ifndef NATIVE_BUILD
+#ifndef NATIVE_TEST_BUILD
 
 #include "esp_log.h"
 #include "lvgl.h"

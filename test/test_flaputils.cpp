@@ -83,7 +83,7 @@ void run_tests()
     }
 }
 
-#ifdef NATIVE_BUILD
+#ifdef NATIVE_TEST_BUILD
 int main()
 {
     run_tests();
