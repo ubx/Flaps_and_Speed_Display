@@ -149,7 +149,7 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
     }
 }
 
-void display_start()
+void screen1_start()
 {
     ESP_LOGI(TAG, "Starting Waveshare BSP display...");
 
@@ -192,7 +192,7 @@ void display_start()
 }
 
 #else
-void display_start()
+void screen1_start()
 {
 }
 #endif

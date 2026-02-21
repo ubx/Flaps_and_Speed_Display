@@ -16,7 +16,7 @@
 #endif
 
 #include "flaputils.hpp"
-#include "ui/screens/display.hpp"
+#include "ui/screens/screen1.hpp"
 
 static const char* TAG = "CANReceiver";
 
@@ -337,7 +337,7 @@ extern "C" void app_main(void)
             ESP_LOGI(TAG, "TWAI Driver started");
             receiver.start();
             xTaskCreate(print_task, "print_task", 4096, &flight_state, 2, NULL);
-            display_start();
+            screen1_start();
         }
         else
         {

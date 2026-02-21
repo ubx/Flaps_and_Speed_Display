@@ -1,9 +1,9 @@
 #pragma once
 
 #ifndef NATIVE_TEST_BUILD
-void display_start();
+void screen1_start();
 #else
-inline void display_start()
+inline void screen1_start()
 {
 }
 #endif
