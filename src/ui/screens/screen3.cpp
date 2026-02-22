@@ -6,7 +6,6 @@
 // Waveshare BSP for this exact board (handles power rails + CO5300 + pins)
 #include "bsp/esp32_s3_touch_amoled_1_75.h"
 
-static const char* TAG = "screen3";
 static lv_obj_t* s_screen = nullptr;
 
 static void brightness_slider_event_cb(lv_event_t* e)
@@ -14,7 +13,6 @@ static void brightness_slider_event_cb(lv_event_t* e)
     lv_obj_t* slider = (lv_obj_t*)lv_event_get_target(e);
     int brightness = (int)lv_slider_get_value(slider);
     bsp_display_brightness_set(brightness);
-    ESP_LOGI(TAG, "Brightness set to %d%%", brightness);
 }
 
 static void ui_create_screen3()

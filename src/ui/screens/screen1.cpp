@@ -14,8 +14,6 @@ extern float get_ias_kmh();
 extern flaputils::FlapSymbolResult get_flap_actual();
 extern flaputils::FlapSymbolResult get_flap_target();
 
-static const char* TAG = "display";
-
 // UI objects
 static lv_obj_t* s_screen = nullptr;
 static lv_obj_t* s_scale = nullptr;

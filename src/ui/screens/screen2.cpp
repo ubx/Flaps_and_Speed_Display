@@ -9,7 +9,6 @@
 
 extern flaputils::FlapSymbolResult get_flap_actual();
 
-static const char* TAG = "screen2";
 static lv_obj_t* s_screen = nullptr;
 static lv_obj_t* s_flap_label = nullptr;
 
@@ -30,10 +29,10 @@ static void ui_create_screen2()
 
     // Title
     lv_obj_t* title = lv_label_create(s_screen);
-    lv_label_set_text(title, "FLAPS");
+    lv_label_set_text(title, "Faps Act");
     lv_obj_set_style_text_color(title, lv_color_white(), 0);
     lv_obj_set_style_text_font(title, &lv_font_montserrat_16, 0);
-    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 10);
+    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 80);
 
     // Dynamic Flap Value
     s_flap_label = lv_label_create(s_screen);
