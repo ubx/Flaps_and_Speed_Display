@@ -6,9 +6,9 @@ and flaps position, receiving real-time data via the CAN bus (TWAI).
 
 ### todo
 - adjust speed gauge size and layout
-- replace the numeric speed field
-- read and display the actual flap position (flap)
-- calculate and display the optimal flap position (flaputils::get_optimal_flap)
+- ~~replace the numeric speed field~~
+- ~~read and display the actual flap position (flap)~~
+- ~~calculate and display the optimal flap position (flaputils::get_optimal_flap)~~
 - show display stale when nothing is received after 10 sec
 - design a graphical actual/optimal display
 - on start show about screenwith firmware and version
