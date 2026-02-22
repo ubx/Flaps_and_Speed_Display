@@ -7,6 +7,8 @@
 // Waveshare BSP for this exact board (handles power rails + CO5300 + pins)
 #include "bsp/esp32_s3_touch_amoled_1_75.h"
 
+extern const lv_font_t digits_96;
+
 extern flaputils::FlapSymbolResult get_flap_actual();
 
 static lv_obj_t* s_screen = nullptr;
@@ -17,7 +19,7 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
     if (s_flap_label)
     {
         flaputils::FlapSymbolResult res = get_flap_actual();
-        lv_label_set_text(s_flap_label, res.symbol ? res.symbol : "N/A");
+        lv_label_set_text(s_flap_label, res.symbol ? res.symbol : "-");
     }
 }
 
@@ -36,9 +38,9 @@ static void ui_create_screen2()
 
     // Dynamic Flap Value
     s_flap_label = lv_label_create(s_screen);
-    lv_label_set_text(s_flap_label, "N/A");
+    lv_label_set_text(s_flap_label, "-");
     lv_obj_set_style_text_color(s_flap_label, lv_color_white(), 0);
-    lv_obj_set_style_text_font(s_flap_label, &lv_font_montserrat_48, 0);
+    lv_obj_set_style_text_font(s_flap_label, &digits_96, 0);
     lv_obj_center(s_flap_label);
 }
 

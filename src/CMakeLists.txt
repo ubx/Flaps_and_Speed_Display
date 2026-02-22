@@ -6,6 +6,7 @@ idf_component_register(
         "ui/screens/screen2.cpp"
         "ui/screens/screen3.cpp"
         "flaputils.cpp"
+        "../components/ui/fonts/digits_96.c"
         INCLUDE_DIRS
         "."
         "../include"
