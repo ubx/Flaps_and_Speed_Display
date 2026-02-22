@@ -17,6 +17,7 @@ extern flaputils::FlapSymbolResult get_flap_target();
 static const char* TAG = "display";
 
 // UI objects
+static lv_obj_t* s_screen = nullptr;
 static lv_obj_t* s_scale = nullptr;
 static lv_obj_t* s_needle = nullptr;
 static lv_obj_t* s_label = nullptr;
@@ -62,12 +63,12 @@ static void ui_set_line_needle_value(lv_obj_t* scale_obj, lv_obj_t* needle_line,
 
 static void ui_create_gauge()
 {
-    lv_obj_t* scr = lv_screen_active();
-    lv_obj_set_style_bg_color(scr, lv_color_black(), 0);
-    lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, 0);
+    s_screen = lv_obj_create(nullptr);
+    lv_obj_set_style_bg_color(s_screen, lv_color_black(), 0);
+    lv_obj_set_style_bg_opa(s_screen, LV_OPA_COVER, 0);
 
     // Round inner scale 40..280 km/h
-    s_scale = lv_scale_create(scr);
+    s_scale = lv_scale_create(s_screen);
     lv_obj_set_size(s_scale, 380, 380);
     lv_obj_center(s_scale);
 
@@ -89,28 +90,28 @@ static void ui_create_gauge()
     lv_obj_set_style_line_rounded(s_needle, true, 0);
 
     // Center value
-    s_label = lv_label_create(scr);
+    s_label = lv_label_create(s_screen);
     lv_obj_set_style_text_color(s_label, lv_color_white(), 0);
     lv_obj_set_style_text_font(s_label, &lv_font_montserrat_16, 0);
     lv_label_set_text(s_label, "40");
     lv_obj_center(s_label);
 
     // Unit
-    lv_obj_t* unit = lv_label_create(scr);
+    lv_obj_t* unit = lv_label_create(s_screen);
     lv_obj_set_style_text_color(unit, lv_color_white(), 0);
     lv_obj_set_style_text_font(unit, &lv_font_montserrat_16, 0);
     lv_label_set_text(unit, "km/h");
     lv_obj_align(unit, LV_ALIGN_CENTER, 0, 30);
 
     // Flap label (actual)
-    s_actual_flap_label = lv_label_create(scr);
+    s_actual_flap_label = lv_label_create(s_screen);
     lv_obj_set_style_text_color(s_actual_flap_label, lv_color_white(), 0);
     lv_obj_set_style_text_font(s_actual_flap_label, &lv_font_montserrat_16, 0);
     lv_label_set_text(s_actual_flap_label, "N/A");
     lv_obj_align(s_actual_flap_label, LV_ALIGN_CENTER, 0, -60);
 
     // Target Flap label (optimal)
-    s_target_flap_label = lv_label_create(scr);
+    s_target_flap_label = lv_label_create(s_screen);
     lv_obj_set_style_text_color(s_target_flap_label, lv_color_white(), 0);
     lv_obj_set_style_text_font(s_target_flap_label, &lv_font_montserrat_16, 0);
     lv_label_set_text(s_target_flap_label, "N/A");
@@ -149,50 +150,26 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
     }
 }
 
-void screen1_start()
+void screen1_create()
 {
-    ESP_LOGI(TAG, "Starting Waveshare BSP display...");
+    ui_create_gauge();
 
-    // This initializes:
-    // - correct SPI host (SPI2 on this board)
-    // - correct pins (PCLK=38, CS=12, D0..D3=4..7, RST=39)
-    // - power / panel init sequence
-    // Configure LVGL adapter to run its task on CPU1 to prevent starving IDLE0 watchdog on CPU0
-    bsp_display_cfg_t cfg = {
-        .lv_adapter_cfg = ESP_LV_ADAPTER_DEFAULT_CONFIG(),
-        .rotation = ESP_LV_ADAPTER_ROTATE_0,
-        .tear_avoid_mode = ESP_LV_ADAPTER_TEAR_AVOID_MODE_NONE,
-        .touch_flags = {
-            .swap_xy = 0,
-            .mirror_x = 1,
-            .mirror_y = 1
-        }
-    };
-    cfg.lv_adapter_cfg.task_core_id = 1; // Pin LVGL task to CPU1
+    // Update at 10 Hz inside LVGL context (no extra FreeRTOS LVGL tasks needed)
+    lv_timer_create(ui_update_timer_cb, 100, nullptr);
+}
 
-    lv_display_t* disp = bsp_display_start_with_config(&cfg);
-    if (!disp)
-    {
-        ESP_LOGE(TAG, "bsp_display_start_with_config() failed");
-        return;
-    }
-
-    // Build UI
-    if (bsp_display_lock(-1) == ESP_OK)
-    {
-        ui_create_gauge();
-
-        // Update at 10 Hz inside LVGL context (no extra FreeRTOS LVGL tasks needed)
-        lv_timer_create(ui_update_timer_cb, 100, nullptr);
-
-        bsp_display_unlock();
-    }
-
-    ESP_LOGI(TAG, "Display UI ready");
+lv_obj_t* screen1_get()
+{
+    return s_screen;
 }
 
 #else
-void screen1_start()
+void screen1_create()
 {
+}
+
+lv_obj_t* screen1_get()
+{
+    return nullptr;
 }
 #endif
