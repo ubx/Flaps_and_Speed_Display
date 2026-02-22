@@ -4,6 +4,7 @@ idf_component_register(
         "ui/ui.cpp"
         "ui/screens/screen1.cpp"
         "ui/screens/screen2.cpp"
+        "ui/screens/screen3.cpp"
         "flaputils.cpp"
         INCLUDE_DIRS
         "."

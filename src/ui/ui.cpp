@@ -2,6 +2,7 @@
 #include "lvgl.h"
 #include "screens/screen1.hpp"
 #include "screens/screen2.hpp"
+#include "screens/screen3.hpp"
 #include "esp_log.h"
 #include "bsp/esp32_s3_touch_amoled_1_75.h"
 
@@ -34,6 +35,7 @@ void ui_init(void)
     {
         screen1_create();
         screen2_create();
+        screen3_create();
 
         auto gesture_cb = [](lv_event_t* e) {
             lv_event_code_t code = lv_event_get_code(e);
@@ -42,11 +44,15 @@ void ui_init(void)
                 if (dir == LV_DIR_LEFT) {
                     if (lv_screen_active() == screen1_get()) {
                         lv_screen_load_anim(screen2_get(), LV_SCR_LOAD_ANIM_MOVE_LEFT, 300, 0, false);
+                    } else if (lv_screen_active() == screen2_get()) {
+                        lv_screen_load_anim(screen3_get(), LV_SCR_LOAD_ANIM_MOVE_LEFT, 300, 0, false);
                     } else {
                         lv_screen_load_anim(screen1_get(), LV_SCR_LOAD_ANIM_MOVE_LEFT, 300, 0, false);
                     }
                 } else if (dir == LV_DIR_RIGHT) {
                     if (lv_screen_active() == screen1_get()) {
+                        lv_screen_load_anim(screen3_get(), LV_SCR_LOAD_ANIM_MOVE_RIGHT, 300, 0, false);
+                    } else if (lv_screen_active() == screen3_get()) {
                         lv_screen_load_anim(screen2_get(), LV_SCR_LOAD_ANIM_MOVE_RIGHT, 300, 0, false);
                     } else {
                         lv_screen_load_anim(screen1_get(), LV_SCR_LOAD_ANIM_MOVE_RIGHT, 300, 0, false);
@@ -57,6 +63,7 @@ void ui_init(void)
 
         lv_obj_add_event_cb(screen1_get(), gesture_cb, LV_EVENT_GESTURE, nullptr);
         lv_obj_add_event_cb(screen2_get(), gesture_cb, LV_EVENT_GESTURE, nullptr);
+        lv_obj_add_event_cb(screen3_get(), gesture_cb, LV_EVENT_GESTURE, nullptr);
 
         lv_screen_load(screen1_get());
         bsp_display_unlock();
