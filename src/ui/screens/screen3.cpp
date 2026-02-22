@@ -18,8 +18,8 @@ static void ui_create_screen3()
     lv_obj_t* label = lv_label_create(s_screen);
     lv_label_set_text(label, "Settings");
     lv_obj_set_style_text_color(label, lv_color_white(), 0);
-    lv_obj_set_style_text_font(label, &lv_font_montserrat_48, 0);
-    lv_obj_center(label);
+    lv_obj_set_style_text_font(label, &lv_font_montserrat_16, 0);
+    lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 10);
 }
 
 void screen3_create()
