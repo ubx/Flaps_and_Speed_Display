@@ -1,128 +1,164 @@
-#include <stdio.h>
-#include <string>
+#include <cstdio>
+#include <cstring>
 #include <vector>
 #include "../src/flaputils.hpp"
 
-// PlatformIO/ESP-IDF test entry point is often app_main or similar, 
-// but for a standalone "as in __main__" test, we can provide a function 
-// that can be called from main or used as a test file.
-// Since it's ESP-IDF, we'll use app_main if it's meant to run on the device,
-// but usually, simple prints go to stdout.
-
-void run_tests()
+static int run_tests()
 {
     using namespace flaputils;
 
-    const char* candidates[] = {
-        "spiffs_data/flapDescriptor.json", "flapDescriptor.json", "/spiffs/flapDescriptor.json"
-    };
     bool loaded = false;
+
+#ifdef NATIVE_TEST_BUILD
+    const char* candidates[] = {
+        "spiffs_data/flapDescriptor.json",
+        "flapDescriptor.json",
+        "/spiffs/flapDescriptor.json"
+    };
+#else
+    // On-device: usually only the mounted FS path is meaningful
+    const char* candidates[] = {
+        "/spiffs/flapDescriptor.json",
+        "flapDescriptor.json"
+    };
+#endif
+
     for (const char* p : candidates)
     {
         if (load_data(p))
         {
-            printf("Loaded flap data from %s\n", p);
+            std::printf("Loaded flap data from %s\n", p);
             loaded = true;
             break;
         }
     }
+
     if (!loaded)
     {
-        printf("WARNING: Failed to load flapDescriptor.json. Functions may return no data.\n");
+        std::printf("WARNING: Failed to load flapDescriptor.json. Functions may return no data.\n");
     }
 
-    printf("Empty Mass (function): %.2f kg\n", get_empty_mass());
+    int fails = 0;
 
-    printf("\n--- Testing get_flap_symbol ---\n");
-    int test_positions[] = {94, 95, 96, 97, 84, 85, 250, 252, 0, 230, 157, 167};
-    for (int pos : test_positions)
-    {
-        FlapSymbolResult res = get_flap_symbol(pos);
-        printf("Position %d -> Symbol: %s, Index: %d\n",
-               pos, res.symbol ? res.symbol : "None", res.index);
-    }
-
-    printf("\n--- Testing get_flap_params ---\n");
-    std::vector<FlapSymbolResult> params = get_flap_params();
-    if (!loaded)
-    {
-        printf("Data not loaded: returned %zu entries (expected 0)\n", params.size());
-    }
+    if (loaded)
+        std::printf("Empty Mass: %.2f kg\n", get_empty_mass());
     else
+        std::printf("Empty Mass: (unavailable - data not loaded)\n");
+
+    std::printf("\n--- Testing get_flap_symbol ---\n");
     {
-        bool ok = true;
-        if (params.empty())
+        int test_positions[] = {94, 95, 96, 97, 84, 85, 250, 252, 0, 230, 157, 167};
+        for (int pos : test_positions)
         {
-            ok = false;
+            FlapSymbolResult res = get_flap_symbol(pos);
+            std::printf("Position %d -> Symbol: %s, Index: %d\n",
+                        pos, res.symbol ? res.symbol : "None", res.index);
         }
-        for (std::size_t i = 0; i < params.size(); ++i)
-        {
-            const bool entry_ok = params[i].symbol && params[i].index == static_cast<int>(i);
-            if (!entry_ok) ok = false;
-
-            printf("Param[%zu] -> Symbol: %s, Index: %d (Expected index: %zu) %s\n",
-                   i,
-                   params[i].symbol ? params[i].symbol : "None",
-                   params[i].index,
-                   i,
-                   entry_ok ? "OK" : "NOK");
-        }
-
-        printf("get_flap_params overall: %s (count=%zu)\n",
-               ok ? "OK" : "NOK",
-               params.size());
     }
 
-    printf("\n--- Testing get_optimal_flap (Interpolation) ---\n");
-    struct TestCase
+    std::printf("\n--- Testing get_flap_params ---\n");
     {
-        double w;
-        double v;
-        const char* expected;
-        int expected_index;
-    };
+        auto params = get_flap_params();
 
-    std::vector<TestCase> test_cases = {
-        {390, 70, "L", 0},
-        {390, 85, "+1", 2},
-        {430, 81, "+2", 1},
-        {600, 100, "+1", 2},
-        {410, 78, "L", 0},
-        {410, 79, "+2", 1},
-        {500, 130, "0", 3},
-        {580, 270, "S1", 7},
-        {580, 70, "L", 0}
-    };
-
-    for (const auto& tc : test_cases)
-    {
-        flaputils::FlapSymbolResult res = get_optimal_flap(tc.w, tc.v);
-        bool ok = false;
-        if (res.symbol && tc.expected && std::string(res.symbol) == std::string(tc.expected) && res.index == tc.
-            expected_index)
+        if (!loaded)
         {
-            ok = true;
+            if (!params.empty())
+            {
+                ++fails;
+                std::printf("NOK: Data not loaded but get_flap_params returned %zu entries (expected 0)\n",
+                            params.size());
+            }
+            else
+            {
+                std::printf("OK: Data not loaded and get_flap_params returned 0 entries\n");
+            }
         }
-        else if (!res.symbol && !tc.expected && res.index == -1)
+        else
         {
-            ok = true;
-        }
+            bool ok = !params.empty();
+            if (!ok)
+            {
+                ++fails;
+                std::printf("NOK: get_flap_params returned 0 entries\n");
+            }
 
-        printf("Weight %.0fkg, Speed %.0fkm/h -> Optimal Flap: %s, Index: %d (Expected: %s, %d) %s\n",
-               tc.w, tc.v, res.symbol ? res.symbol : "None", res.index,
-               tc.expected ? tc.expected : "None", tc.expected_index, ok ? "OK" : "NOK");
+            for (std::size_t i = 0; i < params.size(); ++i)
+            {
+                const bool entry_ok = (params[i].symbol != nullptr) && (params[i].index >= 0);
+                if (!entry_ok) ok = false;
+
+                std::printf("Param[%zu] -> Symbol: %s, Index: %d %s\n",
+                            i,
+                            params[i].symbol ? params[i].symbol : "None",
+                            params[i].index,
+                            entry_ok ? "OK" : "NOK");
+            }
+
+            if (!ok) ++fails;
+            std::printf("get_flap_params overall: %s (count=%zu)\n", ok ? "OK" : "NOK", params.size());
+        }
     }
+
+    std::printf("\n--- Testing get_optimal_flap (Interpolation) ---\n");
+    {
+        struct TestCase
+        {
+            double w;
+            double v;
+            const char* expected;
+            int expected_index;
+        };
+
+        const std::vector<TestCase> test_cases = {
+            {390, 70, "L", 0},
+            {390, 85, "+1", 2},
+            {430, 81, "+2", 1},
+            {600, 100, "+1", 2},
+            {410, 78, "L", 0},
+            {410, 79, "+2", 1},
+            {500, 130, "0", 3},
+            {580, 270, "S1", 7},
+            {580, 70, "L", 0}
+        };
+
+        for (const auto& tc : test_cases)
+        {
+            FlapSymbolResult res = get_optimal_flap(tc.w, tc.v);
+
+            bool ok = false;
+            if (tc.expected)
+            {
+                ok = (res.symbol != nullptr) &&
+                    (std::strcmp(res.symbol, tc.expected) == 0) &&
+                    (res.index == tc.expected_index);
+            }
+            else
+            {
+                ok = (res.symbol == nullptr) && (res.index == -1);
+            }
+
+            if (!ok) ++fails;
+
+            std::printf("Weight %.0fkg, Speed %.0fkm/h -> Optimal Flap: %s, Index: %d (Expected: %s, %d) %s\n",
+                        tc.w, tc.v,
+                        res.symbol ? res.symbol : "None", res.index,
+                        tc.expected ? tc.expected : "None", tc.expected_index,
+                        ok ? "OK" : "NOK");
+        }
+    }
+
+    std::printf("\n=== TEST SUMMARY: %s (fails=%d) ===\n", (fails == 0) ? "PASS" : "FAIL", fails);
+    return fails;
 }
 
 #ifdef NATIVE_TEST_BUILD
 int main()
 {
-    run_tests();
-    return 0;
+    return run_tests();
 }
 #else
 extern "C" void app_main(void)
 {
-    run_tests();
+    (void)run_tests();
 }
 #endif
