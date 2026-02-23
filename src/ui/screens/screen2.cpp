@@ -16,6 +16,8 @@ static lv_obj_t* s_flap_label = nullptr;
 
 static void ui_update_timer_cb(lv_timer_t* /*t*/)
 {
+    if (lv_screen_active() != s_screen) return;
+
     if (s_flap_label)
     {
         flaputils::FlapSymbolResult res = get_flap_actual();
@@ -47,7 +49,7 @@ static void ui_create_screen2()
 void screen2_create()
 {
     ui_create_screen2();
-    lv_timer_create(ui_update_timer_cb, 100, nullptr);
+    lv_timer_create(ui_update_timer_cb, 200, nullptr);
 }
 
 lv_obj_t* screen2_get()

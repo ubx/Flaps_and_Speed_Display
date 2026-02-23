@@ -69,8 +69,8 @@ static void ui_create_gauge()
 
     lv_scale_set_mode(s_scale, LV_SCALE_MODE_ROUND_INNER);
     lv_scale_set_range(s_scale, 40, 280);
-    lv_scale_set_total_tick_count(s_scale, 25); // minor ticks
-    lv_scale_set_major_tick_every(s_scale, 2); // major each 5th tick
+    lv_scale_set_total_tick_count(s_scale, 13); // minor ticks
+    lv_scale_set_major_tick_every(s_scale, 2); // major each 2nd tick
     lv_scale_set_angle_range(s_scale, 280);
     lv_scale_set_rotation(s_scale, 130);
     lv_scale_set_label_show(s_scale, true);
@@ -104,6 +104,8 @@ static void ui_create_gauge()
 
 static void ui_update_timer_cb(lv_timer_t* /*t*/)
 {
+    if (lv_screen_active() != s_screen) return;
+
     float v = get_ias_kmh();
     if (std::isnan(v) || std::isinf(v)) v = 0.0f;
     if (v < 40.0f) v = 40.0f;
@@ -125,8 +127,8 @@ void screen1_create()
 {
     ui_create_gauge();
 
-    // Update at 10 Hz inside LVGL context (no extra FreeRTOS LVGL tasks needed)
-    lv_timer_create(ui_update_timer_cb, 100, nullptr);
+    // Update at 5 Hz inside LVGL context (no extra FreeRTOS LVGL tasks needed)
+    lv_timer_create(ui_update_timer_cb, 200, nullptr);
 }
 
 lv_obj_t* screen1_get()
