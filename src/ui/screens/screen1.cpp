@@ -11,20 +11,17 @@
 
 // Provided by your main.cpp (C++ symbols)
 extern float get_ias_kmh();
-extern flaputils::FlapSymbolResult get_flap_actual();
-extern flaputils::FlapSymbolResult get_flap_target();
 
 // UI objects
+extern const lv_font_t digits_120;
 static lv_obj_t* s_screen = nullptr;
 static lv_obj_t* s_scale = nullptr;
 static lv_obj_t* s_needle = nullptr;
 static lv_obj_t* s_label = nullptr;
-static lv_obj_t* s_actual_flap_label = nullptr;
-static lv_obj_t* s_target_flap_label = nullptr;
 
 // Needle dimensions
-static constexpr int32_t NEEDLE_INNER_RADIUS = 120;
-static constexpr int32_t NEEDLE_OUTER_RADIUS = 150;
+static constexpr int32_t NEEDLE_INNER_RADIUS = 130;
+static constexpr int32_t NEEDLE_OUTER_RADIUS = 170;
 
 /**
  * Custom needle update that supports an inner radius (gap from center)
@@ -67,31 +64,31 @@ static void ui_create_gauge()
 
     // Round inner scale 40..280 km/h
     s_scale = lv_scale_create(s_screen);
-    lv_obj_set_size(s_scale, 380, 380);
+    lv_obj_set_size(s_scale, 466, 466);
     lv_obj_center(s_scale);
 
     lv_scale_set_mode(s_scale, LV_SCALE_MODE_ROUND_INNER);
     lv_scale_set_range(s_scale, 40, 280);
     lv_scale_set_total_tick_count(s_scale, 25); // minor ticks
-    lv_scale_set_major_tick_every(s_scale, 5); // major each 5th tick
+    lv_scale_set_major_tick_every(s_scale, 2); // major each 5th tick
     lv_scale_set_angle_range(s_scale, 280);
     lv_scale_set_rotation(s_scale, 130);
     lv_scale_set_label_show(s_scale, true);
 
     lv_obj_set_style_text_color(s_scale, lv_color_white(), 0);
-    lv_obj_set_style_text_font(s_scale, &lv_font_montserrat_16, 0);
+    lv_obj_set_style_text_font(s_scale, &lv_font_montserrat_20, 0);
 
     // Needle
     s_needle = lv_line_create(s_scale);
-    lv_obj_set_style_line_width(s_needle, 8, 0);
+    lv_obj_set_style_line_width(s_needle, 12, 0);
     lv_obj_set_style_line_color(s_needle, lv_color_white(), 0);
     lv_obj_set_style_line_rounded(s_needle, true, 0);
 
     // Center value
     s_label = lv_label_create(s_screen);
     lv_obj_set_style_text_color(s_label, lv_color_white(), 0);
-    lv_obj_set_style_text_font(s_label, &lv_font_montserrat_16, 0);
-    lv_label_set_text(s_label, "40");
+    lv_obj_set_style_text_font(s_label, &digits_120, 0);
+    lv_label_set_text(s_label, "--");
     lv_obj_center(s_label);
 
     // Unit
@@ -99,24 +96,10 @@ static void ui_create_gauge()
     lv_obj_set_style_text_color(unit, lv_color_white(), 0);
     lv_obj_set_style_text_font(unit, &lv_font_montserrat_16, 0);
     lv_label_set_text(unit, "km/h");
-    lv_obj_align(unit, LV_ALIGN_CENTER, 0, 30);
-
-    // Flap label (actual)
-    s_actual_flap_label = lv_label_create(s_screen);
-    lv_obj_set_style_text_color(s_actual_flap_label, lv_color_white(), 0);
-    lv_obj_set_style_text_font(s_actual_flap_label, &lv_font_montserrat_16, 0);
-    lv_label_set_text(s_actual_flap_label, "N/A");
-    lv_obj_align(s_actual_flap_label, LV_ALIGN_CENTER, 0, -60);
-
-    // Target Flap label (optimal)
-    s_target_flap_label = lv_label_create(s_screen);
-    lv_obj_set_style_text_color(s_target_flap_label, lv_color_white(), 0);
-    lv_obj_set_style_text_font(s_target_flap_label, &lv_font_montserrat_16, 0);
-    lv_label_set_text(s_target_flap_label, "N/A");
-    lv_obj_align(s_target_flap_label, LV_ALIGN_CENTER, 0, -90);
+    lv_obj_align(unit, LV_ALIGN_CENTER, 0, 80);
 
     // Initial position
-    ui_set_line_needle_value(s_scale, s_needle, NEEDLE_INNER_RADIUS, NEEDLE_OUTER_RADIUS, 40);
+    ui_set_line_needle_value(s_scale, s_needle, NEEDLE_INNER_RADIUS, NEEDLE_OUTER_RADIUS, 0);
 }
 
 static void ui_update_timer_cb(lv_timer_t* /*t*/)
@@ -135,16 +118,6 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
     if (s_label)
     {
         lv_label_set_text_fmt(s_label, "%d", static_cast<int>(vi));
-    }
-    if (s_actual_flap_label)
-    {
-        flaputils::FlapSymbolResult res = get_flap_actual();
-        lv_label_set_text(s_actual_flap_label, res.symbol ? res.symbol : "N/A");
-    }
-    if (s_target_flap_label)
-    {
-        flaputils::FlapSymbolResult tgt = get_flap_target();
-        lv_label_set_text(s_target_flap_label, tgt.symbol ? tgt.symbol : "N/A");
     }
 }
 
