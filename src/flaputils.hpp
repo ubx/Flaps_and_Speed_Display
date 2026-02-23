@@ -1,7 +1,7 @@
 #ifndef FLAPUTILS_HPP
 #define FLAPUTILS_HPP
 
-#include <cstddef>
+#include <vector>
 
 namespace flaputils
 {
@@ -19,12 +19,16 @@ namespace flaputils
         int index; // -1 if not found
     };
 
+
     FlapSymbolResult get_flap_symbol(int position);
 
     // Returns the optimal flap symbol (e.g. "L", "+2", "0", "S1") for a given
     // total weight (kg) and indicated airspeed (km/h).
     // Returns {nullptr, -1} if no matching range is found or data is unavailable.
     FlapSymbolResult get_optimal_flap(double gewicht_kg, double geschwindigkeit_kmh);
+
+    std::vector<FlapSymbolResult> get_flap_params();
+
 } // namespace flaputils
 
 #endif // FLAPUTILS_HPP

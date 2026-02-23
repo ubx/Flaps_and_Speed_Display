@@ -42,6 +42,37 @@ void run_tests()
                pos, res.symbol ? res.symbol : "None", res.index);
     }
 
+    printf("\n--- Testing get_flap_params ---\n");
+    std::vector<FlapSymbolResult> params = get_flap_params();
+    if (!loaded)
+    {
+        printf("Data not loaded: returned %zu entries (expected 0)\n", params.size());
+    }
+    else
+    {
+        bool ok = true;
+        if (params.empty())
+        {
+            ok = false;
+        }
+        for (std::size_t i = 0; i < params.size(); ++i)
+        {
+            const bool entry_ok = params[i].symbol && params[i].index == static_cast<int>(i);
+            if (!entry_ok) ok = false;
+
+            printf("Param[%zu] -> Symbol: %s, Index: %d (Expected index: %zu) %s\n",
+                   i,
+                   params[i].symbol ? params[i].symbol : "None",
+                   params[i].index,
+                   i,
+                   entry_ok ? "OK" : "NOK");
+        }
+
+        printf("get_flap_params overall: %s (count=%zu)\n",
+               ok ? "OK" : "NOK",
+               params.size());
+    }
+
     printf("\n--- Testing get_optimal_flap (Interpolation) ---\n");
     struct TestCase
     {

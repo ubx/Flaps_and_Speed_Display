@@ -1,6 +1,5 @@
 #include "flaputils.hpp"
 
-#include <vector>
 #include <string>
 #include <cmath>
 #include <cstdio>
@@ -263,5 +262,16 @@ namespace flaputils
             }
         }
         return {nullptr, -1};
+    }
+
+    std::vector<FlapSymbolResult> get_flap_params()
+    {
+        std::vector<FlapSymbolResult> result;
+        result.reserve(kFlapTable.size());
+        for (std::size_t i = 0; i < kFlapTable.size(); ++i)
+        {
+            result.push_back({kFlapTable[i].symbol.c_str(), static_cast<int>(i)});
+        }
+        return result;
     }
 } // namespace flaputils
