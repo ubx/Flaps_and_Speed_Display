@@ -41,21 +41,21 @@ void ui_init(void)
             lv_event_code_t code = lv_event_get_code(e);
             lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_get_act());
             if (code == LV_EVENT_GESTURE) {
-                if (dir == LV_DIR_LEFT) {
+                if (dir == LV_DIR_BOTTOM) {
                     if (lv_screen_active() == screen1_get()) {
-                        lv_screen_load_anim(screen2_get(), LV_SCR_LOAD_ANIM_MOVE_LEFT, 300, 0, false);
+                        lv_screen_load_anim(screen2_get(), LV_SCR_LOAD_ANIM_MOVE_BOTTOM, 300, 0, false);
                     } else if (lv_screen_active() == screen2_get()) {
-                        lv_screen_load_anim(screen3_get(), LV_SCR_LOAD_ANIM_MOVE_LEFT, 300, 0, false);
+                        lv_screen_load_anim(screen3_get(), LV_SCR_LOAD_ANIM_MOVE_BOTTOM, 300, 0, false);
                     } else {
-                        lv_screen_load_anim(screen1_get(), LV_SCR_LOAD_ANIM_MOVE_LEFT, 300, 0, false);
+                        lv_screen_load_anim(screen1_get(), LV_SCR_LOAD_ANIM_MOVE_BOTTOM, 300, 0, false);
                     }
-                } else if (dir == LV_DIR_RIGHT) {
+                } else if (dir == LV_DIR_TOP) {
                     if (lv_screen_active() == screen1_get()) {
-                        lv_screen_load_anim(screen3_get(), LV_SCR_LOAD_ANIM_MOVE_RIGHT, 300, 0, false);
+                        lv_screen_load_anim(screen3_get(), LV_SCR_LOAD_ANIM_MOVE_TOP, 300, 0, false);
                     } else if (lv_screen_active() == screen3_get()) {
-                        lv_screen_load_anim(screen2_get(), LV_SCR_LOAD_ANIM_MOVE_RIGHT, 300, 0, false);
+                        lv_screen_load_anim(screen2_get(), LV_SCR_LOAD_ANIM_MOVE_TOP, 300, 0, false);
                     } else {
-                        lv_screen_load_anim(screen1_get(), LV_SCR_LOAD_ANIM_MOVE_RIGHT, 300, 0, false);
+                        lv_screen_load_anim(screen1_get(), LV_SCR_LOAD_ANIM_MOVE_TOP, 300, 0, false);
                     }
                 }
             }
