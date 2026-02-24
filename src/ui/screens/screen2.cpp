@@ -31,6 +31,28 @@ static bool s_hidden_style_inited = false;
 
 static int32_t s_last_target_idx = -9999;
 
+static void update_target_section(int32_t tgt)
+{
+    int32_t max_section = (int32_t)s_section_count - 2; /* sections exist 0..count-2 */
+
+    if(tgt < 0 || max_section < 0) return;
+    if(tgt > max_section) tgt = max_section;
+
+    if(tgt == s_last_target_idx) return;
+
+    if(s_last_target_idx >= 0 && s_last_target_idx <= max_section) {
+        uint32_t pi = (uint32_t)s_last_target_idx;
+        if(pi < 31 && s_sections[pi])
+            lv_scale_section_set_style(s_sections[pi], LV_PART_MAIN, &s_section_hidden_style);
+    }
+
+    uint32_t ni = (uint32_t)tgt;
+    if(ni < 31 && s_sections[ni])
+        lv_scale_section_set_style(s_sections[ni], LV_PART_MAIN, &s_section_styles[ni]);
+
+    s_last_target_idx = tgt;
+}
+
 static void ui_update_timer_cb(lv_timer_t* /*t*/)
 {
     if (lv_screen_active() != s_screen) return;
@@ -65,31 +87,7 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
     /* NEW: show ONLY the section with index == target.index */
     if (s_scale)
     {
-        int32_t tgt = target.index;
-
-        /* Clamp/validate against created sections: sections exist for i = 0..(count-2) */
-        int32_t max_section = (int32_t)s_section_count - 2; /* because last tick has no gap section */
-
-        /* If nothing changed, do nothing */
-        if (tgt == s_last_target_idx) return;
-
-        /* Hide previous section (if valid) */
-        if (s_last_target_idx >= 0 && s_last_target_idx <= max_section)
-        {
-            uint32_t i = (uint32_t)s_last_target_idx;
-            if (i < 31 && s_sections[i])
-                lv_scale_section_set_style(s_sections[i], LV_PART_MAIN, &s_section_hidden_style);
-        }
-
-        /* Show new section (if valid) */
-        if (tgt >= 0 && tgt <= max_section)
-        {
-            uint32_t i = (uint32_t)tgt;
-            if (i < 31 && s_sections[i])
-                lv_scale_section_set_style(s_sections[i], LV_PART_MAIN, &s_section_styles[i]);
-        }
-
-        s_last_target_idx = tgt;
+        update_target_section(target.index);
     }
 }
 
