@@ -15,6 +15,7 @@ static lv_obj_t* s_screen = nullptr;
 static lv_obj_t* s_flap_label = nullptr;
 static lv_obj_t* s_scale = nullptr;
 static const char* s_flap_symbols[32];
+static lv_style_t s_section_styles[32];
 
 static void ui_update_timer_cb(lv_timer_t* /*t*/)
 {
@@ -33,12 +34,6 @@ static void ui_create_screen2()
     lv_obj_set_style_bg_color(s_screen, lv_color_black(), 0);
     lv_obj_set_style_bg_opa(s_screen, LV_OPA_COVER, 0);
 
-    // Title
-    lv_obj_t* title = lv_label_create(s_screen);
-    lv_label_set_text(title, "Faps");
-    lv_obj_set_style_text_color(title, lv_color_white(), 0);
-    lv_obj_set_style_text_font(title, &lv_font_montserrat_16, 0);
-    lv_obj_align(title, LV_ALIGN_CENTER, 0, 80);
 
     // Dynamic Flap Value
     s_flap_label = lv_label_create(s_screen);
@@ -59,7 +54,8 @@ static void ui_create_screen2()
     if (!params.empty())
     {
         uint32_t count = (uint32_t)params.size();
-        lv_scale_set_range(s_scale, 0, count - 1);
+        // Set range 0 to count - 1 so symbols (ticks) are at integer positions 0, 1, 2...
+        lv_scale_set_range(s_scale, 0, (int32_t)(count - 1));
         lv_scale_set_total_tick_count(s_scale, count);
         lv_scale_set_major_tick_every(s_scale, 1);
         lv_scale_set_label_show(s_scale, true);
@@ -67,6 +63,26 @@ static void ui_create_screen2()
         for (uint32_t i = 0; i < count && i < 31; ++i)
         {
             s_flap_symbols[i] = params[i].symbol;
+
+            // Add sections BETWEEN symbols (gaps)
+            if (i < count - 1)
+            {
+                lv_scale_section_t* section = lv_scale_add_section(s_scale);
+                
+                // Section covers the range from symbol i to symbol i+1
+                lv_scale_set_section_range(s_scale, section, (int32_t)i, (int32_t)(i + 1));
+                
+                // Alternating colors for sections (gaps between symbols)
+                lv_color_t section_color = (i % 2 == 0) ? lv_palette_main(LV_PALETTE_BLUE) : lv_palette_main(LV_PALETTE_CYAN);
+                
+                lv_style_init(&s_section_styles[i]);
+                lv_style_set_line_color(&s_section_styles[i], section_color);
+                lv_style_set_line_width(&s_section_styles[i], 10); // Thicker for sections (arc and ticks)
+                
+                lv_scale_set_section_style_indicator(s_scale, section, &s_section_styles[i]);
+                lv_scale_set_section_style_main(s_scale, section, &s_section_styles[i]);
+                lv_scale_set_section_style_items(s_scale, section, &s_section_styles[i]);
+            }
         }
         s_flap_symbols[std::min(count, (uint32_t)31)] = nullptr;
         lv_scale_set_text_src(s_scale, s_flap_symbols);
@@ -76,6 +92,15 @@ static void ui_create_screen2()
     lv_obj_set_style_text_font(s_scale, &lv_font_montserrat_20, 0);
     lv_obj_set_style_line_color(s_scale, lv_color_white(), LV_PART_INDICATOR);
     lv_obj_set_style_line_width(s_scale, 4, LV_PART_INDICATOR);
+    lv_obj_set_style_line_color(s_scale, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_line_width(s_scale, 4, LV_PART_MAIN);
+
+    // Title
+    lv_obj_t* title = lv_label_create(s_screen);
+    lv_label_set_text(title, "Faps");
+    lv_obj_set_style_text_color(title, lv_color_white(), 0);
+    lv_obj_set_style_text_font(title, &lv_font_montserrat_16, 0);
+    lv_obj_align(title, LV_ALIGN_BOTTOM_MID, 0, -10);
 }
 
 void screen2_create()
