@@ -18,7 +18,7 @@ static lv_obj_t* s_triangle_down_canvas = nullptr;
 
 static const char* s_flap_symbols[32];
 
-/* Arc ring segments (one per gap i..i+1, but we will SKIP last->first) */
+/* Arc ring segments (one per gap i..i+1, no last->first wrap) */
 static lv_obj_t* s_seg_arcs[32] = {nullptr};
 static uint32_t  s_seg_count = 0;
 static int32_t   s_last_target_idx = -9999;
@@ -28,14 +28,10 @@ static lv_style_t s_seg_style_visible;
 static lv_style_t s_seg_style_dim;
 static bool s_seg_styles_inited = false;
 
-/* We do NOT draw the “wrap-around” gap between last and first:
-   - means: we only create segments for i = 0..count-2 (already true)
-   - and we also never highlight any wrap-around “direction” case
-*/
 static inline int32_t max_drawable_segment(void)
 {
     if(s_seg_count < 2) return -1;
-    return (int32_t)s_seg_count - 2; /* segments exist for gaps 0..count-2 */
+    return (int32_t)s_seg_count - 2; /* gaps 0..count-2 */
 }
 
 static void set_target_segment(int32_t tgt)
@@ -43,7 +39,6 @@ static void set_target_segment(int32_t tgt)
     const int32_t max_seg = max_drawable_segment();
     if(max_seg < 0) return;
 
-    /* If target is invalid or points to the last tick (no gap), show nothing (dim all) */
     if(tgt < 0 || tgt > max_seg)
     {
         for(uint32_t i = 0; i < (uint32_t)(max_seg + 1) && i < 31; i++) {
@@ -55,7 +50,6 @@ static void set_target_segment(int32_t tgt)
 
     if(tgt == s_last_target_idx) return;
 
-    /* Dim previous */
     if(s_last_target_idx >= 0 && s_last_target_idx <= max_seg)
     {
         uint32_t pi = (uint32_t)s_last_target_idx;
@@ -64,7 +58,6 @@ static void set_target_segment(int32_t tgt)
         }
     }
 
-    /* Dim all once on first valid set (so only one is bright) */
     if(s_last_target_idx == -9999)
     {
         for(uint32_t i = 0; i < (uint32_t)(max_seg + 1) && i < 31; i++) {
@@ -72,7 +65,6 @@ static void set_target_segment(int32_t tgt)
         }
     }
 
-    /* Bright new */
     uint32_t ni = (uint32_t)tgt;
     if(ni < 31 && s_seg_arcs[ni]) {
         lv_obj_add_style(s_seg_arcs[ni], &s_seg_style_visible, LV_PART_INDICATOR);
@@ -111,7 +103,6 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
         }
     }
 
-    /* Highlight only the target gap segment; no wrap-around (last<->first) segment exists */
     set_target_segment(target.index);
 }
 
@@ -121,14 +112,12 @@ static void ui_create_screen2()
     lv_obj_set_style_bg_color(s_screen, lv_color_black(), 0);
     lv_obj_set_style_bg_opa(s_screen, LV_OPA_COVER, 0);
 
-    /* Big center label */
     s_flap_label = lv_label_create(s_screen);
     lv_label_set_text(s_flap_label, "-");
     lv_obj_set_style_text_color(s_flap_label, lv_color_white(), 0);
     lv_obj_set_style_text_font(s_flap_label, &digits_120, 0);
     lv_obj_center(s_flap_label);
 
-    /* Create scale (ticks + labels only) */
     s_scale = lv_scale_create(s_screen);
     lv_obj_set_size(s_scale, 466, 466);
     lv_obj_center(s_scale);
@@ -137,13 +126,12 @@ static void ui_create_screen2()
     lv_scale_set_draw_ticks_on_top(s_scale, true);
     lv_scale_set_label_show(s_scale, true);
 
-    lv_obj_set_style_length(s_scale, 36, LV_PART_INDICATOR); /* major ticks */
-    lv_obj_set_style_length(s_scale, 14, LV_PART_ITEMS);     /* minor ticks */
+    lv_obj_set_style_length(s_scale, 36, LV_PART_INDICATOR);
+    lv_obj_set_style_length(s_scale, 14, LV_PART_ITEMS);
 
     lv_scale_set_angle_range(s_scale, 270);
     lv_scale_set_rotation(s_scale, 135);
 
-    /* Base tick/label style */
     lv_obj_set_style_text_color(s_scale, lv_color_white(), 0);
     lv_obj_set_style_text_font(s_scale, &lv_font_montserrat_20, 0);
     lv_obj_set_style_line_color(s_scale, lv_color_white(), LV_PART_INDICATOR);
@@ -151,10 +139,8 @@ static void ui_create_screen2()
     lv_obj_set_style_line_color(s_scale, lv_color_white(), LV_PART_ITEMS);
     lv_obj_set_style_line_width(s_scale, 2, LV_PART_ITEMS);
 
-    /* Don’t draw any ring from scale itself */
     lv_obj_set_style_line_width(s_scale, 0, LV_PART_MAIN);
 
-    /* Init segment styles once */
     if(!s_seg_styles_inited)
     {
         s_seg_styles_inited = true;
@@ -173,6 +159,7 @@ static void ui_create_screen2()
         if(count > 31) count = 31;
 
         s_seg_count = count;
+        s_last_target_idx = -9999;
 
         lv_scale_set_range(s_scale, 0, (int32_t)(count - 1));
         lv_scale_set_total_tick_count(s_scale, count);
@@ -185,8 +172,7 @@ static void ui_create_screen2()
         s_flap_symbols[count] = nullptr;
         lv_scale_set_text_src(s_scale, s_flap_symbols);
 
-        /* Create arc segments ONLY for gaps i..i+1 (i=0..count-2).
-           That means: NO segment between last and first. */
+        /* Segments */
         const int32_t rot  = 135;
         const int32_t span = 270;
 
@@ -194,6 +180,9 @@ static void ui_create_screen2()
         const int32_t ring_size = 430;
 
         for(uint32_t i = 0; i < 32; i++) s_seg_arcs[i] = nullptr;
+
+        /* FIX: small inset so we never draw exactly at 0° or exactly at span */
+        const int32_t inset_deg = 1;
 
         for(uint32_t i = 0; i < count - 1; i++)
         {
@@ -203,36 +192,37 @@ static void ui_create_screen2()
             lv_obj_set_size(arc, ring_size, ring_size);
             lv_obj_align(arc, LV_ALIGN_CENTER, 0, 0);
 
-            /* Pure ring segment: no knob */
             lv_obj_remove_style(arc, nullptr, LV_PART_KNOB);
 
             lv_obj_set_style_arc_width(arc, ring_w, LV_PART_INDICATOR);
             lv_obj_set_style_arc_width(arc, ring_w, LV_PART_MAIN);
-
-            /* Background arc transparent */
             lv_obj_set_style_arc_opa(arc, LV_OPA_0, LV_PART_MAIN);
 
-            /* Color (your example uses all green; keep as-is or alternate) */
             lv_color_t c = lv_palette_main(LV_PALETTE_GREEN);
             lv_obj_set_style_arc_color(arc, c, LV_PART_INDICATOR);
 
-            /* Segment angles for gap i..i+1 */
-            float a0 = (float)rot + ((float)span * (float)i)       / (float)(count - 1);
-            float a1 = (float)rot + ((float)span * (float)(i + 1)) / (float)(count - 1);
+            /* FIX: rotate the arc, then use angles strictly inside 0..span */
+            lv_arc_set_rotation(arc, (int16_t)rot);
 
-            lv_arc_set_bg_angles(arc, 0, 360);
+            /* FIX: integer math + force at least 1 degree */
+            int32_t a0 = (int32_t)((span * (int32_t)i)       / (int32_t)(count - 1));
+            int32_t a1 = (int32_t)((span * (int32_t)(i + 1)) / (int32_t)(count - 1));
+
+            /* inset (avoid exact endpoints) */
+            a0 += inset_deg;
+            a1 -= inset_deg;
+
+            if(a1 <= a0) a1 = a0 + 1;          /* ensure visible */
+            if(a0 < 0) a0 = 0;
+            if(a1 > span) a1 = span;
+
             lv_arc_set_angles(arc, (int16_t)a0, (int16_t)a1);
-            lv_arc_set_rotation(arc, 0);
 
-            /* Start dim */
             lv_obj_add_style(arc, &s_seg_style_dim, LV_PART_INDICATOR);
-
-            /* Keep arcs behind ticks/labels */
             lv_obj_move_background(arc);
         }
     }
 
-    /* Title */
     lv_obj_t* title = lv_label_create(s_screen);
     lv_label_set_text(title, "Faps");
     lv_obj_set_style_text_color(title, lv_color_white(), 0);
