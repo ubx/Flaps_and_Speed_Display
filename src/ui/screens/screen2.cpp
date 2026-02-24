@@ -71,6 +71,9 @@ static void ui_create_screen2()
     lv_obj_set_size(s_scale, 466, 466);
     lv_obj_center(s_scale);
     lv_scale_set_mode(s_scale, LV_SCALE_MODE_ROUND_INNER);
+    lv_scale_set_draw_ticks_on_top(s_scale, true);
+    lv_scale_set_label_show(s_scale, true);
+    lv_obj_set_style_length(s_scale, 36, LV_PART_INDICATOR); /* major ticks */
     lv_scale_set_angle_range(s_scale, 270);
     lv_scale_set_rotation(s_scale, 135);
 
@@ -92,23 +95,32 @@ static void ui_create_screen2()
             if (i < count - 1)
             {
                 lv_scale_section_t* section = lv_scale_add_section(s_scale);
-                
+
                 // Section covers the range from symbol i to symbol i+1
-                lv_scale_set_section_range(s_scale, section, (int32_t)i, (int32_t)(i + 1));
-                
+                // LVGL v9 API:
+                lv_scale_section_set_range(section, (int32_t)i, (int32_t)(i + 1));
+
                 // Alternating colors for sections (gaps between symbols)
-                lv_color_t section_color = (i % 2 == 0) ? lv_palette_main(LV_PALETTE_BLUE) : lv_palette_main(LV_PALETTE_CYAN);
-                
+                lv_color_t section_color =
+                    (i % 2 == 0) ? lv_palette_main(LV_PALETTE_GREEN)
+                                 : lv_palette_main(LV_PALETTE_YELLOW);
+
                 lv_style_init(&s_section_styles[i]);
-                lv_style_set_line_color(&s_section_styles[i], section_color);
-                lv_style_set_line_width(&s_section_styles[i], 10); // Thicker for sections (arc and ticks)
-                
-                lv_scale_set_section_style_indicator(s_scale, section, &s_section_styles[i]);
-                lv_scale_set_section_style_main(s_scale, section, &s_section_styles[i]);
-                lv_scale_set_section_style_items(s_scale, section, &s_section_styles[i]);
+
+                // For the arc/ring (MAIN)
+                lv_style_set_arc_color(&s_section_styles[i], section_color);
+                lv_style_set_arc_width(&s_section_styles[i], 30);
+
+                // For tick lines (ITEMS + INDICATOR)
+                //lv_style_set_line_color(&s_section_styles[i], section_color);
+                //lv_style_set_line_width(&s_section_styles[i], 40);
+
+                // Apply style to the parts you want affected inside that section
+                lv_scale_section_set_style(section, LV_PART_MAIN,      &s_section_styles[i]); // arc
+                lv_scale_section_set_style(section, LV_PART_ITEMS,     &s_section_styles[i]); // minor ticks
+                lv_scale_section_set_style(section, LV_PART_INDICATOR, &s_section_styles[i]); // major ticks
             }
-        }
-        s_flap_symbols[std::min(count, (uint32_t)31)] = nullptr;
+        }        s_flap_symbols[std::min(count, (uint32_t)31)] = nullptr;
         lv_scale_set_text_src(s_scale, s_flap_symbols);
     }
 
