@@ -14,6 +14,7 @@ extern flaputils::FlapSymbolResult get_flap_actual();
 static lv_obj_t* s_screen = nullptr;
 static lv_obj_t* s_flap_label = nullptr;
 static lv_obj_t* s_scale = nullptr;
+static lv_obj_t* s_triangle_canvas = nullptr;
 static const char* s_flap_symbols[32];
 static lv_style_t s_section_styles[32];
 
@@ -101,6 +102,36 @@ static void ui_create_screen2()
     lv_obj_set_style_text_color(title, lv_color_white(), 0);
     lv_obj_set_style_text_font(title, &lv_font_montserrat_16, 0);
     lv_obj_align(title, LV_ALIGN_BOTTOM_MID, 0, -10);
+
+    // Triangle above label
+    LV_DRAW_BUF_DEFINE_STATIC(draw_buf, 70, 70, LV_COLOR_FORMAT_ARGB8888);
+    LV_DRAW_BUF_INIT_STATIC(draw_buf);
+    s_triangle_canvas = lv_canvas_create(s_screen);
+    lv_canvas_set_draw_buf(s_triangle_canvas, &draw_buf);
+    lv_canvas_fill_bg(s_triangle_canvas, lv_color_black(), LV_OPA_0); // Transparent background
+
+    lv_layer_t layer;
+    lv_canvas_init_layer(s_triangle_canvas, &layer);
+
+    lv_draw_triangle_dsc_t tri_dsc;
+    lv_draw_triangle_dsc_init(&tri_dsc);
+    // 70x70x70 equilateral triangle: height approx 60.6 pixels
+    // Vertical center: (70 - 60.6) / 2 approx 4.7
+    // Y coords: top point at 5, bottom points at 65 (total height 60)
+    // X coords: center at 35, base points at 35 +/- 35 = 0 and 70
+    tri_dsc.p[0].x = 35;
+    tri_dsc.p[0].y = 5;
+    tri_dsc.p[1].x = 0;
+    tri_dsc.p[1].y = 65;
+    tri_dsc.p[2].x = 70;
+    tri_dsc.p[2].y = 65;
+    tri_dsc.color = lv_color_white();
+    tri_dsc.opa = LV_OPA_COVER;
+
+    lv_draw_triangle(&layer, &tri_dsc);
+    lv_canvas_finish_layer(s_triangle_canvas, &layer);
+
+    lv_obj_align_to(s_triangle_canvas, s_flap_label, LV_ALIGN_OUT_TOP_MID, 0, -30);
 }
 
 void screen2_create()
