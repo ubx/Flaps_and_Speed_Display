@@ -15,5 +15,6 @@ and flaps position, receiving real-time data via the CAN bus (TWAI).
 - setup screen with brightness, select polare...
 - implement update flapDescriptor.json OTA with BLE
 - demo mode
+- special flap positions for start and landing
 - 3D print housing
 - PCB board 
