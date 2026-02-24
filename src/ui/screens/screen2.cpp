@@ -10,6 +10,7 @@
 extern const lv_font_t digits_120;
 
 extern flaputils::FlapSymbolResult get_flap_actual();
+extern flaputils::FlapSymbolResult get_flap_target();
 
 static lv_obj_t* s_screen = nullptr;
 static lv_obj_t* s_flap_label = nullptr;
@@ -23,10 +24,31 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
 {
     if (lv_screen_active() != s_screen) return;
 
+    flaputils::FlapSymbolResult actual = get_flap_actual();
+    flaputils::FlapSymbolResult target = get_flap_target();
+
     if (s_flap_label)
     {
-        flaputils::FlapSymbolResult res = get_flap_actual();
-        lv_label_set_text(s_flap_label, res.symbol ? res.symbol : "-");
+        lv_label_set_text(s_flap_label, actual.symbol ? actual.symbol : "-");
+    }
+
+    if (s_triangle_up_canvas && s_triangle_down_canvas)
+    {
+        if (target.index > actual.index && target.index != -1 && actual.index != -1)
+        {
+            lv_obj_remove_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN);
+        }
+        else if (target.index < actual.index && target.index != -1 && actual.index != -1)
+        {
+            lv_obj_add_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN);
+        }
+        else
+        {
+            lv_obj_add_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN);
+        }
     }
 }
 
