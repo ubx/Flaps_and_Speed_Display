@@ -21,12 +21,13 @@ static const char* s_flap_symbols[32];
 /* Arc ring segments (one per gap i..i+1, no last->first wrap) */
 static lv_obj_t* s_seg_arcs[32] = {nullptr};
 static uint32_t  s_seg_count = 0;
-static int32_t   s_last_target_idx = -9999;
 
-/* Styles for segments */
-static lv_style_t s_seg_style_visible;
-static lv_style_t s_seg_style_dim;
-static bool s_seg_styles_inited = false;
+/* Highlight bookkeeping (avoid style stacking + only update on change) */
+static int32_t   s_last_highlight_idx = -9999;
+
+/* Opacity levels for segments */
+static const lv_opa_t SEG_OPA_DIM = LV_OPA_20;
+static const lv_opa_t SEG_OPA_ON  = LV_OPA_COVER;
 
 static inline int32_t max_drawable_segment(void)
 {
@@ -39,38 +40,40 @@ static void set_target_segment(int32_t tgt)
     const int32_t max_seg = max_drawable_segment();
     if(max_seg < 0) return;
 
+    /* Invalid => no highlight (dim previous only) */
     if(tgt < 0 || tgt > max_seg)
     {
-        for(uint32_t i = 0; i < (uint32_t)(max_seg + 1) && i < 31; i++) {
-            if(s_seg_arcs[i]) lv_obj_add_style(s_seg_arcs[i], &s_seg_style_dim, LV_PART_INDICATOR);
+        if(s_last_highlight_idx >= 0 && s_last_highlight_idx <= max_seg)
+        {
+            lv_obj_t* prev = s_seg_arcs[s_last_highlight_idx];
+            if(prev) lv_obj_set_style_arc_opa(prev, SEG_OPA_DIM, LV_PART_INDICATOR);
         }
-        s_last_target_idx = tgt;
+        s_last_highlight_idx = -1;
         return;
     }
 
-    if(tgt == s_last_target_idx) return;
+    /* No change => do nothing */
+    if(tgt == s_last_highlight_idx) return;
 
-    if(s_last_target_idx >= 0 && s_last_target_idx <= max_seg)
+    /* First valid set: dim all once so only one becomes bright */
+    if(s_last_highlight_idx == -9999)
     {
-        uint32_t pi = (uint32_t)s_last_target_idx;
-        if(pi < 31 && s_seg_arcs[pi]) {
-            lv_obj_add_style(s_seg_arcs[pi], &s_seg_style_dim, LV_PART_INDICATOR);
+        for(int32_t i = 0; i <= max_seg && i < 31; i++) {
+            if(s_seg_arcs[i]) lv_obj_set_style_arc_opa(s_seg_arcs[i], SEG_OPA_DIM, LV_PART_INDICATOR);
         }
     }
-
-    if(s_last_target_idx == -9999)
+    else if(s_last_highlight_idx >= 0 && s_last_highlight_idx <= max_seg)
     {
-        for(uint32_t i = 0; i < (uint32_t)(max_seg + 1) && i < 31; i++) {
-            if(s_seg_arcs[i]) lv_obj_add_style(s_seg_arcs[i], &s_seg_style_dim, LV_PART_INDICATOR);
-        }
+        /* Dim previous */
+        lv_obj_t* prev = s_seg_arcs[s_last_highlight_idx];
+        if(prev) lv_obj_set_style_arc_opa(prev, SEG_OPA_DIM, LV_PART_INDICATOR);
     }
 
-    uint32_t ni = (uint32_t)tgt;
-    if(ni < 31 && s_seg_arcs[ni]) {
-        lv_obj_add_style(s_seg_arcs[ni], &s_seg_style_visible, LV_PART_INDICATOR);
-    }
+    /* Bright new */
+    lv_obj_t* cur = s_seg_arcs[tgt];
+    if(cur) lv_obj_set_style_arc_opa(cur, SEG_OPA_ON, LV_PART_INDICATOR);
 
-    s_last_target_idx = tgt;
+    s_last_highlight_idx = tgt;
 }
 
 static void ui_update_timer_cb(lv_timer_t* /*t*/)
@@ -103,6 +106,7 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
         }
     }
 
+    /* Highlight only when target changes (cheap + stable) */
     set_target_segment(target.index);
 }
 
@@ -139,18 +143,8 @@ static void ui_create_screen2()
     lv_obj_set_style_line_color(s_scale, lv_color_white(), LV_PART_ITEMS);
     lv_obj_set_style_line_width(s_scale, 2, LV_PART_ITEMS);
 
+    /* Don’t draw any ring from scale itself */
     lv_obj_set_style_line_width(s_scale, 0, LV_PART_MAIN);
-
-    if(!s_seg_styles_inited)
-    {
-        s_seg_styles_inited = true;
-
-        lv_style_init(&s_seg_style_visible);
-        lv_style_set_arc_opa(&s_seg_style_visible, LV_OPA_COVER);
-
-        lv_style_init(&s_seg_style_dim);
-        lv_style_set_arc_opa(&s_seg_style_dim, LV_OPA_20);
-    }
 
     auto params = flaputils::get_flap_params();
     if(!params.empty())
@@ -159,7 +153,7 @@ static void ui_create_screen2()
         if(count > 31) count = 31;
 
         s_seg_count = count;
-        s_last_target_idx = -9999;
+        s_last_highlight_idx = -9999;
 
         lv_scale_set_range(s_scale, 0, (int32_t)(count - 1));
         lv_scale_set_total_tick_count(s_scale, count);
@@ -172,7 +166,7 @@ static void ui_create_screen2()
         s_flap_symbols[count] = nullptr;
         lv_scale_set_text_src(s_scale, s_flap_symbols);
 
-        /* Segments */
+        /* Segments: no wrap by using rotation + angles in 0..span */
         const int32_t rot  = 135;
         const int32_t span = 270;
 
@@ -180,9 +174,6 @@ static void ui_create_screen2()
         const int32_t ring_size = 430;
 
         for(uint32_t i = 0; i < 32; i++) s_seg_arcs[i] = nullptr;
-
-        /* FIX: small inset so we never draw exactly at 0° or exactly at span */
-        const int32_t inset_deg = 0;
 
         for(uint32_t i = 0; i < count - 1; i++)
         {
@@ -198,27 +189,19 @@ static void ui_create_screen2()
             lv_obj_set_style_arc_width(arc, ring_w, LV_PART_MAIN);
             lv_obj_set_style_arc_opa(arc, LV_OPA_0, LV_PART_MAIN);
 
-            lv_color_t c = lv_palette_main(LV_PALETTE_GREEN);
-            lv_obj_set_style_arc_color(arc, c, LV_PART_INDICATOR);
+            lv_obj_set_style_arc_color(arc, lv_palette_main(LV_PALETTE_GREEN), LV_PART_INDICATOR);
 
-            /* FIX: rotate the arc, then use angles strictly inside 0..span */
             lv_arc_set_rotation(arc, (int16_t)rot);
 
-            /* FIX: integer math + force at least 1 degree */
             int32_t a0 = (int32_t)((span * (int32_t)i)       / (int32_t)(count - 1));
             int32_t a1 = (int32_t)((span * (int32_t)(i + 1)) / (int32_t)(count - 1));
-
-            /* inset (avoid exact endpoints) */
-            a0 += inset_deg;
-            a1 -= inset_deg;
-
-            if(a1 <= a0) a1 = a0 + 1;          /* ensure visible */
-            if(a0 < 0) a0 = 0;
-            if(a1 > span) a1 = span;
+            if(a1 <= a0) a1 = a0 + 1;
 
             lv_arc_set_angles(arc, (int16_t)a0, (int16_t)a1);
 
-            lv_obj_add_style(arc, &s_seg_style_dim, LV_PART_INDICATOR);
+            /* Start dim (no style stacking) */
+            lv_obj_set_style_arc_opa(arc, SEG_OPA_DIM, LV_PART_INDICATOR);
+
             lv_obj_move_background(arc);
         }
     }
