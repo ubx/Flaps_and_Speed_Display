@@ -3,7 +3,6 @@
 #include "esp_log.h"
 #include "lvgl.h"
 #include "../../flaputils.hpp"
-
 #include "bsp/esp32_s3_touch_amoled_1_75.h"
 
 extern const lv_font_t digits_120;
@@ -19,25 +18,35 @@ static lv_obj_t* s_triangle_down_canvas = nullptr;
 
 static const char* s_flap_symbols[32];
 
-/* --- NEW: arc ring segments --- */
+/* Arc ring segments (one per gap i..i+1, but we will SKIP last->first) */
 static lv_obj_t* s_seg_arcs[32] = {nullptr};
 static uint32_t  s_seg_count = 0;
 static int32_t   s_last_target_idx = -9999;
 
-/* Styles for segments: visible + dim */
+/* Styles for segments */
 static lv_style_t s_seg_style_visible;
 static lv_style_t s_seg_style_dim;
 static bool s_seg_styles_inited = false;
 
+/* We do NOT draw the “wrap-around” gap between last and first:
+   - means: we only create segments for i = 0..count-2 (already true)
+   - and we also never highlight any wrap-around “direction” case
+*/
+static inline int32_t max_drawable_segment(void)
+{
+    if(s_seg_count < 2) return -1;
+    return (int32_t)s_seg_count - 2; /* segments exist for gaps 0..count-2 */
+}
+
 static void set_target_segment(int32_t tgt)
 {
-    if(s_seg_count < 2) return;
+    const int32_t max_seg = max_drawable_segment();
+    if(max_seg < 0) return;
 
-    /* segments exist for gaps: 0..(count-2) */
-    int32_t max_seg = (int32_t)s_seg_count - 2;
-    if(tgt < 0 || tgt > max_seg) {
-        /* hide highlight: dim all */
-        for(uint32_t i = 0; i < s_seg_count - 1 && i < 31; i++) {
+    /* If target is invalid or points to the last tick (no gap), show nothing (dim all) */
+    if(tgt < 0 || tgt > max_seg)
+    {
+        for(uint32_t i = 0; i < (uint32_t)(max_seg + 1) && i < 31; i++) {
             if(s_seg_arcs[i]) lv_obj_add_style(s_seg_arcs[i], &s_seg_style_dim, LV_PART_INDICATOR);
         }
         s_last_target_idx = tgt;
@@ -47,7 +56,8 @@ static void set_target_segment(int32_t tgt)
     if(tgt == s_last_target_idx) return;
 
     /* Dim previous */
-    if(s_last_target_idx >= 0 && s_last_target_idx <= max_seg) {
+    if(s_last_target_idx >= 0 && s_last_target_idx <= max_seg)
+    {
         uint32_t pi = (uint32_t)s_last_target_idx;
         if(pi < 31 && s_seg_arcs[pi]) {
             lv_obj_add_style(s_seg_arcs[pi], &s_seg_style_dim, LV_PART_INDICATOR);
@@ -55,8 +65,9 @@ static void set_target_segment(int32_t tgt)
     }
 
     /* Dim all once on first valid set (so only one is bright) */
-    if(s_last_target_idx == -9999) {
-        for(uint32_t i = 0; i < s_seg_count - 1 && i < 31; i++) {
+    if(s_last_target_idx == -9999)
+    {
+        for(uint32_t i = 0; i < (uint32_t)(max_seg + 1) && i < 31; i++) {
             if(s_seg_arcs[i]) lv_obj_add_style(s_seg_arcs[i], &s_seg_style_dim, LV_PART_INDICATOR);
         }
     }
@@ -72,32 +83,35 @@ static void set_target_segment(int32_t tgt)
 
 static void ui_update_timer_cb(lv_timer_t* /*t*/)
 {
-    if (lv_screen_active() != s_screen) return;
+    if(lv_screen_active() != s_screen) return;
 
     flaputils::FlapSymbolResult actual = get_flap_actual();
     flaputils::FlapSymbolResult target = get_flap_target();
 
-    if (s_flap_label) {
+    if(s_flap_label) {
         lv_label_set_text(s_flap_label, actual.symbol ? actual.symbol : "-");
     }
 
-    if (s_triangle_up_canvas && s_triangle_down_canvas)
+    if(s_triangle_up_canvas && s_triangle_down_canvas)
     {
-        if (target.index > actual.index && target.index != -1 && actual.index != -1) {
+        if(target.index > actual.index && target.index != -1 && actual.index != -1)
+        {
             lv_obj_remove_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN);
         }
-        else if (target.index < actual.index && target.index != -1 && actual.index != -1) {
+        else if(target.index < actual.index && target.index != -1 && actual.index != -1)
+        {
             lv_obj_add_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN);
             lv_obj_remove_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN);
         }
-        else {
+        else
+        {
             lv_obj_add_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN);
         }
     }
 
-    /* Highlight only the target segment */
+    /* Highlight only the target gap segment; no wrap-around (last<->first) segment exists */
     set_target_segment(target.index);
 }
 
@@ -137,13 +151,12 @@ static void ui_create_screen2()
     lv_obj_set_style_line_color(s_scale, lv_color_white(), LV_PART_ITEMS);
     lv_obj_set_style_line_width(s_scale, 2, LV_PART_ITEMS);
 
-    /* Don’t draw any “ring” from scale itself (optional; depends on theme)
-       If you see an unwanted white ring, set MAIN line width to 0:
-    */
+    /* Don’t draw any ring from scale itself */
     lv_obj_set_style_line_width(s_scale, 0, LV_PART_MAIN);
 
     /* Init segment styles once */
-    if(!s_seg_styles_inited) {
+    if(!s_seg_styles_inited)
+    {
         s_seg_styles_inited = true;
 
         lv_style_init(&s_seg_style_visible);
@@ -154,10 +167,11 @@ static void ui_create_screen2()
     }
 
     auto params = flaputils::get_flap_params();
-    if (!params.empty())
+    if(!params.empty())
     {
         uint32_t count = (uint32_t)params.size();
         if(count > 31) count = 31;
+
         s_seg_count = count;
 
         lv_scale_set_range(s_scale, 0, (int32_t)(count - 1));
@@ -165,57 +179,55 @@ static void ui_create_screen2()
         lv_scale_set_major_tick_every(s_scale, 1);
         lv_scale_set_label_show(s_scale, true);
 
-        for (uint32_t i = 0; i < count; ++i) {
+        for(uint32_t i = 0; i < count; ++i) {
             s_flap_symbols[i] = params[i].symbol;
         }
         s_flap_symbols[count] = nullptr;
         lv_scale_set_text_src(s_scale, s_flap_symbols);
 
-        /* --- Create arc segments for each gap i..i+1 --- */
-        /* Geometry matches scale: start rotation 135°, span 270° */
-        const int32_t rot = 135;
+        /* Create arc segments ONLY for gaps i..i+1 (i=0..count-2).
+           That means: NO segment between last and first. */
+        const int32_t rot  = 135;
         const int32_t span = 270;
 
-        /* Thickness and size of ring */
-        const int32_t ring_w = 20;
-        const int32_t ring_size = 430; /* slightly smaller than 466 to sit inside */
-        const int32_t pad = (466 - ring_size) / 2;
+        const int32_t ring_w    = 20;
+        const int32_t ring_size = 430;
+
+        for(uint32_t i = 0; i < 32; i++) s_seg_arcs[i] = nullptr;
 
         for(uint32_t i = 0; i < count - 1; i++)
         {
-            lv_obj_t* arc = lv_arc_create(s_scale); /* parent = scale so it moves/centers with it */
+            lv_obj_t* arc = lv_arc_create(s_scale);
             s_seg_arcs[i] = arc;
 
             lv_obj_set_size(arc, ring_size, ring_size);
             lv_obj_align(arc, LV_ALIGN_CENTER, 0, 0);
 
-            /* Make it a pure ring segment: no knob */
+            /* Pure ring segment: no knob */
             lv_obj_remove_style(arc, nullptr, LV_PART_KNOB);
+
             lv_obj_set_style_arc_width(arc, ring_w, LV_PART_INDICATOR);
             lv_obj_set_style_arc_width(arc, ring_w, LV_PART_MAIN);
 
-            /* Background arc (MAIN) fully transparent so only indicator shows */
+            /* Background arc transparent */
             lv_obj_set_style_arc_opa(arc, LV_OPA_0, LV_PART_MAIN);
 
-            /* Segment color (alternating like your old code) */
-            lv_color_t c = (i % 2 == 0) ? lv_palette_main(LV_PALETTE_GREEN)
-                                        : lv_palette_main(LV_PALETTE_GREEN);
+            /* Color (your example uses all green; keep as-is or alternate) */
+            lv_color_t c = lv_palette_main(LV_PALETTE_GREEN);
             lv_obj_set_style_arc_color(arc, c, LV_PART_INDICATOR);
 
-            /* Compute segment angles */
-            /* i maps to [0..count-1] across span; segment = i..i+1 */
-            float a0 = (float)rot + ((float)span * (float)i) / (float)(count - 1);
+            /* Segment angles for gap i..i+1 */
+            float a0 = (float)rot + ((float)span * (float)i)       / (float)(count - 1);
             float a1 = (float)rot + ((float)span * (float)(i + 1)) / (float)(count - 1);
 
-            /* LVGL arc uses 0..360, start/end in degrees */
-            lv_arc_set_bg_angles(arc, 0, 360);                 /* irrelevant since MAIN is transparent */
-            lv_arc_set_angles(arc, (int16_t)a0, (int16_t)a1);  /* indicator angles */
+            lv_arc_set_bg_angles(arc, 0, 360);
+            lv_arc_set_angles(arc, (int16_t)a0, (int16_t)a1);
             lv_arc_set_rotation(arc, 0);
 
-            /* Start dim; timer will brighten the target one */
+            /* Start dim */
             lv_obj_add_style(arc, &s_seg_style_dim, LV_PART_INDICATOR);
 
-            /* Ensure arcs are behind ticks/labels (since parent is scale, use move background) */
+            /* Keep arcs behind ticks/labels */
             lv_obj_move_background(arc);
         }
     }
@@ -270,8 +282,6 @@ static void ui_create_screen2()
 void screen2_create()
 {
     ui_create_screen2();
-
-    /* slower is safer; highlight updates only on changes anyway */
     lv_timer_create(ui_update_timer_cb, 200, nullptr);
 }
 
