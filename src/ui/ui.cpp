@@ -37,26 +37,41 @@ void ui_init(void)
         screen2_create();
         screen3_create();
 
+        /* Gestures:
+           - UP/DOWN: cycle between screen1 <-> screen2 (as before)
+           - RIGHT SWIPE: toggle screen3 (enter/exit)
+           - screen3 is otherwise not in the up/down cycle
+        */
         auto gesture_cb = [](lv_event_t* e) {
-            lv_event_code_t code = lv_event_get_code(e);
+            if (lv_event_get_code(e) != LV_EVENT_GESTURE) return;
+
             lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_get_act());
-            if (code == LV_EVENT_GESTURE) {
-                if (dir == LV_DIR_BOTTOM) {
-                    if (lv_screen_active() == screen1_get()) {
-                        lv_screen_load_anim(screen2_get(), LV_SCR_LOAD_ANIM_MOVE_BOTTOM, 300, 0, false);
-                    } else if (lv_screen_active() == screen2_get()) {
-                        lv_screen_load_anim(screen3_get(), LV_SCR_LOAD_ANIM_MOVE_BOTTOM, 300, 0, false);
-                    } else {
-                        lv_screen_load_anim(screen1_get(), LV_SCR_LOAD_ANIM_MOVE_BOTTOM, 300, 0, false);
-                    }
-                } else if (dir == LV_DIR_TOP) {
-                    if (lv_screen_active() == screen1_get()) {
-                        lv_screen_load_anim(screen3_get(), LV_SCR_LOAD_ANIM_MOVE_TOP, 300, 0, false);
-                    } else if (lv_screen_active() == screen3_get()) {
-                        lv_screen_load_anim(screen2_get(), LV_SCR_LOAD_ANIM_MOVE_TOP, 300, 0, false);
-                    } else {
-                        lv_screen_load_anim(screen1_get(), LV_SCR_LOAD_ANIM_MOVE_TOP, 300, 0, false);
-                    }
+
+            if (dir == LV_DIR_BOTTOM) {
+                if (lv_screen_active() == screen1_get()) {
+                    lv_screen_load_anim(screen2_get(), LV_SCR_LOAD_ANIM_MOVE_BOTTOM, 300, 0, false);
+                } else if (lv_screen_active() == screen2_get()) {
+                    lv_screen_load_anim(screen1_get(), LV_SCR_LOAD_ANIM_MOVE_BOTTOM, 300, 0, false);
+                } else {
+                    /* If currently on screen3, ignore up/down or go back to screen1 */
+                    lv_screen_load_anim(screen1_get(), LV_SCR_LOAD_ANIM_MOVE_BOTTOM, 300, 0, false);
+                }
+            }
+            else if (dir == LV_DIR_TOP) {
+                if (lv_screen_active() == screen1_get()) {
+                    lv_screen_load_anim(screen2_get(), LV_SCR_LOAD_ANIM_MOVE_TOP, 300, 0, false);
+                } else if (lv_screen_active() == screen2_get()) {
+                    lv_screen_load_anim(screen1_get(), LV_SCR_LOAD_ANIM_MOVE_TOP, 300, 0, false);
+                } else {
+                    lv_screen_load_anim(screen1_get(), LV_SCR_LOAD_ANIM_MOVE_TOP, 300, 0, false);
+                }
+            }
+            else if (dir == LV_DIR_RIGHT) {
+                /* Right swipe toggles screen3 */
+                if (lv_screen_active() == screen3_get()) {
+                    lv_screen_load_anim(screen1_get(), LV_SCR_LOAD_ANIM_MOVE_RIGHT, 300, 0, false);
+                } else {
+                    lv_screen_load_anim(screen3_get(), LV_SCR_LOAD_ANIM_MOVE_LEFT, 300, 0, false);
                 }
             }
         };
