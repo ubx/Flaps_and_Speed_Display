@@ -182,7 +182,7 @@ static void ui_create_screen2()
         for(uint32_t i = 0; i < 32; i++) s_seg_arcs[i] = nullptr;
 
         /* FIX: small inset so we never draw exactly at 0° or exactly at span */
-        const int32_t inset_deg = 1;
+        const int32_t inset_deg = 0;
 
         for(uint32_t i = 0; i < count - 1; i++)
         {
