@@ -17,8 +17,19 @@ static lv_obj_t* s_flap_label = nullptr;
 static lv_obj_t* s_scale = nullptr;
 static lv_obj_t* s_triangle_up_canvas = nullptr;
 static lv_obj_t* s_triangle_down_canvas = nullptr;
+
 static const char* s_flap_symbols[32];
 static lv_style_t s_section_styles[32];
+
+/* NEW: keep section pointers so we can toggle visibility */
+static lv_scale_section_t* s_sections[32] = {nullptr};
+static uint32_t s_section_count = 0;
+
+/* NEW: hidden style for sections (arc transparent) */
+static lv_style_t s_section_hidden_style;
+static bool s_hidden_style_inited = false;
+
+static int32_t s_last_target_idx = -9999;
 
 static void ui_update_timer_cb(lv_timer_t* /*t*/)
 {
@@ -50,6 +61,36 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
             lv_obj_add_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN);
         }
     }
+
+    /* NEW: show ONLY the section with index == target.index */
+    if (s_scale)
+    {
+        int32_t tgt = target.index;
+
+        /* Clamp/validate against created sections: sections exist for i = 0..(count-2) */
+        int32_t max_section = (int32_t)s_section_count - 2; /* because last tick has no gap section */
+
+        /* If nothing changed, do nothing */
+        if (tgt == s_last_target_idx) return;
+
+        /* Hide previous section (if valid) */
+        if (s_last_target_idx >= 0 && s_last_target_idx <= max_section)
+        {
+            uint32_t i = (uint32_t)s_last_target_idx;
+            if (i < 31 && s_sections[i])
+                lv_scale_section_set_style(s_sections[i], LV_PART_MAIN, &s_section_hidden_style);
+        }
+
+        /* Show new section (if valid) */
+        if (tgt >= 0 && tgt <= max_section)
+        {
+            uint32_t i = (uint32_t)tgt;
+            if (i < 31 && s_sections[i])
+                lv_scale_section_set_style(s_sections[i], LV_PART_MAIN, &s_section_styles[i]);
+        }
+
+        s_last_target_idx = tgt;
+    }
 }
 
 static void ui_create_screen2()
@@ -57,7 +98,6 @@ static void ui_create_screen2()
     s_screen = lv_obj_create(nullptr);
     lv_obj_set_style_bg_color(s_screen, lv_color_black(), 0);
     lv_obj_set_style_bg_opa(s_screen, LV_OPA_COVER, 0);
-
 
     // Dynamic Flap Value
     s_flap_label = lv_label_create(s_screen);
@@ -81,51 +121,64 @@ static void ui_create_screen2()
     if (!params.empty())
     {
         uint32_t count = (uint32_t)params.size();
-        // Set range 0 to count - 1 so symbols (ticks) are at integer positions 0, 1, 2...
+        if (count < 2) count = 2; /* ensure at least one section possible */
+
+        /* range 0..count-1 so ticks are integer positions */
         lv_scale_set_range(s_scale, 0, (int32_t)(count - 1));
         lv_scale_set_total_tick_count(s_scale, count);
         lv_scale_set_major_tick_every(s_scale, 1);
         lv_scale_set_label_show(s_scale, true);
 
+        /* Init hidden style once */
+        if (!s_hidden_style_inited)
+        {
+            s_hidden_style_inited = true;
+            lv_style_init(&s_section_hidden_style);
+            lv_style_set_arc_opa(&s_section_hidden_style, LV_OPA_0);
+            lv_style_set_arc_width(&s_section_hidden_style, 30); /* match visible width */
+        }
+
+        /* We create sections for i = 0..count-2 */
+        s_section_count = (count > 31) ? 31 : count;
+
         for (uint32_t i = 0; i < count && i < 31; ++i)
         {
             s_flap_symbols[i] = params[i].symbol;
 
-            // Add sections BETWEEN symbols (gaps)
             if (i < count - 1)
             {
                 lv_scale_section_t* section = lv_scale_add_section(s_scale);
+                s_sections[i] = section;
 
-                // Section covers the range from symbol i to symbol i+1
-                // LVGL v9 API:
+                /* LVGL v9: set section range */
                 lv_scale_section_set_range(section, (int32_t)i, (int32_t)(i + 1));
 
-                // Alternating colors for sections (gaps between symbols)
+                /* Visible style per section (alternating colors) */
                 lv_color_t section_color =
                     (i % 2 == 0) ? lv_palette_main(LV_PALETTE_GREEN)
                                  : lv_palette_main(LV_PALETTE_YELLOW);
 
                 lv_style_init(&s_section_styles[i]);
-
-                // For the arc/ring (MAIN)
                 lv_style_set_arc_color(&s_section_styles[i], section_color);
                 lv_style_set_arc_width(&s_section_styles[i], 30);
+                lv_style_set_arc_opa(&s_section_styles[i], LV_OPA_COVER);
 
-                // For tick lines (ITEMS + INDICATOR)
-                //lv_style_set_line_color(&s_section_styles[i], section_color);
-                //lv_style_set_line_width(&s_section_styles[i], 40);
-
-                // Apply style to the parts you want affected inside that section
-                lv_scale_section_set_style(section, LV_PART_MAIN,      &s_section_styles[i]); // arc
-                lv_scale_section_set_style(section, LV_PART_ITEMS,     &s_section_styles[i]); // minor ticks
-                lv_scale_section_set_style(section, LV_PART_INDICATOR, &s_section_styles[i]); // major ticks
+                /* Start hidden; timer will show the correct one */
+                lv_scale_section_set_style(section, LV_PART_MAIN, &s_section_hidden_style);
             }
-        }        s_flap_symbols[std::min(count, (uint32_t)31)] = nullptr;
+            else
+            {
+                s_sections[i] = nullptr;
+            }
+        }
+
+        s_flap_symbols[std::min(count, (uint32_t)31)] = nullptr;
         lv_scale_set_text_src(s_scale, s_flap_symbols);
     }
 
     lv_obj_set_style_text_color(s_scale, lv_color_white(), 0);
     lv_obj_set_style_text_font(s_scale, &lv_font_montserrat_20, 0);
+
     lv_obj_set_style_line_color(s_scale, lv_color_white(), LV_PART_INDICATOR);
     lv_obj_set_style_line_width(s_scale, 4, LV_PART_INDICATOR);
     lv_obj_set_style_line_color(s_scale, lv_color_white(), LV_PART_MAIN);
@@ -150,10 +203,7 @@ static void ui_create_screen2()
 
     lv_draw_triangle_dsc_t tri_dsc;
     lv_draw_triangle_dsc_init(&tri_dsc);
-    // 70x70x70 equilateral triangle: height approx 60.6 pixels
-    // Vertical center: (70 - 60.6) / 2 approx 4.7
-    // Y coords: top point at 5, bottom points at 65 (total height 60)
-    // X coords: center at 35, base points at 35 +/- 35 = 0 and 70
+
     tri_dsc.p[0].x = 35;
     tri_dsc.p[0].y = 5;
     tri_dsc.p[1].x = 0;
@@ -178,7 +228,6 @@ static void ui_create_screen2()
     lv_canvas_init_layer(s_triangle_down_canvas, &layer);
 
     // Pointing down:
-    // Bottom point at 65, top points at 5
     tri_dsc.p[0].x = 35;
     tri_dsc.p[0].y = 65;
     tri_dsc.p[1].x = 0;
