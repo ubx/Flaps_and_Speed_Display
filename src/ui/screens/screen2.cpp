@@ -14,7 +14,8 @@ extern flaputils::FlapSymbolResult get_flap_actual();
 static lv_obj_t* s_screen = nullptr;
 static lv_obj_t* s_flap_label = nullptr;
 static lv_obj_t* s_scale = nullptr;
-static lv_obj_t* s_triangle_canvas = nullptr;
+static lv_obj_t* s_triangle_up_canvas = nullptr;
+static lv_obj_t* s_triangle_down_canvas = nullptr;
 static const char* s_flap_symbols[32];
 static lv_style_t s_section_styles[32];
 
@@ -106,12 +107,12 @@ static void ui_create_screen2()
     // Triangle above label
     LV_DRAW_BUF_DEFINE_STATIC(draw_buf, 70, 70, LV_COLOR_FORMAT_ARGB8888);
     LV_DRAW_BUF_INIT_STATIC(draw_buf);
-    s_triangle_canvas = lv_canvas_create(s_screen);
-    lv_canvas_set_draw_buf(s_triangle_canvas, &draw_buf);
-    lv_canvas_fill_bg(s_triangle_canvas, lv_color_black(), LV_OPA_0); // Transparent background
+    s_triangle_up_canvas = lv_canvas_create(s_screen);
+    lv_canvas_set_draw_buf(s_triangle_up_canvas, &draw_buf);
+    lv_canvas_fill_bg(s_triangle_up_canvas, lv_color_black(), LV_OPA_0); // Transparent background
 
     lv_layer_t layer;
-    lv_canvas_init_layer(s_triangle_canvas, &layer);
+    lv_canvas_init_layer(s_triangle_up_canvas, &layer);
 
     lv_draw_triangle_dsc_t tri_dsc;
     lv_draw_triangle_dsc_init(&tri_dsc);
@@ -129,9 +130,32 @@ static void ui_create_screen2()
     tri_dsc.opa = LV_OPA_COVER;
 
     lv_draw_triangle(&layer, &tri_dsc);
-    lv_canvas_finish_layer(s_triangle_canvas, &layer);
+    lv_canvas_finish_layer(s_triangle_up_canvas, &layer);
 
-    lv_obj_align_to(s_triangle_canvas, s_flap_label, LV_ALIGN_OUT_TOP_MID, 0, -30);
+    lv_obj_align_to(s_triangle_up_canvas, s_flap_label, LV_ALIGN_OUT_TOP_MID, 0, -40);
+
+    // Triangle below label
+    LV_DRAW_BUF_DEFINE_STATIC(draw_buf_down, 70, 70, LV_COLOR_FORMAT_ARGB8888);
+    LV_DRAW_BUF_INIT_STATIC(draw_buf_down);
+    s_triangle_down_canvas = lv_canvas_create(s_screen);
+    lv_canvas_set_draw_buf(s_triangle_down_canvas, &draw_buf_down);
+    lv_canvas_fill_bg(s_triangle_down_canvas, lv_color_black(), LV_OPA_0); // Transparent background
+
+    lv_canvas_init_layer(s_triangle_down_canvas, &layer);
+
+    // Pointing down:
+    // Bottom point at 65, top points at 5
+    tri_dsc.p[0].x = 35;
+    tri_dsc.p[0].y = 65;
+    tri_dsc.p[1].x = 0;
+    tri_dsc.p[1].y = 5;
+    tri_dsc.p[2].x = 70;
+    tri_dsc.p[2].y = 5;
+
+    lv_draw_triangle(&layer, &tri_dsc);
+    lv_canvas_finish_layer(s_triangle_down_canvas, &layer);
+
+    lv_obj_align_to(s_triangle_down_canvas, s_flap_label, LV_ALIGN_OUT_BOTTOM_MID, 0, 40);
 }
 
 void screen2_create()
