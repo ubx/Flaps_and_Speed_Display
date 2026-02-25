@@ -191,6 +191,12 @@ float get_ias_kmh()
     return flight_state.ias * 3.6f;
 }
 
+double get_weight_kg()
+{
+    std::lock_guard<std::mutex> lock(flight_state.mtx);
+    return (flight_state.dry_and_ballast_mass / 10.0) + 84.0;
+}
+
 flaputils::FlapSymbolResult get_flap_actual()
 {
     std::lock_guard<std::mutex> lock(flight_state.mtx);
@@ -200,8 +206,8 @@ flaputils::FlapSymbolResult get_flap_actual()
 
 flaputils::FlapSymbolResult get_flap_target()
 {
+    double weight = get_weight_kg();
     std::lock_guard<std::mutex> lock(flight_state.mtx);
-    double weight = (flight_state.dry_and_ballast_mass / 10.0) + 84.0;
     return flaputils::get_optimal_flap(weight, flight_state.ias * 3.6);
 }
 

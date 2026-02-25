@@ -57,21 +57,21 @@ static int run_tests()
         }
     }
 
-    std::printf("\n--- Testing get_flap_params ---\n");
+    std::printf("\n--- Testing get_flap_speed_ranges ---\n");
     {
-        auto params = get_flap_params();
+        auto params = get_flap_speed_ranges(get_empty_mass());
 
         if (!loaded)
         {
             if (!params.empty())
             {
                 ++fails;
-                std::printf("NOK: Data not loaded but get_flap_params returned %zu entries (expected 0)\n",
+                std::printf("NOK: Data not loaded but get_flap_speed_ranges returned %zu entries (expected 0)\n",
                             params.size());
             }
             else
             {
-                std::printf("OK: Data not loaded and get_flap_params returned 0 entries\n");
+                std::printf("OK: Data not loaded and get_flap_speed_ranges returned 0 entries\n");
             }
         }
         else
@@ -80,7 +80,7 @@ static int run_tests()
             if (!ok)
             {
                 ++fails;
-                std::printf("NOK: get_flap_params returned 0 entries\n");
+                std::printf("NOK: get_flap_speed_ranges returned 0 entries\n");
             }
 
             for (std::size_t i = 0; i < params.size(); ++i)
@@ -96,7 +96,7 @@ static int run_tests()
             }
 
             if (!ok) ++fails;
-            std::printf("get_flap_params overall: %s (count=%zu)\n", ok ? "OK" : "NOK", params.size());
+            std::printf("get_flap_speed_ranges overall: %s (count=%zu)\n", ok ? "OK" : "NOK", params.size());
         }
     }
 

@@ -264,6 +264,7 @@ namespace flaputils
         return {nullptr, -1};
     }
 
+    /*
     std::vector<FlapSymbolResult> get_flap_params()
     {
         std::vector<FlapSymbolResult> result;
@@ -274,6 +275,7 @@ namespace flaputils
         }
         return result;
     }
+    */
     std::vector<FlapSpeedRange> get_flap_speed_ranges(double gewicht_kg)
     {
         std::vector<FlapSpeedRange> result;

@@ -28,7 +28,7 @@ namespace flaputils
     // Returns {nullptr, -1} if no matching range is found or data is unavailable.
     FlapSymbolResult get_optimal_flap(double gewicht_kg, double geschwindigkeit_kmh);
 
-    std::vector<FlapSymbolResult> get_flap_params();
+    // std::vector<FlapSymbolResult> get_flap_params();
 
     struct FlapSpeedRange
     {

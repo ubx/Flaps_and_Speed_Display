@@ -9,6 +9,7 @@ extern const lv_font_t digits_120;
 
 extern flaputils::FlapSymbolResult get_flap_actual();
 extern flaputils::FlapSymbolResult get_flap_target();
+extern double get_weight_kg();
 
 static lv_obj_t* s_screen = nullptr;
 static lv_obj_t* s_flap_label = nullptr;
@@ -171,7 +172,7 @@ static void ui_create_screen2()
     lv_obj_set_style_line_width(s_scale, 0, LV_PART_MAIN);
 
     /* Build labels + segments */
-    auto params = flaputils::get_flap_params();
+    auto params = flaputils::get_flap_speed_ranges(get_weight_kg());
     if(!params.empty())
     {
         uint32_t count = (uint32_t)params.size();
