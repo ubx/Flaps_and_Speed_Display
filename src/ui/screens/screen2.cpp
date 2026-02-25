@@ -156,7 +156,7 @@ static void draw_variable_scale(lv_obj_t* parent,
 
         float boundary_deg = (float)rot_deg + a + (float)i * (float)gap_deg;
 
-        float r = deg2rad(boundary_deg);
+        float r = deg2rad(boundary_deg - 90.0f);
         int32_t x0 = cx + fast_roundf((float)tick_inner_r * cosf(r));
         int32_t y0 = cy + fast_roundf((float)tick_inner_r * sinf(r));
         int32_t x1 = cx + fast_roundf((float)tick_outer_r * cosf(r));
@@ -203,7 +203,7 @@ static void draw_variable_scale(lv_obj_t* parent,
         float center_a  = 0.5f * (a0 + a1);
         float label_deg = (float)rot_deg + center_a + ((float)i + 0.5f) * (float)gap_deg;
 
-        float r = deg2rad(label_deg);
+        float r = deg2rad(label_deg - 90.0f);
         int32_t lx = cx + fast_roundf((float)label_r * cosf(r));
         int32_t ly = cy + fast_roundf((float)label_r * sinf(r));
 
