@@ -30,7 +30,7 @@ static void ui_create_screen3()
     // Brightness Slider
     lv_obj_t* slider = lv_slider_create(s_screen);
     lv_obj_set_width(slider, 200);
-    lv_slider_set_range(slider, 0, 100);
+    lv_slider_set_range(slider, 30, 100);
     lv_slider_set_value(slider, bsp_display_brightness_get(), LV_ANIM_OFF);
     lv_obj_align(slider, LV_ALIGN_CENTER, 0, 0);
     lv_obj_add_event_cb(slider, brightness_slider_event_cb, LV_EVENT_VALUE_CHANGED, nullptr);
