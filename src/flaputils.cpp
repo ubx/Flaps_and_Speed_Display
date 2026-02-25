@@ -274,4 +274,50 @@ namespace flaputils
         }
         return result;
     }
+    std::vector<FlapSpeedRange> get_flap_speed_ranges(double gewicht_kg)
+    {
+        std::vector<FlapSpeedRange> result;
+        if (kBereiche.empty() || kWeights.empty()) return result;
+
+        int i1 = 0, i2 = 0;
+        double f = 0.0;
+        weight_bracket(gewicht_kg, i1, i2, f);
+
+        result.reserve(kBereiche.size());
+        for (std::size_t idx = 0; idx < kBereiche.size(); ++idx)
+        {
+            const auto& b = kBereiche[idx];
+            if (b.ranges.size() <= (std::size_t)std::max(i1, i2)) continue;
+            
+            const Range r1 = b.ranges[i1];
+            const Range r2 = b.ranges[i2];
+            
+            float vmin = -1.0f;
+            float vmax = -1.0f;
+
+            if (has_range(r1) && has_range(r2))
+            {
+                vmin = static_cast<float>(r1.vmin + f * (r2.vmin - r1.vmin));
+                vmax = static_cast<float>(r1.vmax + f * (r2.vmax - r1.vmax));
+            }
+            else if (has_range(r1))
+            {
+                vmin = static_cast<float>(r1.vmin);
+                vmax = static_cast<float>(r1.vmax);
+            }
+            else if (has_range(r2))
+            {
+                vmin = static_cast<float>(r2.vmin);
+                vmax = static_cast<float>(r2.vmax);
+            }
+
+            result.push_back({
+                b.wk.c_str(),
+                static_cast<int>(idx),
+                vmin,
+                vmax
+            });
+        }
+        return result;
+    }
 } // namespace flaputils

@@ -20,6 +20,7 @@ namespace flaputils
     };
 
 
+
     FlapSymbolResult get_flap_symbol(int position);
 
     // Returns the optimal flap symbol (e.g. "L", "+2", "0", "S1") for a given
@@ -28,6 +29,16 @@ namespace flaputils
     FlapSymbolResult get_optimal_flap(double gewicht_kg, double geschwindigkeit_kmh);
 
     std::vector<FlapSymbolResult> get_flap_params();
+
+    struct FlapSpeedRange
+    {
+        const char* symbol; // nullptr if not found
+        int index; // -1 if not found
+        float lower_speed;
+        float upper_speed;
+    };
+
+    std::vector<FlapSpeedRange> get_flap_speed_ranges(double gewicht_kg);
 
 } // namespace flaputils
 
