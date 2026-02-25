@@ -22,12 +22,28 @@ static const char* s_flap_symbols[32];
 static lv_obj_t* s_seg_arcs[32] = {nullptr};
 static uint32_t  s_seg_count = 0;
 
-/* Highlight bookkeeping (avoid style stacking + only update on change) */
+/* Highlight bookkeeping */
 static int32_t   s_last_highlight_idx = -9999;
 
 /* Opacity levels for segments */
 static const lv_opa_t SEG_OPA_DIM = LV_OPA_20;
 static const lv_opa_t SEG_OPA_ON  = LV_OPA_COVER;
+
+/* ---------- helpers ---------- */
+
+static inline void make_noninteractive(lv_obj_t* o)
+{
+    if(!o) return;
+    lv_obj_remove_flag(o, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(o, LV_OBJ_FLAG_SCROLLABLE);
+}
+
+/* Keep gestures on the screen, but disable scrolling */
+static inline void make_screen_static(lv_obj_t* o)
+{
+    if(!o) return;
+    lv_obj_remove_flag(o, LV_OBJ_FLAG_SCROLLABLE);
+}
 
 static inline int32_t max_drawable_segment(void)
 {
@@ -76,6 +92,8 @@ static void set_target_segment(int32_t tgt)
     s_last_highlight_idx = tgt;
 }
 
+/* ---------- timer ---------- */
+
 static void ui_update_timer_cb(lv_timer_t* /*t*/)
 {
     if(lv_screen_active() != s_screen) return;
@@ -106,26 +124,29 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
         }
     }
 
-    /* Highlight only when target changes (cheap + stable) */
     set_target_segment(target.index);
 }
+
+/* ---------- UI creation ---------- */
 
 static void ui_create_screen2()
 {
     s_screen = lv_obj_create(nullptr);
-    lv_obj_remove_flag(s_screen, LV_OBJ_FLAG_SCROLLABLE);
+    make_screen_static(s_screen);
     lv_obj_set_style_bg_color(s_screen, lv_color_black(), 0);
     lv_obj_set_style_bg_opa(s_screen, LV_OPA_COVER, 0);
 
+    /* Center value */
     s_flap_label = lv_label_create(s_screen);
-    lv_obj_remove_flag(s_flap_label, LV_OBJ_FLAG_CLICKABLE);
+    make_noninteractive(s_flap_label);
     lv_label_set_text(s_flap_label, "-");
     lv_obj_set_style_text_color(s_flap_label, lv_color_white(), 0);
     lv_obj_set_style_text_font(s_flap_label, &digits_120, 0);
     lv_obj_center(s_flap_label);
 
+    /* Scale (ticks + labels only) */
     s_scale = lv_scale_create(s_screen);
-    lv_obj_remove_flag(s_scale, LV_OBJ_FLAG_CLICKABLE);
+    make_noninteractive(s_scale);
     lv_obj_set_size(s_scale, 466, 466);
     lv_obj_center(s_scale);
 
@@ -149,6 +170,7 @@ static void ui_create_screen2()
     /* Don’t draw any ring from scale itself */
     lv_obj_set_style_line_width(s_scale, 0, LV_PART_MAIN);
 
+    /* Build labels + segments */
     auto params = flaputils::get_flap_params();
     if(!params.empty())
     {
@@ -169,7 +191,7 @@ static void ui_create_screen2()
         s_flap_symbols[count] = nullptr;
         lv_scale_set_text_src(s_scale, s_flap_symbols);
 
-        /* Segments: no wrap by using rotation + angles in 0..span */
+        /* Segments: no wrap using rotation + angles in 0..span */
         const int32_t rot  = 135;
         const int32_t span = 270;
 
@@ -182,11 +204,12 @@ static void ui_create_screen2()
         {
             lv_obj_t* arc = lv_arc_create(s_scale);
             s_seg_arcs[i] = arc;
-            lv_obj_remove_flag(arc, LV_OBJ_FLAG_CLICKABLE);
+            make_noninteractive(arc);
 
             lv_obj_set_size(arc, ring_size, ring_size);
             lv_obj_align(arc, LV_ALIGN_CENTER, 0, 0);
 
+            /* Pure ring segment */
             lv_obj_remove_style(arc, nullptr, LV_PART_KNOB);
 
             lv_obj_set_style_arc_width(arc, ring_w, LV_PART_INDICATOR);
@@ -203,15 +226,17 @@ static void ui_create_screen2()
 
             lv_arc_set_angles(arc, (int16_t)a0, (int16_t)a1);
 
-            /* Start dim (no style stacking) */
+            /* Start dim */
             lv_obj_set_style_arc_opa(arc, SEG_OPA_DIM, LV_PART_INDICATOR);
 
+            /* Behind ticks/labels */
             lv_obj_move_background(arc);
         }
     }
 
+    /* Title */
     lv_obj_t* title = lv_label_create(s_screen);
-    lv_obj_remove_flag(title, LV_OBJ_FLAG_CLICKABLE);
+    make_noninteractive(title);
     lv_label_set_text(title, "Faps");
     lv_obj_set_style_text_color(title, lv_color_white(), 0);
     lv_obj_set_style_text_font(title, &lv_font_montserrat_16, 0);
@@ -221,7 +246,7 @@ static void ui_create_screen2()
     LV_DRAW_BUF_DEFINE_STATIC(draw_buf, 70, 70, LV_COLOR_FORMAT_ARGB8888);
     LV_DRAW_BUF_INIT_STATIC(draw_buf);
     s_triangle_up_canvas = lv_canvas_create(s_screen);
-    lv_obj_remove_flag(s_triangle_up_canvas, LV_OBJ_FLAG_CLICKABLE);
+    make_noninteractive(s_triangle_up_canvas);
     lv_canvas_set_draw_buf(s_triangle_up_canvas, &draw_buf);
     lv_canvas_fill_bg(s_triangle_up_canvas, lv_color_black(), LV_OPA_0);
 
@@ -244,7 +269,7 @@ static void ui_create_screen2()
     LV_DRAW_BUF_DEFINE_STATIC(draw_buf_down, 70, 70, LV_COLOR_FORMAT_ARGB8888);
     LV_DRAW_BUF_INIT_STATIC(draw_buf_down);
     s_triangle_down_canvas = lv_canvas_create(s_screen);
-    lv_obj_remove_flag(s_triangle_down_canvas, LV_OBJ_FLAG_CLICKABLE);
+    make_noninteractive(s_triangle_down_canvas);
     lv_canvas_set_draw_buf(s_triangle_down_canvas, &draw_buf_down);
     lv_canvas_fill_bg(s_triangle_down_canvas, lv_color_black(), LV_OPA_0);
 
