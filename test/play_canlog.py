@@ -9,17 +9,8 @@ import os
 CAN_FRAME_FMT = "=IB3x8s"
 
 def parse_can_id(id_hex):
-    # SocketCAN format for the ID field:
-    # Bit 31: error frame
-    # Bit 30: remote transmission request
-    # Bit 29: extended frame format
-    # Bits 0-28: standard or extended ID
-    if len(id_hex) > 3:
-        # Extended ID (29-bit)
-        return int(id_hex, 16) | 0x80000000
-    else:
-        # Standard ID (11-bit)
-        return int(id_hex, 16)
+    # Standard ID (11-bit)
+    return int(id_hex, 16)
 
 def send_can_frame(sock, can_id, data):
     # Padding the data to 8 bytes if needed
@@ -86,7 +77,7 @@ def main():
                 
                 if id_int == 315:
                     val = struct.unpack(">f", data[4:8])[0]
-                    msg_info = f"ias: {val:.2f}"
+                    msg_info = f"ias: {val:.2f} m/s"
                 elif id_int == 316:
                     val = struct.unpack(">f", data[4:8])[0]
                     msg_info = f"tas: {val:.2f}"
@@ -116,7 +107,7 @@ def main():
                     msg_info = f"tt: {val:.2f}"
                 elif id_int == 1515:
                     val = struct.unpack(">H", data[4:6])[0]
-                    msg_info = f"dry_and_ballast_mass: {val}"
+                    msg_info = f"dry_and_ballast_mass: {val} Hg"
                 elif id_int == 1506:
                     val = struct.unpack(">H", data[4:6])[0]
                     msg_info = f"enl: {val}"
