@@ -14,7 +14,7 @@ extern double get_weight_kg();
 
 static lv_obj_t* s_screen = nullptr;
 static lv_obj_t* s_flap_label = nullptr;
-static lv_obj_t* s_scale = nullptr;                 // now a plain container (not lv_scale)
+static lv_obj_t* s_scale = nullptr;                 // plain container (not lv_scale)
 static lv_obj_t* s_triangle_up_canvas = nullptr;
 static lv_obj_t* s_triangle_down_canvas = nullptr;
 
@@ -23,9 +23,9 @@ static lv_obj_t* s_seg_arcs[32] = {nullptr};
 static uint32_t  s_seg_count = 0;
 
 /* Custom scale ticks + labels (so lengths match segments) */
-static lv_obj_t*   s_tick_lines[33] = {nullptr};    // boundaries: 0..count
-static lv_point_precise_t  s_tick_pts[33][2];
-static lv_obj_t*   s_labels[32] = {nullptr};        // one per segment
+static lv_obj_t*          s_tick_lines[33] = {nullptr};   // boundaries: 0..count
+static lv_point_precise_t s_tick_pts[33][2];              // NOTE: must match lv_line_set_points signature
+static lv_obj_t*          s_labels[32] = {nullptr};        // one per segment
 
 /* Highlight bookkeeping */
 static int32_t   s_last_highlight_idx = -9999;
@@ -71,6 +71,7 @@ static void set_target_segment(int32_t tgt)
     const int32_t max_seg = max_drawable_segment();
     if(max_seg < 0) return;
 
+    /* Invalid => no highlight (dim previous only) */
     if(tgt < 0 || tgt > max_seg)
     {
         if(s_last_highlight_idx >= 0 && s_last_highlight_idx <= max_seg)
@@ -82,8 +83,10 @@ static void set_target_segment(int32_t tgt)
         return;
     }
 
+    /* No change => do nothing */
     if(tgt == s_last_highlight_idx) return;
 
+    /* First valid set: dim all once so only one becomes bright */
     if(s_last_highlight_idx == -9999)
     {
         for(int32_t i = 0; i <= max_seg && i < 31; i++) {
@@ -92,14 +95,28 @@ static void set_target_segment(int32_t tgt)
     }
     else if(s_last_highlight_idx >= 0 && s_last_highlight_idx <= max_seg)
     {
+        /* Dim previous */
         lv_obj_t* prev = s_seg_arcs[s_last_highlight_idx];
         if(prev) lv_obj_set_style_arc_opa(prev, SEG_OPA_DIM, LV_PART_INDICATOR);
     }
 
+    /* Bright new */
     lv_obj_t* cur = s_seg_arcs[tgt];
     if(cur) lv_obj_set_style_arc_opa(cur, SEG_OPA_ON, LV_PART_INDICATOR);
 
     s_last_highlight_idx = tgt;
+}
+
+/* Try both LVGL transform APIs (v8/v9 variants) */
+static inline void set_label_rotation_01deg(lv_obj_t* obj, int32_t angle01deg)
+{
+#if defined(LVGL_VERSION_MAJOR) && (LVGL_VERSION_MAJOR >= 9)
+    /* LVGL 9 uses "transform_rotation" */
+    lv_obj_set_style_transform_rotation(obj, angle01deg, 0);
+#else
+    /* LVGL 8 uses "transform_angle" */
+    lv_obj_set_style_transform_angle(obj, angle01deg, 0);
+#endif
 }
 
 /* Draw ticks at segment boundaries and labels at segment centers,
@@ -115,12 +132,12 @@ static void draw_variable_scale(lv_obj_t* parent,
 {
     if(!parent) return;
 
-    const int32_t W = lv_obj_get_width(parent);
-    const int32_t H = lv_obj_get_height(parent);
+    const int32_t W  = lv_obj_get_width(parent);
+    const int32_t H  = lv_obj_get_height(parent);
     const int32_t cx = W / 2;
     const int32_t cy = H / 2;
 
-    /* Geometry (tweak to taste) */
+    /* Geometry */
     const int32_t tick_outer_r = (W / 2) - 4;
     const int32_t tick_inner_r = tick_outer_r - 14;
     const int32_t label_r      = tick_inner_r - 28;
@@ -183,8 +200,8 @@ static void draw_variable_scale(lv_obj_t* parent,
         acc += w[i];
         float a1 = (w_sum > 0.0f) ? ((acc / w_sum) * usable_span_f) : 0.0f;
 
-        float center_a   = 0.5f * (a0 + a1);
-        float label_deg  = (float)rot_deg + center_a + ((float)i + 0.5f) * (float)gap_deg;
+        float center_a  = 0.5f * (a0 + a1);
+        float label_deg = (float)rot_deg + center_a + ((float)i + 0.5f) * (float)gap_deg;
 
         float r = deg2rad(label_deg);
         int32_t lx = cx + fast_roundf((float)label_r * cosf(r));
@@ -203,12 +220,29 @@ static void draw_variable_scale(lv_obj_t* parent,
         lv_label_set_text(lab, params[i].symbol ? params[i].symbol : "");
         lv_obj_remove_flag(lab, LV_OBJ_FLAG_HIDDEN);
 
-        /* Need layout to know label size */
+        /* Layout -> size */
         lv_obj_update_layout(lab);
         lv_coord_t lw = lv_obj_get_width(lab);
         lv_coord_t lh = lv_obj_get_height(lab);
 
+        /* Position centered */
         lv_obj_set_pos(lab, (lv_coord_t)(lx - lw / 2), (lv_coord_t)(ly - lh / 2));
+
+        /* Tangent rotation = radial + 90deg */
+        float tang_deg = label_deg + 90.0f;
+
+        /* Keep readable (avoid upside-down) */
+        while(tang_deg < 0.0f) tang_deg += 360.0f;
+        while(tang_deg >= 360.0f) tang_deg -= 360.0f;
+        if(tang_deg > 90.0f && tang_deg < 270.0f) tang_deg += 180.0f;
+        while(tang_deg >= 360.0f) tang_deg -= 360.0f;
+
+        /* Pivot at label center */
+        lv_obj_set_style_transform_pivot_x(lab, lw / 2, 0);
+        lv_obj_set_style_transform_pivot_y(lab, lh / 2, 0);
+
+        /* LVGL uses 0.1 degree units */
+        set_label_rotation_01deg(lab, (int32_t)(tang_deg * 10.0f));
     }
 
     /* Hide leftover labels */
@@ -289,7 +323,6 @@ static void ui_create_screen2()
         s_seg_count = count;
         s_last_highlight_idx = -9999;
 
-        /* Segments: VARIABLE LENGTH by (upper-lower) */
         const int32_t rot  = 135;
         const int32_t span = 270;
 
@@ -309,9 +342,9 @@ static void ui_create_screen2()
 
             float wi = 0.0f;
             if(lo >= 0.0f && hi >= 0.0f && hi > lo)
-                wi = hi - lo;          /* requested: length = upper - lower */
+                wi = hi - lo;
             else
-                wi = 0.0f;             /* NA -> no segment weight */
+                wi = 0.0f;
 
             w[i] = wi;
             w_sum += wi;
@@ -324,7 +357,6 @@ static void ui_create_screen2()
             w_sum = (float)count;
         }
 
-        /* Gap between segments (degrees). Keep small so mapping stays meaningful. */
         const int32_t gap_deg = 2;
 
         const int32_t usable_span = span - (int32_t)count * gap_deg;
@@ -343,7 +375,6 @@ static void ui_create_screen2()
             lv_obj_set_size(arc, ring_size, ring_size);
             lv_obj_align(arc, LV_ALIGN_CENTER, 0, 0);
 
-            /* Pure ring segment */
             lv_obj_remove_style(arc, nullptr, LV_PART_KNOB);
 
             lv_obj_set_style_arc_width(arc, ring_w, LV_PART_INDICATOR);
@@ -354,7 +385,6 @@ static void ui_create_screen2()
 
             lv_arc_set_rotation(arc, (int16_t)rot);
 
-            /* Map cumulative weight -> angle */
             float a0f = (acc / w_sum) * usable_span_f;
             acc += w[i];
             float a1f = (acc / w_sum) * usable_span_f;
@@ -366,21 +396,19 @@ static void ui_create_screen2()
 
             lv_arc_set_angles(arc, (int16_t)a0, (int16_t)a1);
 
-            /* Start dim */
             lv_obj_set_style_arc_opa(arc, SEG_OPA_DIM, LV_PART_INDICATOR);
 
-            /* Behind ticks/labels */
             lv_obj_move_background(arc);
         }
 
-        /* NOW draw ticks + labels using the same mapping (scale length == segment length) */
+        /* Ticks + tangent-rotated labels (scale matches segment lengths) */
         draw_variable_scale(s_scale, params, count, w, w_sum, rot, span, gap_deg);
     }
 
     /* Title */
     lv_obj_t* title = lv_label_create(s_screen);
     make_noninteractive(title);
-    lv_label_set_text(title, "Faps");
+    lv_label_set_text(title, "Flaps");
     lv_obj_set_style_text_color(title, lv_color_white(), 0);
     lv_obj_set_style_text_font(title, &lv_font_montserrat_16, 0);
     lv_obj_align(title, LV_ALIGN_BOTTOM_MID, 0, -10);
