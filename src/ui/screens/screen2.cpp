@@ -113,16 +113,20 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
 static void ui_create_screen2()
 {
     s_screen = lv_obj_create(nullptr);
+    lv_obj_remove_flag(s_screen, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(s_screen, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_style_bg_color(s_screen, lv_color_black(), 0);
     lv_obj_set_style_bg_opa(s_screen, LV_OPA_COVER, 0);
 
     s_flap_label = lv_label_create(s_screen);
+    lv_obj_remove_flag(s_flap_label, LV_OBJ_FLAG_CLICKABLE);
     lv_label_set_text(s_flap_label, "-");
     lv_obj_set_style_text_color(s_flap_label, lv_color_white(), 0);
     lv_obj_set_style_text_font(s_flap_label, &digits_120, 0);
     lv_obj_center(s_flap_label);
 
     s_scale = lv_scale_create(s_screen);
+    lv_obj_remove_flag(s_scale, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_size(s_scale, 466, 466);
     lv_obj_center(s_scale);
 
@@ -179,6 +183,7 @@ static void ui_create_screen2()
         {
             lv_obj_t* arc = lv_arc_create(s_scale);
             s_seg_arcs[i] = arc;
+            lv_obj_remove_flag(arc, LV_OBJ_FLAG_CLICKABLE);
 
             lv_obj_set_size(arc, ring_size, ring_size);
             lv_obj_align(arc, LV_ALIGN_CENTER, 0, 0);
@@ -207,6 +212,7 @@ static void ui_create_screen2()
     }
 
     lv_obj_t* title = lv_label_create(s_screen);
+    lv_obj_remove_flag(title, LV_OBJ_FLAG_CLICKABLE);
     lv_label_set_text(title, "Faps");
     lv_obj_set_style_text_color(title, lv_color_white(), 0);
     lv_obj_set_style_text_font(title, &lv_font_montserrat_16, 0);
@@ -216,6 +222,7 @@ static void ui_create_screen2()
     LV_DRAW_BUF_DEFINE_STATIC(draw_buf, 70, 70, LV_COLOR_FORMAT_ARGB8888);
     LV_DRAW_BUF_INIT_STATIC(draw_buf);
     s_triangle_up_canvas = lv_canvas_create(s_screen);
+    lv_obj_remove_flag(s_triangle_up_canvas, LV_OBJ_FLAG_CLICKABLE);
     lv_canvas_set_draw_buf(s_triangle_up_canvas, &draw_buf);
     lv_canvas_fill_bg(s_triangle_up_canvas, lv_color_black(), LV_OPA_0);
 
@@ -238,6 +245,7 @@ static void ui_create_screen2()
     LV_DRAW_BUF_DEFINE_STATIC(draw_buf_down, 70, 70, LV_COLOR_FORMAT_ARGB8888);
     LV_DRAW_BUF_INIT_STATIC(draw_buf_down);
     s_triangle_down_canvas = lv_canvas_create(s_screen);
+    lv_obj_remove_flag(s_triangle_down_canvas, LV_OBJ_FLAG_CLICKABLE);
     lv_canvas_set_draw_buf(s_triangle_down_canvas, &draw_buf_down);
     lv_canvas_fill_bg(s_triangle_down_canvas, lv_color_black(), LV_OPA_0);
 
