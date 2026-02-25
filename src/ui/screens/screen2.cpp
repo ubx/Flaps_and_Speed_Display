@@ -4,6 +4,7 @@
 #include "lvgl.h"
 #include "../../flaputils.hpp"
 #include "bsp/esp32_s3_touch_amoled_1_75.h"
+#include <cmath>
 
 extern const lv_font_t digits_120;
 
@@ -19,7 +20,7 @@ static lv_obj_t* s_triangle_down_canvas = nullptr;
 
 static const char* s_flap_symbols[32];
 
-/* Arc ring segments (one per gap i..i+1, no last->first wrap) */
+/* Arc ring segments */
 static lv_obj_t* s_seg_arcs[32] = {nullptr};
 static uint32_t  s_seg_count = 0;
 
@@ -46,10 +47,11 @@ static inline void make_screen_static(lv_obj_t* o)
     lv_obj_remove_flag(o, LV_OBJ_FLAG_SCROLLABLE);
 }
 
+/* One segment per flap range => 0..count-1 */
 static inline int32_t max_drawable_segment(void)
 {
-    if(s_seg_count < 2) return -1;
-    return (int32_t)s_seg_count - 2; /* gaps 0..count-2 */
+    if(s_seg_count < 1) return -1;
+    return (int32_t)s_seg_count - 1;
 }
 
 static void set_target_segment(int32_t tgt)
@@ -192,7 +194,7 @@ static void ui_create_screen2()
         s_flap_symbols[count] = nullptr;
         lv_scale_set_text_src(s_scale, s_flap_symbols);
 
-        /* Segments: no wrap using rotation + angles in 0..span */
+        /* Segments: VARIABLE LENGTH by (upper-lower) */
         const int32_t rot  = 135;
         const int32_t span = 270;
 
@@ -201,8 +203,43 @@ static void ui_create_screen2()
 
         for(uint32_t i = 0; i < 32; i++) s_seg_arcs[i] = nullptr;
 
-        for(uint32_t i = 0; i < count - 1; i++)
+        /* Compute weights */
+        float w_sum = 0.0f;
+        float w[32] = {0};
+
+        for(uint32_t i = 0; i < count; ++i)
         {
+            float lo = params[i].lower_speed;
+            float hi = params[i].upper_speed;
+
+            float wi = 0.0f;
+            if(lo >= 0.0f && hi >= 0.0f && hi > lo)
+                wi = hi - lo;          /* requested: length = upper - lower */
+            else
+                wi = 0.0f;             /* NA -> effectively no segment */
+
+            w[i] = wi;
+            w_sum += wi;
+        }
+
+        /* Fallback: if everything is NA/zero, distribute equally */
+        if(w_sum <= 0.0f)
+        {
+            for(uint32_t i = 0; i < count; ++i) w[i] = 1.0f;
+            w_sum = (float)count;
+        }
+
+        /* Optional small gaps between segments (in degrees) */
+        const int32_t gap_deg = 2;
+        const int32_t usable_span = span - (int32_t)count * gap_deg;
+        const float usable_span_f = (usable_span > 0) ? (float)usable_span : (float)span;
+
+        float acc = 0.0f;
+
+        for(uint32_t i = 0; i < count; ++i)
+        {
+            if(i >= 31) break;
+
             lv_obj_t* arc = lv_arc_create(s_scale);
             s_seg_arcs[i] = arc;
             make_noninteractive(arc);
@@ -221,8 +258,15 @@ static void ui_create_screen2()
 
             lv_arc_set_rotation(arc, (int16_t)rot);
 
-            int32_t a0 = (int32_t)((span * (int32_t)i)       / (int32_t)(count - 1));
-            int32_t a1 = (int32_t)((span * (int32_t)(i + 1)) / (int32_t)(count - 1));
+            /* Map cumulative weight -> angle */
+            float a0f = (acc / w_sum) * usable_span_f;
+            acc += w[i];
+            float a1f = (acc / w_sum) * usable_span_f;
+
+            int32_t a0 = (int32_t)lroundf(a0f) + (int32_t)i * gap_deg;
+            int32_t a1 = (int32_t)lroundf(a1f) + (int32_t)i * gap_deg;
+
+            /* Ensure at least 1 degree visible */
             if(a1 <= a0) a1 = a0 + 1;
 
             lv_arc_set_angles(arc, (int16_t)a0, (int16_t)a1);
@@ -283,6 +327,10 @@ static void ui_create_screen2()
     lv_draw_triangle(&layer, &tri_dsc);
     lv_canvas_finish_layer(s_triangle_down_canvas, &layer);
     lv_obj_align_to(s_triangle_down_canvas, s_flap_label, LV_ALIGN_OUT_BOTTOM_MID, 0, 40);
+
+    /* Start with triangles hidden (optional) */
+    lv_obj_add_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN);
 }
 
 void screen2_create()
