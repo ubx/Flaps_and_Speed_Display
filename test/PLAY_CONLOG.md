@@ -30,6 +30,12 @@ sudo ip link set up can0
    ./test/play_canlog.py
    ```
 
+3. **Optional Arguments**:
+   - `--time-gap SECONDS`: Override the timing from the log file with a fixed delay between messages.
+     ```bash
+     ./test/play_canlog.py --time-gap 0.5
+     ```
+
 ### Input File: `canlog.log`
 The script reads from `test/canlog.log`. The log contains:
 - **Flap positions** (ID 154 / 0x154): Values from `test_flaputils.cpp`.

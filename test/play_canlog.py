@@ -4,6 +4,7 @@ import socket
 import struct
 import sys
 import os
+import argparse
 
 # CAN frame format: 4 bytes ID, 1 byte length, 3 bytes padding, 8 bytes data
 CAN_FRAME_FMT = "=IB3x8s"
@@ -22,6 +23,10 @@ def send_can_frame(sock, can_id, data):
         print(f"Error sending CAN frame: {e}", file=sys.stderr)
 
 def main():
+    parser = argparse.ArgumentParser(description="Play a CAN log file on a SocketCAN interface.")
+    parser.add_argument("--time-gap", type=float, help="Fixed time gap between messages in seconds. If not given, uses timestamps from log.")
+    args = parser.parse_args()
+
     log_file = os.path.join(os.path.dirname(__file__), "canlog.log")
     interface = "can0"
 
@@ -62,9 +67,13 @@ def main():
                 
                 # Timing logic
                 if last_ts is not None:
-                    time_diff = ts - last_ts
+                    if args.time_gap is not None:
+                        time_diff = args.time_gap
+                    else:
+                        time_diff = ts - last_ts
                     # Wait for the next message
-                    time.sleep(time_diff)
+                    if time_diff > 0:
+                        time.sleep(time_diff)
                 
                 last_ts = ts
                 
