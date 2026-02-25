@@ -114,7 +114,6 @@ static void ui_create_screen2()
 {
     s_screen = lv_obj_create(nullptr);
     lv_obj_remove_flag(s_screen, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_remove_flag(s_screen, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_style_bg_color(s_screen, lv_color_black(), 0);
     lv_obj_set_style_bg_opa(s_screen, LV_OPA_COVER, 0);
 
