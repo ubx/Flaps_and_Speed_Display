@@ -8,15 +8,22 @@
 
 extern const lv_font_t digits_120;
 
+extern float get_ias_kmh();
 extern flaputils::FlapSymbolResult get_flap_actual();
 extern flaputils::FlapSymbolResult get_flap_target();
 extern double get_weight_kg();
 
 static lv_obj_t* s_screen = nullptr;
 static lv_obj_t* s_flap_label = nullptr;
-static lv_obj_t* s_scale = nullptr;                 // plain container (not lv_scale)
+static lv_obj_t* s_arc_container = nullptr;                 // plain container (not lv_scale)
+static lv_obj_t* s_scale = nullptr;                         // lv_scale for needle
+static lv_obj_t* s_needle = nullptr;
 static lv_obj_t* s_triangle_up_canvas = nullptr;
 static lv_obj_t* s_triangle_down_canvas = nullptr;
+
+/* Needle dimensions */
+static constexpr int32_t NEEDLE_INNER_RADIUS = 130;
+static constexpr int32_t NEEDLE_OUTER_RADIUS = 170;
 
 /* Arc ring segments */
 static lv_obj_t* s_seg_arcs[32] = {nullptr};
@@ -253,6 +260,39 @@ static void draw_variable_scale(lv_obj_t* parent,
     }
 }
 
+/**
+ * Custom needle update that supports an inner radius (gap from center)
+ */
+static void ui_set_line_needle_value(lv_obj_t* scale_obj, lv_obj_t* needle_line, const int32_t inner_length,
+                                     const int32_t outer_length, int32_t value)
+{
+    lv_obj_align(needle_line, LV_ALIGN_TOP_LEFT, 0, 0);
+
+    int32_t rotation = lv_scale_get_rotation(scale_obj);
+    int32_t angle_range = lv_scale_get_angle_range(scale_obj);
+    int32_t min = lv_scale_get_range_min_value(scale_obj);
+    int32_t max = lv_scale_get_range_max_value(scale_obj);
+    int32_t width = lv_obj_get_style_width(scale_obj, LV_PART_MAIN);
+    int32_t height = lv_obj_get_style_height(scale_obj, LV_PART_MAIN);
+
+    int32_t angle = 0;
+    if (value > min)
+    {
+        if (value > max) angle = angle_range;
+        else angle = static_cast<int32_t>((int64_t)angle_range * (value - min) / (max - min));
+    }
+
+    int32_t total_angle = rotation + angle;
+
+    static lv_point_precise_t points[2];
+    points[0].x = (width / 2) + ((inner_length * lv_trigo_cos(total_angle)) >> LV_TRIGO_SHIFT);
+    points[0].y = (height / 2) + ((inner_length * lv_trigo_sin(total_angle)) >> LV_TRIGO_SHIFT);
+    points[1].x = (width / 2) + ((outer_length * lv_trigo_cos(total_angle)) >> LV_TRIGO_SHIFT);
+    points[1].y = (height / 2) + ((outer_length * lv_trigo_sin(total_angle)) >> LV_TRIGO_SHIFT);
+
+    lv_line_set_points(needle_line, points, 2);
+}
+
 /* ---------- timer ---------- */
 
 static void ui_update_timer_cb(lv_timer_t* /*t*/)
@@ -286,6 +326,18 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
         }
     }
 
+    float v = get_ias_kmh();
+    if (std::isnan(v) || std::isinf(v)) v = 0.0f;
+    if (v < 40.0f) v = 40.0f;
+    if (v > 280.0f) v = 280.0f;
+
+    const int32_t vi = static_cast<int32_t>(v + 0.5f);
+
+    if (s_scale && s_needle)
+    {
+        ui_set_line_needle_value(s_scale, s_needle, NEEDLE_INNER_RADIUS, NEEDLE_OUTER_RADIUS, vi);
+    }
+
     set_target_segment(target.index);
 }
 
@@ -307,13 +359,13 @@ static void ui_create_screen2()
     lv_obj_center(s_flap_label);
 
     /* Scale container (custom ticks/labels + arcs) */
-    s_scale = lv_obj_create(s_screen);
-    make_noninteractive(s_scale);
-    lv_obj_set_size(s_scale, 466, 466);
-    lv_obj_center(s_scale);
-    lv_obj_set_style_bg_opa(s_scale, LV_OPA_0, 0);
-    lv_obj_set_style_border_width(s_scale, 0, 0);
-    lv_obj_set_style_pad_all(s_scale, 0, 0);
+    s_arc_container = lv_obj_create(s_screen);
+    make_noninteractive(s_arc_container);
+    lv_obj_set_size(s_arc_container, 466, 466);
+    lv_obj_center(s_arc_container);
+    lv_obj_set_style_bg_opa(s_arc_container, LV_OPA_0, 0);
+    lv_obj_set_style_border_width(s_arc_container, 0, 0);
+    lv_obj_set_style_pad_all(s_arc_container, 0, 0);
 
     /* Build labels + segments */
     auto params = flaputils::get_flap_speed_ranges(get_weight_kg());
@@ -370,7 +422,7 @@ static void ui_create_screen2()
         {
             if(i >= 31) break;
 
-            lv_obj_t* arc = lv_arc_create(s_scale);
+            lv_obj_t* arc = lv_arc_create(s_arc_container);
             s_seg_arcs[i] = arc;
             make_noninteractive(arc);
 
@@ -404,8 +456,35 @@ static void ui_create_screen2()
         }
 
         /* Ticks + tangent-rotated labels (scale matches segment lengths) */
-        draw_variable_scale(s_scale, params, count, w, w_sum, rot, span, gap_deg);
+        draw_variable_scale(s_arc_container, params, count, w, w_sum, rot, span, gap_deg);
     }
+
+    // Round inner scale 40..280 km/h (needle only)
+    s_scale = lv_scale_create(s_screen);
+    lv_obj_set_size(s_scale, 466, 466);
+    lv_obj_center(s_scale);
+
+    lv_scale_set_mode(s_scale, LV_SCALE_MODE_ROUND_INNER);
+    lv_scale_set_range(s_scale, 40, 280);
+    lv_scale_set_total_tick_count(s_scale, 11); // Hide ticks
+    lv_scale_set_major_tick_every(s_scale, 5);
+    lv_obj_set_style_line_width(s_scale, 0, LV_PART_ITEMS);
+    lv_obj_set_style_line_width(s_scale, 0, LV_PART_INDICATOR);
+    lv_scale_set_angle_range(s_scale, 280);
+    lv_scale_set_rotation(s_scale, 130);
+    lv_scale_set_label_show(s_scale, false);
+
+    lv_obj_set_style_text_color(s_scale, lv_color_white(), 0);
+    lv_obj_set_style_text_font(s_scale, &lv_font_montserrat_20, 0);
+
+    // Needle
+    s_needle = lv_line_create(s_scale);
+    lv_obj_set_style_line_width(s_needle, 12, 0);
+    lv_obj_set_style_line_color(s_needle, lv_color_white(), 0);
+    lv_obj_set_style_line_rounded(s_needle, true, 0);
+
+    // Initial position
+    ui_set_line_needle_value(s_scale, s_needle, NEEDLE_INNER_RADIUS, NEEDLE_OUTER_RADIUS, 0);
 
     /* Title */
     lv_obj_t* title = lv_label_create(s_screen);
