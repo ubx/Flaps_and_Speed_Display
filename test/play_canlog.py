@@ -85,8 +85,8 @@ def main():
                 msg_info = ""
                 
                 if id_int == 315:
-                    val = struct.unpack(">f", data[4:8])[0]
-                    msg_info = f"ias: {val:.2f} m/s"
+                    val = struct.unpack(">f", data[4:8])[0] * 3.6
+                    msg_info = f"ias: {val:.0f} km/h"
                 elif id_int == 316:
                     val = struct.unpack(">f", data[4:8])[0]
                     msg_info = f"tas: {val:.2f}"
