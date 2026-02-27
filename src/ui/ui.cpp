@@ -80,7 +80,7 @@ void ui_init(void)
         lv_obj_add_event_cb(screen2_get(), gesture_cb, LV_EVENT_GESTURE, nullptr);
         lv_obj_add_event_cb(screen3_get(), gesture_cb, LV_EVENT_GESTURE, nullptr);
 
-        lv_screen_load(screen1_get());
+        lv_screen_load(screen2_get());
         bsp_display_unlock();
     }
 
