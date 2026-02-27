@@ -17,7 +17,6 @@ namespace flaputils
     // If no match is found within tolerance, returns {nullptr, -1}.
     struct FlapSymbolResult
     {
-        const char* symbol; // nullptr if not found
         int index; // -1 if not found
     };
 
@@ -30,11 +29,16 @@ namespace flaputils
     // Returns {nullptr, -1} if no matching range is found or data is unavailable.
     FlapSymbolResult get_optimal_flap(double gewicht_kg, double geschwindigkeit_kmh);
 
+    // Returns the symbol for a given flap index.
+    const char* get_flap_symbol_name(int index);
+
+    // Returns the symbol for a given speed range index.
+    const char* get_range_symbol_name(int index);
+
     // std::vector<FlapSymbolResult> get_flap_params();
 
     struct FlapSpeedRange
     {
-        const char* symbol;
         int index; // -1 if not found
         float lower_speed;
         float upper_speed;

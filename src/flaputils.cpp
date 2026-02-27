@@ -181,10 +181,10 @@ namespace flaputils
             const auto& e = kFlapTable[i];
             if (std::abs(position - e.position) <= kTolerance)
             {
-                return {e.symbol.c_str(), static_cast<int>(i)};
+                return {static_cast<int>(i)};
             }
         }
-        return {nullptr, -1};
+        return {-1};
     }
 
     static inline void weight_bracket(double w, int& i1, int& i2, double& factor)
@@ -225,7 +225,7 @@ namespace flaputils
 
     FlapSymbolResult get_optimal_flap(double gewicht_kg, double geschwindigkeit_kmh)
     {
-        if (kBereiche.empty() || kWeights.empty()) return {nullptr, -1};
+        if (kBereiche.empty() || kWeights.empty()) return {-1};
 
         int i1 = 0, i2 = 0;
         double f = 0.0;
@@ -243,25 +243,25 @@ namespace flaputils
                 const double vmax = r1.vmax + f * (r2.vmax - r1.vmax);
                 if (geschwindigkeit_kmh >= vmin && geschwindigkeit_kmh <= vmax)
                     return {
-                        b.wk.c_str(), static_cast<int>(idx)
+                        static_cast<int>(idx)
                     };
             }
             else if (has_range(r1))
             {
                 if (geschwindigkeit_kmh >= r1.vmin && geschwindigkeit_kmh <= r1.vmax)
                     return {
-                        b.wk.c_str(), static_cast<int>(idx)
+                        static_cast<int>(idx)
                     };
             }
             else if (has_range(r2))
             {
                 if (geschwindigkeit_kmh >= r2.vmin && geschwindigkeit_kmh <= r2.vmax)
                     return {
-                        b.wk.c_str(), static_cast<int>(idx)
+                        static_cast<int>(idx)
                     };
             }
         }
-        return {nullptr, -1};
+        return {-1};
     }
 
     /*
@@ -314,12 +314,23 @@ namespace flaputils
             }
 
             result.push_back({
-                b.wk.c_str(),
                 static_cast<int>(idx),
                 vmin,
                 vmax
             });
         }
         return result;
+    }
+
+    const char* get_flap_symbol_name(int index)
+    {
+        if (index < 0 || (std::size_t)index >= kFlapTable.size()) return nullptr;
+        return kFlapTable[index].symbol.c_str();
+    }
+
+    const char* get_range_symbol_name(int index)
+    {
+        if (index < 0 || (std::size_t)index >= kBereiche.size()) return nullptr;
+        return kBereiche[index].wk.c_str();
     }
 } // namespace flaputils

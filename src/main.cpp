@@ -79,9 +79,11 @@ struct FlightData
         const flaputils::FlapSymbolResult optimal = flaputils::get_optimal_flap(
             (dry_and_ballast_mass / 10.0) + 84, ias * 3.6);
         const flaputils::FlapSymbolResult actual = flaputils::get_flap_symbol(flap);
+        const char* opt_sym = flaputils::get_range_symbol_name(optimal.index);
+        const char* act_sym = flaputils::get_flap_symbol_name(actual.index);
         printf("Flaps: Optimal=%s, Actual=%s\n",
-               optimal.symbol ? optimal.symbol : "N/A",
-               actual.symbol ? actual.symbol : "N/A");
+               opt_sym ? opt_sym : "N/A",
+               act_sym ? act_sym : "N/A");
 #endif
     }
 };

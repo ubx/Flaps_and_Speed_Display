@@ -52,8 +52,9 @@ static int run_tests()
         for (int pos : test_positions)
         {
             FlapSymbolResult res = get_flap_symbol(pos);
+            const char* sym = get_flap_symbol_name(res.index);
             std::printf("Position %d -> Symbol: %s, Index: %d\n",
-                        pos, res.symbol ? res.symbol : "None", res.index);
+                        pos, sym ? sym : "None", res.index);
         }
     }
 
@@ -85,12 +86,13 @@ static int run_tests()
 
             for (std::size_t i = 0; i < params.size(); ++i)
             {
-                const bool entry_ok = (params[i].symbol != nullptr) && (params[i].index >= 0);
+                const char* sym = get_range_symbol_name(params[i].index);
+                const bool entry_ok = (sym != nullptr) && (params[i].index >= 0);
                 if (!entry_ok) ok = false;
 
                 std::printf("Param[%zu] -> Symbol: %s, Index: %d %s\n",
                             i,
-                            params[i].symbol ? params[i].symbol : "None",
+                            sym ? sym : "None",
                             params[i].index,
                             entry_ok ? "OK" : "NOK");
             }
@@ -125,24 +127,25 @@ static int run_tests()
         for (const auto& tc : test_cases)
         {
             FlapSymbolResult res = get_optimal_flap(tc.w, tc.v);
+            const char* sym = get_range_symbol_name(res.index);
 
             bool ok = false;
             if (tc.expected)
             {
-                ok = (res.symbol != nullptr) &&
-                    (std::strcmp(res.symbol, tc.expected) == 0) &&
+                ok = (sym != nullptr) &&
+                    (std::strcmp(sym, tc.expected) == 0) &&
                     (res.index == tc.expected_index);
             }
             else
             {
-                ok = (res.symbol == nullptr) && (res.index == -1);
+                ok = (sym == nullptr) && (res.index == -1);
             }
 
             if (!ok) ++fails;
 
             std::printf("Weight %.0fkg, Speed %.0fkm/h -> Optimal Flap: %s, Index: %d (Expected: %s, %d) %s\n",
                         tc.w, tc.v,
-                        res.symbol ? res.symbol : "None", res.index,
+                        sym ? sym : "None", res.index,
                         tc.expected ? tc.expected : "None", tc.expected_index,
                         ok ? "OK" : "NOK");
         }
@@ -188,8 +191,9 @@ static int run_tests()
                 std::printf("Weight %.1f kg:\n", test_weight);
                 for (const auto& r : ranges)
                 {
+                    const char* sym = get_range_symbol_name(r.index);
                     std::printf("  Symbol: %4s, Index: %d, Range: [%6.1f, %6.1f]\n",
-                                r.symbol ? r.symbol : "None", r.index, r.lower_speed, r.upper_speed);
+                                sym ? sym : "None", r.index, r.lower_speed, r.upper_speed);
                 }
 
                 // Basic sanity check: ensure we got some data

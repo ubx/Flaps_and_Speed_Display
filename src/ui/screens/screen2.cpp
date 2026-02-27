@@ -217,7 +217,8 @@ static void draw_variable_scale(lv_obj_t* parent,
             lv_obj_set_style_text_font(lab, &lv_font_montserrat_20, 0);
         }
 
-        lv_label_set_text(lab, params[i].symbol ? params[i].symbol : "");
+        const char* sym = flaputils::get_range_symbol_name(params[i].index);
+        lv_label_set_text(lab, sym ? sym : "");
         lv_obj_remove_flag(lab, LV_OBJ_FLAG_HIDDEN);
 
         /* Layout -> size */
@@ -262,7 +263,8 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
     flaputils::FlapSymbolResult target = get_flap_target();
 
     if(s_flap_label) {
-        lv_label_set_text(s_flap_label, actual.symbol ? actual.symbol : "-");
+        const char* sym = flaputils::get_flap_symbol_name(actual.index);
+        lv_label_set_text(s_flap_label, sym ? sym : "-");
     }
 
     if(s_triangle_up_canvas && s_triangle_down_canvas)
