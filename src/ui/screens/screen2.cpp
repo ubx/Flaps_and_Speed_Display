@@ -270,12 +270,12 @@ static void ui_set_line_needle_value(lv_obj_t* scale_obj, lv_obj_t* needle_line,
 {
     lv_obj_align(needle_line, LV_ALIGN_TOP_LEFT, 0, 0);
 
-    int32_t rotation = lv_scale_get_rotation(scale_obj);
-    int32_t angle_range = lv_scale_get_angle_range(scale_obj);
-    int32_t min = lv_scale_get_range_min_value(scale_obj);
-    int32_t max = lv_scale_get_range_max_value(scale_obj);
-    int32_t width = lv_obj_get_style_width(scale_obj, LV_PART_MAIN);
-    int32_t height = lv_obj_get_style_height(scale_obj, LV_PART_MAIN);
+    int32_t rotation = 130; // lv_scale_get_rotation(scale_obj) is 130
+    int32_t angle_range = 280; // lv_scale_get_angle_range(scale_obj) is 280
+    int32_t min = 40; // lv_scale_get_range_min_value(scale_obj) is 40
+    int32_t max = 280; // lv_scale_get_range_max_value(scale_obj) is 280
+    int32_t width = 466; // lv_obj_get_style_width(scale_obj, LV_PART_MAIN) is 466
+    int32_t height = 466; // lv_obj_get_style_height(scale_obj, LV_PART_MAIN) is 466
 
     int32_t angle = 0;
     if (value > min)
@@ -309,7 +309,8 @@ static void ui_create_screen2_deferred(void)
     if (s_initialized) return;
 
     /* Build labels + segments */
-    auto params = flaputils::get_flap_speed_ranges(get_weight_kg());
+    double weight = get_weight_kg();
+    auto params = flaputils::get_flap_speed_ranges(weight);
     if (!params.empty())
     {
         uint32_t count = (uint32_t)params.size();
@@ -413,37 +414,48 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
         ui_create_screen2_deferred();
     }
 
+    static int32_t s_last_actual_idx = -9999;
+    static int32_t s_last_target_idx = -9999;
+    static int32_t s_last_vi = -9999;
+
     flaputils::FlapSymbolResult actual = get_flap_actual();
     flaputils::FlapSymbolResult target = get_flap_target();
 
-    if (s_flap_label)
+    if (actual.index != s_last_actual_idx)
     {
-        const char* sym = flaputils::get_flap_symbol_name(actual.index);
-        lv_label_set_text(s_flap_label, sym ? sym : "-");
+        if (s_flap_label)
+        {
+            const char* sym = flaputils::get_flap_symbol_name(actual.index);
+            lv_label_set_text(s_flap_label, sym ? sym : "-");
+        }
+        s_last_actual_idx = actual.index;
     }
 
-    if (s_triangle_up_canvas && s_triangle_down_canvas)
+    if (target.index != s_last_target_idx || actual.index != s_last_actual_idx)
     {
-        if (target.index > actual.index && target.index != -1 && actual.index != -1)
+        if (s_triangle_up_canvas && s_triangle_down_canvas)
         {
-            if (lv_obj_has_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN))
-                lv_obj_remove_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN);
-            if (!lv_obj_has_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN))
-                lv_obj_add_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN);
-        }
-        else if (target.index < actual.index && target.index != -1 && actual.index != -1)
-        {
-            if (!lv_obj_has_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN))
-                lv_obj_add_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN);
-            if (lv_obj_has_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN))
-                lv_obj_remove_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN);
-        }
-        else
-        {
-            if (!lv_obj_has_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN))
-                lv_obj_add_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN);
-            if (!lv_obj_has_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN))
-                lv_obj_add_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN);
+            if (target.index > actual.index && target.index != -1 && actual.index != -1)
+            {
+                if (lv_obj_has_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN))
+                    lv_obj_remove_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN);
+                if (!lv_obj_has_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN))
+                    lv_obj_add_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN);
+            }
+            else if (target.index < actual.index && target.index != -1 && actual.index != -1)
+            {
+                if (!lv_obj_has_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN))
+                    lv_obj_add_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN);
+                if (lv_obj_has_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN))
+                    lv_obj_remove_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN);
+            }
+            else
+            {
+                if (!lv_obj_has_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN))
+                    lv_obj_add_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN);
+                if (!lv_obj_has_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN))
+                    lv_obj_add_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN);
+            }
         }
     }
 
@@ -454,12 +466,20 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
 
     const int32_t vi = static_cast<int32_t>(v + 0.5f);
 
-    if (s_scale && s_needle)
+    if (vi != s_last_vi)
     {
-        ui_set_line_needle_value(s_scale, s_needle, NEEDLE_INNER_RADIUS, NEEDLE_OUTER_RADIUS, vi);
+        if (s_scale && s_needle)
+        {
+            ui_set_line_needle_value(s_scale, s_needle, NEEDLE_INNER_RADIUS, NEEDLE_OUTER_RADIUS, vi);
+        }
+        s_last_vi = vi;
     }
 
-    set_target_segment(target.index);
+    if (target.index != s_last_target_idx)
+    {
+        set_target_segment(target.index);
+        s_last_target_idx = target.index;
+    }
 }
 
 /* ---------- UI creation ---------- */
