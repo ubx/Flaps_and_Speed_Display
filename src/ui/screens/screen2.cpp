@@ -236,9 +236,8 @@ static void draw_variable_scale(lv_obj_t* parent,
         lv_label_set_text(lab, sym ? sym : "");
         lv_obj_remove_flag(lab, LV_OBJ_FLAG_HIDDEN);
 
-        lv_obj_update_layout(lab);
-        const lv_coord_t lw = lv_obj_get_width(lab);
-        const lv_coord_t lh = lv_obj_get_height(lab);
+        const lv_coord_t lw = 40; // Approximate width for font 20
+        const lv_coord_t lh = 24; // Approximate height for font 20
 
         lv_obj_set_pos(lab, (lv_coord_t)(lx - lw / 2), (lv_coord_t)(ly - lh / 2));
 
@@ -427,18 +426,24 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
     {
         if (target.index > actual.index && target.index != -1 && actual.index != -1)
         {
-            lv_obj_remove_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN);
-            lv_obj_add_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN);
+            if (lv_obj_has_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN))
+                lv_obj_remove_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN);
+            if (!lv_obj_has_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN))
+                lv_obj_add_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN);
         }
         else if (target.index < actual.index && target.index != -1 && actual.index != -1)
         {
-            lv_obj_add_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN);
-            lv_obj_remove_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN);
+            if (!lv_obj_has_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN))
+                lv_obj_add_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN);
+            if (lv_obj_has_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN))
+                lv_obj_remove_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN);
         }
         else
         {
-            lv_obj_add_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN);
-            lv_obj_add_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN);
+            if (!lv_obj_has_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN))
+                lv_obj_add_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN);
+            if (!lv_obj_has_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN))
+                lv_obj_add_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN);
         }
     }
 
@@ -572,6 +577,7 @@ static void ui_create_screen2()
 void screen2_create()
 {
     ui_create_screen2();
+    ui_create_screen2_deferred();
     lv_timer_create(ui_update_timer_cb, 200, nullptr);
 }
 
