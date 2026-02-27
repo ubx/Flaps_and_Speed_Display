@@ -36,6 +36,11 @@ sudo ip link set up can0
      ./test/play_canlog.py --time-gap 0.5
      ```
 
+   - `--loop`: Loop the log file infinitely.
+     ```bash
+     ./test/play_canlog.py --loop
+     ```
+
 ### Input File: `canlog.log`
 The script reads from `test/canlog.log`. The log contains:
 - **Flap positions** (ID 154 / 0x154): Values from `test_flaputils.cpp`.

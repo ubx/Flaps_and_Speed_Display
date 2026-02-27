@@ -25,6 +25,7 @@ def send_can_frame(sock, can_id, data):
 def main():
     parser = argparse.ArgumentParser(description="Play a CAN log file on a SocketCAN interface.")
     parser.add_argument("--time-gap", type=float, help="Fixed time gap between messages in seconds. If not given, uses timestamps from log.")
+    parser.add_argument("--loop", action="store_true", help="Loop the log file infinitely.")
     args = parser.parse_args()
 
     log_file = os.path.join(os.path.dirname(__file__), "canlog.log")
@@ -45,89 +46,91 @@ def main():
 
     print(f"Playing {log_file} on {interface}...")
 
-    last_ts = None
-    start_real_time = time.time()
-    
-    with open(log_file, 'r') as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
+    while True:
+        last_ts = None
+        with open(log_file, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
 
-            # Format: (timestamp) interface id#data
-            try:
-                ts_part, rest = line.split(') ', 1)
-                ts = float(ts_part.lstrip('('))
-                
-                _, can_part = rest.split(' ', 1)
-                id_hex, data_hex = can_part.split('#')
-                
-                can_id = parse_can_id(id_hex)
-                data = bytes.fromhex(data_hex)
-                
-                # Timing logic
-                if last_ts is not None:
-                    if args.time_gap is not None:
-                        time_diff = args.time_gap
+                # Format: (timestamp) interface id#data
+                try:
+                    ts_part, rest = line.split(') ', 1)
+                    ts = float(ts_part.lstrip('('))
+                    
+                    _, can_part = rest.split(' ', 1)
+                    id_hex, data_hex = can_part.split('#')
+                    
+                    can_id = parse_can_id(id_hex)
+                    data = bytes.fromhex(data_hex)
+                    
+                    # Timing logic
+                    if last_ts is not None:
+                        if args.time_gap is not None:
+                            time_diff = args.time_gap
+                        else:
+                            time_diff = ts - last_ts
+                        # Wait for the next message
+                        if time_diff > 0:
+                            time.sleep(time_diff)
+                    
+                    last_ts = ts
+                    
+                    # Send the message
+                    send_can_frame(sock, can_id, data)
+                    
+                    # Decoding logic as described in main.cpp
+                    id_int = int(id_hex, 16)
+                    msg_info = ""
+                    
+                    if id_int == 315:
+                        val = struct.unpack(">f", data[4:8])[0] * 3.6
+                        msg_info = f"ias: {val:.0f} km/h"
+                    elif id_int == 316:
+                        val = struct.unpack(">f", data[4:8])[0]
+                        msg_info = f"tas: {val:.2f}"
+                    elif id_int == 317:
+                        val = struct.unpack(">f", data[4:8])[0]
+                        msg_info = f"cas: {val:.2f}"
+                    elif id_int == 322:
+                        val = struct.unpack(">f", data[4:8])[0]
+                        msg_info = f"alt: {val:.2f}"
+                    elif id_int == 340:
+                        val = data[4]
+                        msg_info = f"flap: {val}"
+                    elif id_int == 354:
+                        val = struct.unpack(">f", data[4:8])[0]
+                        msg_info = f"vario: {val:.2f}"
+                    elif id_int == 1036:
+                        val = struct.unpack(">i", data[4:8])[0] / 1E7
+                        msg_info = f"lat: {val:.7f}"
+                    elif id_int == 1037:
+                        val = struct.unpack(">i", data[4:8])[0] / 1E7
+                        msg_info = f"lon: {val:.7f}"
+                    elif id_int == 1039:
+                        val = struct.unpack(">f", data[4:8])[0]
+                        msg_info = f"gs: {val:.2f}"
+                    elif id_int == 1040:
+                        val = struct.unpack(">f", data[4:8])[0]
+                        msg_info = f"tt: {val:.2f}"
+                    elif id_int == 1515:
+                        val = struct.unpack(">H", data[4:6])[0]
+                        msg_info = f"dry_and_ballast_mass: {val} Hg"
+                    elif id_int == 1506:
+                        val = struct.unpack(">H", data[4:6])[0]
+                        msg_info = f"enl: {val}"
                     else:
-                        time_diff = ts - last_ts
-                    # Wait for the next message
-                    if time_diff > 0:
-                        time.sleep(time_diff)
-                
-                last_ts = ts
-                
-                # Send the message
-                send_can_frame(sock, can_id, data)
-                
-                # Decoding logic as described in main.cpp
-                id_int = int(id_hex, 16)
-                msg_info = ""
-                
-                if id_int == 315:
-                    val = struct.unpack(">f", data[4:8])[0] * 3.6
-                    msg_info = f"ias: {val:.0f} km/h"
-                elif id_int == 316:
-                    val = struct.unpack(">f", data[4:8])[0]
-                    msg_info = f"tas: {val:.2f}"
-                elif id_int == 317:
-                    val = struct.unpack(">f", data[4:8])[0]
-                    msg_info = f"cas: {val:.2f}"
-                elif id_int == 322:
-                    val = struct.unpack(">f", data[4:8])[0]
-                    msg_info = f"alt: {val:.2f}"
-                elif id_int == 340:
-                    val = data[4]
-                    msg_info = f"flap: {val}"
-                elif id_int == 354:
-                    val = struct.unpack(">f", data[4:8])[0]
-                    msg_info = f"vario: {val:.2f}"
-                elif id_int == 1036:
-                    val = struct.unpack(">i", data[4:8])[0] / 1E7
-                    msg_info = f"lat: {val:.7f}"
-                elif id_int == 1037:
-                    val = struct.unpack(">i", data[4:8])[0] / 1E7
-                    msg_info = f"lon: {val:.7f}"
-                elif id_int == 1039:
-                    val = struct.unpack(">f", data[4:8])[0]
-                    msg_info = f"gs: {val:.2f}"
-                elif id_int == 1040:
-                    val = struct.unpack(">f", data[4:8])[0]
-                    msg_info = f"tt: {val:.2f}"
-                elif id_int == 1515:
-                    val = struct.unpack(">H", data[4:6])[0]
-                    msg_info = f"dry_and_ballast_mass: {val} Hg"
-                elif id_int == 1506:
-                    val = struct.unpack(">H", data[4:6])[0]
-                    msg_info = f"enl: {val}"
-                else:
-                    msg_info = "Unknown"
+                        msg_info = "Unknown"
 
-                # Print message as requested
-                print(f"[{ts:.6f}] Sent ID {id_hex} Data {data_hex} ({msg_info})")
-                
-            except Exception as e:
-                print(f"Error parsing line: {line}\nException: {e}", file=sys.stderr)
+                    # Print message as requested
+                    print(f"[{ts:.6f}] Sent ID {id_hex} Data {data_hex} ({msg_info})")
+                    
+                except Exception as e:
+                    print(f"Error parsing line: {line}\nException: {e}", file=sys.stderr)
+
+        if not args.loop:
+            break
 
     print("Finished playing log.")
 
