@@ -20,6 +20,7 @@ static lv_obj_t* s_scale = nullptr;                         // lv_scale for need
 static lv_obj_t* s_needle = nullptr;
 static lv_obj_t* s_triangle_up_canvas = nullptr;
 static lv_obj_t* s_triangle_down_canvas = nullptr;
+static bool      s_initialized = false;
 
 /* Needle dimensions */
 static constexpr int32_t NEEDLE_INNER_RADIUS = 130;
@@ -293,79 +294,18 @@ static void ui_set_line_needle_value(lv_obj_t* scale_obj, lv_obj_t* needle_line,
     lv_line_set_points(needle_line, points, 2);
 }
 
-/* ---------- timer ---------- */
+static void draw_variable_scale(lv_obj_t* parent,
+                                const std::vector<flaputils::FlapSpeedRange>& params,
+                                uint32_t count,
+                                const float* w,
+                                float w_sum,
+                                int32_t rot_deg,
+                                int32_t span_deg,
+                                int32_t gap_deg);
 
-static void ui_update_timer_cb(lv_timer_t* /*t*/)
+static void ui_create_screen2_deferred(void)
 {
-    if(lv_screen_active() != s_screen) return;
-
-    flaputils::FlapSymbolResult actual = get_flap_actual();
-    flaputils::FlapSymbolResult target = get_flap_target();
-
-    if(s_flap_label) {
-        const char* sym = flaputils::get_flap_symbol_name(actual.index);
-        lv_label_set_text(s_flap_label, sym ? sym : "-");
-    }
-
-    if(s_triangle_up_canvas && s_triangle_down_canvas)
-    {
-        if(target.index > actual.index && target.index != -1 && actual.index != -1)
-        {
-            lv_obj_remove_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN);
-            lv_obj_add_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN);
-        }
-        else if(target.index < actual.index && target.index != -1 && actual.index != -1)
-        {
-            lv_obj_add_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN);
-            lv_obj_remove_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN);
-        }
-        else
-        {
-            lv_obj_add_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN);
-            lv_obj_add_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN);
-        }
-    }
-
-    float v = get_ias_kmh();
-    if (std::isnan(v) || std::isinf(v)) v = 0.0f;
-    if (v < 40.0f) v = 40.0f;
-    if (v > 280.0f) v = 280.0f;
-
-    const int32_t vi = static_cast<int32_t>(v + 0.5f);
-
-    if (s_scale && s_needle)
-    {
-        ui_set_line_needle_value(s_scale, s_needle, NEEDLE_INNER_RADIUS, NEEDLE_OUTER_RADIUS, vi);
-    }
-
-    set_target_segment(target.index);
-}
-
-/* ---------- UI creation ---------- */
-
-static void ui_create_screen2()
-{
-    s_screen = lv_obj_create(nullptr);
-    make_screen_static(s_screen);
-    lv_obj_set_style_bg_color(s_screen, lv_color_black(), 0);
-    lv_obj_set_style_bg_opa(s_screen, LV_OPA_COVER, 0);
-
-    /* Center value */
-    s_flap_label = lv_label_create(s_screen);
-    make_noninteractive(s_flap_label);
-    lv_label_set_text(s_flap_label, "-");
-    lv_obj_set_style_text_color(s_flap_label, lv_color_white(), 0);
-    lv_obj_set_style_text_font(s_flap_label, &digits_120, 0);
-    lv_obj_center(s_flap_label);
-
-    /* Scale container (custom ticks/labels + arcs) */
-    s_arc_container = lv_obj_create(s_screen);
-    make_noninteractive(s_arc_container);
-    lv_obj_set_size(s_arc_container, 466, 466);
-    lv_obj_center(s_arc_container);
-    lv_obj_set_style_bg_opa(s_arc_container, LV_OPA_0, 0);
-    lv_obj_set_style_border_width(s_arc_container, 0, 0);
-    lv_obj_set_style_pad_all(s_arc_container, 0, 0);
+    if(s_initialized) return;
 
     /* Build labels + segments */
     auto params = flaputils::get_flap_speed_ranges(get_weight_kg());
@@ -458,6 +398,86 @@ static void ui_create_screen2()
         /* Ticks + tangent-rotated labels (scale matches segment lengths) */
         draw_variable_scale(s_arc_container, params, count, w, w_sum, rot, span, gap_deg);
     }
+    s_initialized = true;
+}
+
+/* ---------- timer ---------- */
+
+static void ui_update_timer_cb(lv_timer_t* /*t*/)
+{
+    if(lv_screen_active() != s_screen) return;
+
+    if(!s_initialized) {
+        ui_create_screen2_deferred();
+    }
+
+    flaputils::FlapSymbolResult actual = get_flap_actual();
+    flaputils::FlapSymbolResult target = get_flap_target();
+
+    if(s_flap_label) {
+        const char* sym = flaputils::get_flap_symbol_name(actual.index);
+        lv_label_set_text(s_flap_label, sym ? sym : "-");
+    }
+
+    if(s_triangle_up_canvas && s_triangle_down_canvas)
+    {
+        if(target.index > actual.index && target.index != -1 && actual.index != -1)
+        {
+            lv_obj_remove_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN);
+        }
+        else if(target.index < actual.index && target.index != -1 && actual.index != -1)
+        {
+            lv_obj_add_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN);
+        }
+        else
+        {
+            lv_obj_add_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
+
+    float v = get_ias_kmh();
+    if (std::isnan(v) || std::isinf(v)) v = 0.0f;
+    if (v < 40.0f) v = 40.0f;
+    if (v > 280.0f) v = 280.0f;
+
+    const int32_t vi = static_cast<int32_t>(v + 0.5f);
+
+    if (s_scale && s_needle)
+    {
+        ui_set_line_needle_value(s_scale, s_needle, NEEDLE_INNER_RADIUS, NEEDLE_OUTER_RADIUS, vi);
+    }
+
+    set_target_segment(target.index);
+}
+
+/* ---------- UI creation ---------- */
+
+static void ui_create_screen2()
+{
+    s_screen = lv_obj_create(nullptr);
+    make_screen_static(s_screen);
+    lv_obj_set_style_bg_color(s_screen, lv_color_black(), 0);
+    lv_obj_set_style_bg_opa(s_screen, LV_OPA_COVER, 0);
+
+    /* Center value */
+    s_flap_label = lv_label_create(s_screen);
+    make_noninteractive(s_flap_label);
+    lv_label_set_text(s_flap_label, "-");
+    lv_obj_set_style_text_color(s_flap_label, lv_color_white(), 0);
+    lv_obj_set_style_text_font(s_flap_label, &digits_120, 0);
+    lv_obj_center(s_flap_label);
+
+    /* Scale container (custom ticks/labels + arcs) */
+    s_arc_container = lv_obj_create(s_screen);
+    make_noninteractive(s_arc_container);
+    lv_obj_set_size(s_arc_container, 466, 466);
+    lv_obj_center(s_arc_container);
+    lv_obj_set_style_bg_opa(s_arc_container, LV_OPA_0, 0);
+    lv_obj_set_style_border_width(s_arc_container, 0, 0);
+    lv_obj_set_style_pad_all(s_arc_container, 0, 0);
 
     // Round inner scale 40..280 km/h (needle only)
     s_scale = lv_scale_create(s_screen);
