@@ -22,6 +22,7 @@ static lv_obj_t* s_needle = nullptr;
 static lv_obj_t* s_triangle_up_canvas = nullptr;
 static lv_obj_t* s_triangle_down_canvas = nullptr;
 static bool s_initialized = false;
+static double s_last_weight = -1.0;
 
 /* Needle dimensions */
 static constexpr int32_t NEEDLE_INNER_RADIUS = 130;
@@ -38,6 +39,9 @@ static lv_obj_t* s_labels[32] = {nullptr}; // one per segment
 
 /* Highlight bookkeeping */
 static int32_t s_last_highlight_idx = -9999;
+static int32_t s_last_actual_idx = -9999;
+static int32_t s_last_target_idx = -9999;
+static int32_t s_last_vi = -9999;
 
 /* Opacity levels for segments */
 static const lv_opa_t SEG_OPA_DIM = LV_OPA_20;
@@ -306,10 +310,21 @@ static void draw_variable_scale(lv_obj_t* parent,
 
 static void ui_create_screen2_deferred(void)
 {
-    if (s_initialized) return;
+    double weight = get_weight_kg();
+
+    if (s_initialized && std::abs(weight - s_last_weight) < 0.001) return;
+
+    /* Clean up existing arcs */
+    for (uint32_t i = 0; i < 32; i++)
+    {
+        if (s_seg_arcs[i])
+        {
+            lv_obj_delete(s_seg_arcs[i]);
+            s_seg_arcs[i] = nullptr;
+        }
+    }
 
     /* Build labels + segments */
-    double weight = get_weight_kg();
     auto params = flaputils::get_flap_speed_ranges(weight);
     if (!params.empty())
     {
@@ -401,6 +416,10 @@ static void ui_create_screen2_deferred(void)
         draw_variable_scale(s_arc_container, params, count, w, w_sum, rot, span, gap_deg);
     }
     s_initialized = true;
+    s_last_weight = weight;
+
+    /* Force UI update on next timer tick */
+    s_last_target_idx = -9999;
 }
 
 /* ---------- timer ---------- */
@@ -409,14 +428,11 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
 {
     if (lv_screen_active() != s_screen) return;
 
-    if (!s_initialized)
+    double current_weight = get_weight_kg();
+    if (!s_initialized || std::abs(current_weight - s_last_weight) >= 0.001)
     {
         ui_create_screen2_deferred();
     }
-
-    static int32_t s_last_actual_idx = -9999;
-    static int32_t s_last_target_idx = -9999;
-    static int32_t s_last_vi = -9999;
 
     flaputils::FlapSymbolResult actual = get_flap_actual();
     flaputils::FlapSymbolResult target = get_flap_target();
