@@ -1,0 +1,209 @@
+import sys
+import socket
+import struct
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import (
+    QApplication, QWidget, QVBoxLayout, QGroupBox, QGridLayout,
+    QLabel, QSlider, QSpinBox
+)
+
+FLAPS_VALUES = sorted([94, 167, 243, 84, 156, 191, 230, 250])
+
+# CAN frame format: 4 bytes ID, 1 byte length, 3 bytes padding, 8 bytes data
+CAN_FRAME_FMT = "=IB3x8s"
+
+
+def send_can_frame(sock, can_id, data):
+    # Padding the data to 8 bytes if needed
+    data = data.ljust(8, b'\x00')
+    can_pkt = struct.pack(CAN_FRAME_FMT, can_id, len(data), data)
+    try:
+        sock.send(can_pkt)
+    except socket.error as e:
+        print(f"Error sending CAN frame: {e}", file=sys.stderr)
+
+
+class ControlPanel(QWidget):
+    # Per-value signals
+    iasChanged = Signal(int)     # km/h
+    massChanged = Signal(int)    # kg
+    flapsChanged = Signal(int)   # V
+
+    # Combined signal: dict with current values
+    valuesChanged = Signal(dict)
+
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Control Panel")
+
+        root = QVBoxLayout(self)
+
+        box = QGroupBox("Controls")
+        grid = QGridLayout(box)
+        grid.setColumnStretch(1, 1)
+
+        # ---------- IAS (40..279 km/h) ----------
+        self.ias_slider = QSlider(Qt.Horizontal)
+        self.ias_slider.setRange(40, 279)
+        self.ias_spin = QSpinBox()
+        self.ias_spin.setRange(40, 279)
+        self.ias_unit = QLabel("km/h")
+        self.ias_unit.setMinimumWidth(45)
+
+        self.ias_slider.valueChanged.connect(self.ias_spin.setValue)
+        self.ias_spin.valueChanged.connect(self.ias_slider.setValue)
+        self.ias_spin.valueChanged.connect(self._on_ias_changed)
+
+        grid.addWidget(QLabel("IAS"), 0, 0)
+        grid.addWidget(self.ias_slider, 0, 1)
+        grid.addWidget(self.ias_spin, 0, 2)
+        grid.addWidget(self.ias_unit, 0, 3)
+
+        # ---------- Mass (390..600 kg) ----------
+        self.mass_slider = QSlider(Qt.Horizontal)
+        self.mass_slider.setRange(390, 600)
+        self.mass_spin = QSpinBox()
+        self.mass_spin.setRange(390, 600)
+        self.mass_unit = QLabel("kg")
+        self.mass_unit.setMinimumWidth(45)
+
+        self.mass_slider.valueChanged.connect(self.mass_spin.setValue)
+        self.mass_spin.valueChanged.connect(self.mass_slider.setValue)
+        self.mass_spin.valueChanged.connect(self._on_mass_changed)
+
+        grid.addWidget(QLabel("Dry + Ballast Mass"), 1, 0)
+        grid.addWidget(self.mass_slider, 1, 1)
+        grid.addWidget(self.mass_spin, 1, 2)
+        grid.addWidget(self.mass_unit, 1, 3)
+
+        # ---------- Flaps (discrete values, unit V) ----------
+        self.flaps_slider = QSlider(Qt.Horizontal)
+        self.flaps_slider.setRange(0, len(FLAPS_VALUES) - 1)
+        self.flaps_slider.setSingleStep(1)
+        self.flaps_slider.setPageStep(1)
+        self.flaps_slider.setTickInterval(1)
+        self.flaps_slider.setTickPosition(QSlider.TicksBelow)
+
+        self.flaps_value = QLabel()
+        self.flaps_value.setMinimumWidth(60)
+        self.flaps_value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.flaps_unit = QLabel("V")
+        self.flaps_unit.setMinimumWidth(45)
+
+        self.flaps_slider.valueChanged.connect(self._on_flaps_index_changed)
+
+        grid.addWidget(QLabel(f"Flaps ({', '.join(map(str, FLAPS_VALUES))})"), 2, 0)
+        grid.addWidget(self.flaps_slider, 2, 1)
+        grid.addWidget(self.flaps_value, 2, 2)
+        grid.addWidget(self.flaps_unit, 2, 3)
+
+        root.addWidget(box)
+        root.addStretch(1)
+
+        # Defaults
+        self.ias_spin.setValue(40)
+        self.mass_spin.setValue(390)
+        self.flaps_slider.setValue(0)
+        self._update_flaps_label(0)
+
+        # Emit initial snapshot once
+        self._emit_all()
+
+    # ---- Public helper: current values snapshot ----
+    def current_values(self) -> dict:
+        return {
+            "ias": int(self.ias_spin.value()),
+            "mass": int(self.mass_spin.value()),
+            "flaps": int(self._current_flaps_value()),
+        }
+
+    # ---- Internal: signal emitters ----
+    def _on_ias_changed(self, v: int):
+        self.iasChanged.emit(int(v))
+        self.valuesChanged.emit(self.current_values())
+
+    def _on_mass_changed(self, v: int):
+        self.massChanged.emit(int(v))
+        self.valuesChanged.emit(self.current_values())
+
+    def _on_flaps_index_changed(self, idx: int):
+        self._update_flaps_label(idx)
+        self.flapsChanged.emit(int(self._current_flaps_value()))
+        self.valuesChanged.emit(self.current_values())
+
+    def _emit_all(self):
+        vals = self.current_values()
+        self.iasChanged.emit(vals["ias"])
+        self.massChanged.emit(vals["mass"])
+        self.flapsChanged.emit(vals["flaps"])
+        self.valuesChanged.emit(vals)
+
+    # ---- Flaps helpers ----
+    def _current_flaps_value(self) -> int:
+        idx = int(self.flaps_slider.value())
+        idx = max(0, min(idx, len(FLAPS_VALUES) - 1))
+        return FLAPS_VALUES[idx]
+
+    def _update_flaps_label(self, idx: int):
+        idx = max(0, min(int(idx), len(FLAPS_VALUES) - 1))
+        self.flaps_value.setText(str(FLAPS_VALUES[idx]))
+
+
+def main():
+    app = QApplication(sys.argv)
+    w = ControlPanel()
+
+    # Open CAN socket
+    interface = "can0"
+    try:
+        sock = socket.socket(socket.AF_CAN, socket.SOCK_RAW, socket.CAN_RAW)
+        sock.bind((interface,))
+        print(f"CAN interface {interface} opened.")
+    except socket.error as e:
+        print(f"Could not open CAN interface {interface}: {e}")
+        print("Note: You might need to set up vcan0 if you don't have a real CAN interface.")
+        sock = None
+
+    def on_ias_changed(v):
+        print(f"IAS changed: {v} km/h")
+        if sock:
+            # ID 315: IAS (km/h) -> m/s (/ 3.6)
+            # msg_info = f"ias: {val:.0f} km/h"
+            # val = struct.unpack(">f", data[4:8])[0] * 3.6
+            data = bytearray(8)
+            struct.pack_into(">f", data, 4, v / 3.6)
+            send_can_frame(sock, 315, data)
+
+    def on_mass_changed(v):
+        print(f"Mass changed: {v} kg")
+        if sock:
+            # ID 1515: dry_and_ballast_mass (Hg -> kg * 10)
+            # val = struct.unpack(">H", data[4:6])[0]
+            # msg_info = f"dry_and_ballast_mass: {val} Hg"
+            data = bytearray(8)
+            struct.pack_into(">H", data, 4, v * 10)
+            send_can_frame(sock, 1515, data)
+
+    def on_flaps_changed(v):
+        print(f"Flaps changed: {v} V")
+        if sock:
+            # ID 340: flap
+            # val = data[4]
+            # msg_info = f"flap: {val}"
+            data = bytearray(8)
+            data[4] = v & 0xFF  # Simple assumption: v is mapped to byte 4
+            send_can_frame(sock, 340, data)
+
+    # Example callbacks (replace with your logic / Node-RED / MQTT / etc.)
+    w.iasChanged.connect(on_ias_changed)
+    w.massChanged.connect(on_mass_changed)
+    w.flapsChanged.connect(on_flaps_changed)
+    w.valuesChanged.connect(lambda d: print(f"ALL: {d}"))
+
+    w.resize(780, 210)
+    w.show()
+    sys.exit(app.exec())
+
+
+if __name__ == "__main__":
+    main()
