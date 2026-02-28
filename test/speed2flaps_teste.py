@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
     QLabel, QSlider, QSpinBox
 )
 
-FLAPS_VALUES = sorted([94, 167, 243, 84, 156, 191, 230, 250])
+FLAPS_VALUES = [94, 167, 243, 84, 156, 191, 230, 250]
 
 # CAN frame format: 4 bytes ID, 1 byte length, 3 bytes padding, 8 bytes data
 CAN_FRAME_FMT = "=IB3x8s"
@@ -32,9 +32,10 @@ class ControlPanel(QWidget):
     # Combined signal: dict with current values
     valuesChanged = Signal(dict)
 
-    def __init__(self):
+    def __init__(self, sock=None):
         super().__init__()
         self.setWindowTitle("Control Panel")
+        self.sock = sock
 
         root = QVBoxLayout(self)
 
@@ -121,15 +122,32 @@ class ControlPanel(QWidget):
     def _on_ias_changed(self, v: int):
         self.iasChanged.emit(int(v))
         self.valuesChanged.emit(self.current_values())
+        if self.sock:
+            # ID 315: IAS (km/h) -> m/s (/ 3.6)
+            # main.cpp: get_float(msg.data) reads big-endian float starting at index 4
+            data = bytearray(8)
+            struct.pack_into(">f", data, 4, v / 3.6)
+            send_can_frame(self.sock, 315, data)
 
     def _on_mass_changed(self, v: int):
         self.massChanged.emit(int(v))
         self.valuesChanged.emit(self.current_values())
+        if self.sock:
+            # ID 1515: dry_and_ballast_mass (Hg -> kg * 10)
+            data = bytearray(8)
+            struct.pack_into(">H", data, 4, v * 10)
+            send_can_frame(self.sock, 1515, data)
 
     def _on_flaps_index_changed(self, idx: int):
         self._update_flaps_label(idx)
-        self.flapsChanged.emit(int(self._current_flaps_value()))
+        v = self._current_flaps_value()
+        self.flapsChanged.emit(int(v))
         self.valuesChanged.emit(self.current_values())
+        if self.sock:
+            # ID 340: flap
+            data = bytearray(8)
+            data[4] = v & 0xFF
+            send_can_frame(self.sock, 340, data)
 
     def _emit_all(self):
         vals = self.current_values()
@@ -151,7 +169,6 @@ class ControlPanel(QWidget):
 
 def main():
     app = QApplication(sys.argv)
-    w = ControlPanel()
 
     # Open CAN socket
     interface = "can0"
@@ -164,35 +181,16 @@ def main():
         print("Note: You might need to set up vcan0 if you don't have a real CAN interface.")
         sock = None
 
+    w = ControlPanel(sock)
+
     def on_ias_changed(v):
         print(f"IAS changed: {v} km/h")
-        if sock:
-            # ID 315: IAS (km/h) -> m/s (/ 3.6)
-            # msg_info = f"ias: {val:.0f} km/h"
-            # val = struct.unpack(">f", data[4:8])[0] * 3.6
-            data = bytearray(8)
-            struct.pack_into(">f", data, 4, v / 3.6)
-            send_can_frame(sock, 315, data)
 
     def on_mass_changed(v):
         print(f"Mass changed: {v} kg")
-        if sock:
-            # ID 1515: dry_and_ballast_mass (Hg -> kg * 10)
-            # val = struct.unpack(">H", data[4:6])[0]
-            # msg_info = f"dry_and_ballast_mass: {val} Hg"
-            data = bytearray(8)
-            struct.pack_into(">H", data, 4, v * 10)
-            send_can_frame(sock, 1515, data)
 
     def on_flaps_changed(v):
         print(f"Flaps changed: {v} V")
-        if sock:
-            # ID 340: flap
-            # val = data[4]
-            # msg_info = f"flap: {val}"
-            data = bytearray(8)
-            data[4] = v & 0xFF  # Simple assumption: v is mapped to byte 4
-            send_can_frame(sock, 340, data)
 
     # Example callbacks (replace with your logic / Node-RED / MQTT / etc.)
     w.iasChanged.connect(on_ias_changed)
