@@ -5,14 +5,14 @@ It uses an AMOLED display with LVGL to provide a graphical gauge for indicated a
 and flaps position, receiving real-time data via the CAN bus (TWAI).
 
 ### todo
-- adjust speed gauge size and layout
+- ~~adjust speed gauge size and layout~~
 - ~~replace the numeric speed field~~
 - ~~read and display the actual flap position (flap)~~
 - ~~calculate and display the optimal flap position (flaputils::get_optimal_flap)~~
 - show display stale when nothing is received after 10 sec
-- design a graphical actual/optimal display
-- on start show about screenwith firmware and version
-- setup screen with brightness, select polare...
+- ~~design a graphical actual/optimal display~~
+- ~~on start show about screenwith firmware and version~~
+- setup screen ~~with brightness~~, select polare...
 - implement update flapDescriptor.json OTA with BLE
 - demo mode
 - special flap positions for start and landing
