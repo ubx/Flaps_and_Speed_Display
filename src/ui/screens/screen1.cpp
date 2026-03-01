@@ -23,6 +23,22 @@ static lv_obj_t* s_label = nullptr;
 static constexpr int32_t NEEDLE_INNER_RADIUS = 130;
 static constexpr int32_t NEEDLE_OUTER_RADIUS = 170;
 
+// --- Smoothing state ---
+static float s_target_ema = 40.0f;     // filtered target (km/h)
+static float s_display = 40.0f;        // what we actually draw (km/h)
+static uint32_t s_last_ms = 0;
+
+// Tune these:
+static constexpr float EMA_TAU_SEC = 0.25f;            // lower=faster, higher=smoother
+static constexpr float MAX_SLEW_KMH_PER_SEC = 220.0f;  // cap needle speed
+
+static float clampf(float x, float lo, float hi)
+{
+    if (x < lo) return lo;
+    if (x > hi) return hi;
+    return x;
+}
+
 /**
  * Custom needle update that supports an inner radius (gap from center)
  */
@@ -56,6 +72,47 @@ static void ui_set_line_needle_value(lv_obj_t* scale_obj, lv_obj_t* needle_line,
     lv_line_set_points(needle_line, points, 2);
 }
 
+// Smooth update (EMA + slew-rate)
+static void ui_update_smoothed(float raw_kmh)
+{
+    uint32_t now = lv_tick_get();
+
+    // expected 50Hz, but compute dt robustly
+    float dt = 0.02f;
+    if (s_last_ms != 0)
+    {
+        dt = (now - s_last_ms) / 1000.0f;
+        if (dt < 0.001f) dt = 0.001f;
+        if (dt > 0.200f) dt = 0.200f;
+    }
+    s_last_ms = now;
+
+    // sanitize & clamp to scale range
+    if (std::isnan(raw_kmh) || std::isinf(raw_kmh)) raw_kmh = 40.0f;
+    raw_kmh = clampf(raw_kmh, 40.0f, 280.0f);
+
+    // 1) EMA low-pass
+    const float alpha = dt / (EMA_TAU_SEC + dt);
+    s_target_ema += alpha * (raw_kmh - s_target_ema);
+
+    // Optional deadband to stop micro-wiggle
+    if (fabsf(s_target_ema - s_display) < 0.3f)
+    {
+        s_target_ema = s_display;
+    }
+
+    // 2) Slew-rate limit
+    float diff = s_target_ema - s_display;
+    const float max_step = MAX_SLEW_KMH_PER_SEC * dt;
+    if (diff > max_step) diff = max_step;
+    if (diff < -max_step) diff = -max_step;
+    s_display += diff;
+
+    // draw needle
+    const int32_t vi = (int32_t)lroundf(s_display);
+    ui_set_line_needle_value(s_scale, s_needle, NEEDLE_INNER_RADIUS, NEEDLE_OUTER_RADIUS, vi);
+}
+
 static void ui_create_gauge()
 {
     s_screen = lv_obj_create(nullptr);
@@ -70,7 +127,7 @@ static void ui_create_gauge()
     lv_scale_set_mode(s_scale, LV_SCALE_MODE_ROUND_INNER);
     lv_scale_set_range(s_scale, 40, 280);
     lv_scale_set_total_tick_count(s_scale, 13); // minor ticks
-    lv_scale_set_major_tick_every(s_scale, 2); // major each 2nd tick
+    lv_scale_set_major_tick_every(s_scale, 2);  // major each 2nd tick
     lv_scale_set_angle_range(s_scale, 280);
     lv_scale_set_rotation(s_scale, 130);
     lv_scale_set_label_show(s_scale, true);
@@ -98,8 +155,8 @@ static void ui_create_gauge()
     lv_label_set_text(unit, "km/h");
     lv_obj_align(unit, LV_ALIGN_CENTER, 0, 80);
 
-    // Initial position
-    ui_set_line_needle_value(s_scale, s_needle, NEEDLE_INNER_RADIUS, NEEDLE_OUTER_RADIUS, 0);
+    // Initial position (min of scale)
+    ui_set_line_needle_value(s_scale, s_needle, NEEDLE_INNER_RADIUS, NEEDLE_OUTER_RADIUS, 40);
 }
 
 static void ui_update_timer_cb(lv_timer_t* /*t*/)
@@ -107,19 +164,23 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
     if (lv_screen_active() != s_screen) return;
 
     float v = get_ias_kmh();
-    if (std::isnan(v) || std::isinf(v)) v = 0.0f;
-    if (v < 40.0f) v = 40.0f;
-    if (v > 280.0f) v = 280.0f;
-
-    const int32_t vi = static_cast<int32_t>(v + 0.5f);
 
     if (s_scale && s_needle)
     {
-        ui_set_line_needle_value(s_scale, s_needle, NEEDLE_INNER_RADIUS, NEEDLE_OUTER_RADIUS, vi);
+        ui_update_smoothed(v);
     }
-    if (s_label)
+
+    // Update label slower (100 ms) to reduce redraw cost/flicker
+    static uint8_t div = 0;
+    div++;
+    if (div >= 5) // 5 * 20ms = 100ms
     {
-        lv_label_set_text_fmt(s_label, "%d", static_cast<int>(vi));
+        div = 0;
+        if (s_label)
+        {
+            const int32_t vi = (int32_t)lroundf(s_display);
+            lv_label_set_text_fmt(s_label, "%d", (int)vi);
+        }
     }
 }
 
@@ -127,8 +188,17 @@ void screen1_create()
 {
     ui_create_gauge();
 
-    // Update at 5 Hz inside LVGL context (no extra FreeRTOS LVGL tasks needed)
-    lv_timer_create(ui_update_timer_cb, 200, nullptr);
+    // init smoothing to current clamped value to avoid a jump on first frames
+    float v = get_ias_kmh();
+    if (std::isnan(v) || std::isinf(v)) v = 40.0f;
+    v = clampf(v, 40.0f, 280.0f);
+
+    s_target_ema = v;
+    s_display = v;
+    s_last_ms = 0;
+
+    // Smooth needle: 50 Hz (20 ms)
+    lv_timer_create(ui_update_timer_cb, 20, nullptr);
 }
 
 lv_obj_t* screen1_get()
