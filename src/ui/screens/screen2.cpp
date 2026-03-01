@@ -417,7 +417,7 @@ static void ui_update_asi(float raw_kmh)
 static void ui_create_screen2_deferred(void)
 {
     double weight = get_weight_kg();
-    if (s_initialized && std::abs(weight - s_last_weight) < 0.001) return;
+    if (s_initialized && std::abs(weight - s_last_weight) < 0.5) return;
 
     /* Build labels + segments */
     auto params = flaputils::get_flap_speed_ranges(weight);
@@ -531,20 +531,20 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
     /* Do heavy work (weight-dependent rebuild) slower */
     static uint8_t slow_div = 0;
     slow_div++;
-    if (slow_div >= 10) // 10 * 20ms = 200ms
+    if (slow_div >= 10) // 10 * 100ms = 1s
     {
         slow_div = 0;
         double current_weight = get_weight_kg();
-        if (!s_initialized || std::abs(current_weight - s_last_weight) >= 0.001)
+        if (!s_initialized || std::abs(current_weight - s_last_weight) >= 0.5)
         {
             ui_create_screen2_deferred();
         }
     }
 
-    /* Update flap label/triangles at moderate rate (every 100ms) */
+    /* Update flap label/triangles at moderate rate (same as timer: 100ms) */
     static uint8_t mid_div = 0;
     mid_div++;
-    if (mid_div >= 5) // 5 * 20ms = 100ms
+    if (mid_div >= 1) // 1 * 100ms = 100ms
     {
         mid_div = 0;
 
@@ -721,8 +721,8 @@ void screen2_create()
     s_v = 0.0f;
     s_last_ms = 0;
 
-    // 25 Hz tick for smooth needle; other UI updates are internally divided down
-    lv_timer_create(ui_update_timer_cb, 40, nullptr);
+    // 10 Hz tick (100ms) for smooth needle; other UI updates are internally divided down
+    lv_timer_create(ui_update_timer_cb, 100, nullptr);
 }
 
 lv_obj_t* screen2_get()
