@@ -690,7 +690,7 @@ static void ui_create_screen2()
 
     lv_draw_triangle(&layer, &tri_dsc);
     lv_canvas_finish_layer(s_triangle_up_canvas, &layer);
-    lv_obj_align_to(s_triangle_up_canvas, s_flap_label, LV_ALIGN_OUT_TOP_MID, 0, -40);
+    lv_obj_align_to(s_triangle_up_canvas, s_flap_label, LV_ALIGN_OUT_TOP_MID, 0, -30);
 
     /* Triangle below label */
     LV_DRAW_BUF_DEFINE_STATIC(draw_buf_down, 70, 70, LV_COLOR_FORMAT_ARGB8888);
@@ -711,7 +711,7 @@ static void ui_create_screen2()
 
     lv_draw_triangle(&layer, &tri_dsc);
     lv_canvas_finish_layer(s_triangle_down_canvas, &layer);
-    lv_obj_align_to(s_triangle_down_canvas, s_flap_label, LV_ALIGN_OUT_BOTTOM_MID, 0, 40);
+    lv_obj_align_to(s_triangle_down_canvas, s_flap_label, LV_ALIGN_OUT_BOTTOM_MID, 0, 30);
 
     lv_obj_add_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN);
