@@ -28,7 +28,7 @@ static void ui_update_timer_cb(lv_timer_t* timer)
     lv_label_set_text(s_label_ias, buf);
 
     // Weight
-    snprintf(buf, sizeof(buf), "Weight: %.1f kg", get_weight_kg());
+    snprintf(buf, sizeof(buf), "Weight: %.0f kg", get_weight_kg());
     lv_label_set_text(s_label_weight, buf);
 
     // Flap Actual
