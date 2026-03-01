@@ -3,6 +3,7 @@
 #include "screens/screen1.hpp"
 #include "screens/screen2.hpp"
 #include "screens/screen3.hpp"
+#include "screens/screen4.hpp"
 #include "esp_log.h"
 #include "bsp/esp32_s3_touch_amoled_1_75.h"
 
@@ -36,11 +37,12 @@ void ui_init(void)
         screen1_create();
         screen2_create();
         screen3_create();
+        screen4_create();
 
         /* Gestures:
-           - UP/DOWN: cycle between screen1 <-> screen2 (as before)
-           - RIGHT SWIPE: toggle screen3 (enter/exit)
-           - screen3 is otherwise not in the up/down cycle
+           - UP/DOWN: cycle between screen1 <-> screen2
+           - RIGHT SWIPE: enter/toggle screen3 and screen4
+           - LEFT SWIPE: return to screen1 from screen3/screen4
         */
         auto gesture_cb = [](lv_event_t* e) {
             if (lv_event_get_code(e) != LV_EVENT_GESTURE) return;
@@ -53,7 +55,7 @@ void ui_init(void)
                 } else if (lv_screen_active() == screen2_get()) {
                     lv_screen_load_anim(screen1_get(), LV_SCR_LOAD_ANIM_MOVE_BOTTOM, 300, 0, false);
                 } else {
-                    /* If currently on screen3, ignore up/down or go back to screen1 */
+                    /* If currently on screen3 or screen4, ignore up/down or go back to screen1 */
                     lv_screen_load_anim(screen1_get(), LV_SCR_LOAD_ANIM_MOVE_BOTTOM, 300, 0, false);
                 }
             }
@@ -67,11 +69,20 @@ void ui_init(void)
                 }
             }
             else if (dir == LV_DIR_RIGHT) {
-                /* Right swipe toggles screen3 */
+                /* Right swipe toggles between screen3 and screen4 */
                 if (lv_screen_active() == screen3_get()) {
-                    lv_screen_load_anim(screen1_get(), LV_SCR_LOAD_ANIM_MOVE_RIGHT, 300, 0, false);
+                    lv_screen_load_anim(screen4_get(), LV_SCR_LOAD_ANIM_MOVE_LEFT, 300, 0, false);
+                } else if (lv_screen_active() == screen4_get()) {
+                    lv_screen_load_anim(screen3_get(), LV_SCR_LOAD_ANIM_MOVE_RIGHT, 300, 0, false);
                 } else {
+                    /* From screen1 or screen2, enter screen3 via right swipe */
                     lv_screen_load_anim(screen3_get(), LV_SCR_LOAD_ANIM_MOVE_LEFT, 300, 0, false);
+                }
+            }
+            else if (dir == LV_DIR_LEFT) {
+                /* Left swipe to return from sub-screens (3 or 4) to main cycle */
+                if (lv_screen_active() == screen3_get() || lv_screen_active() == screen4_get()) {
+                    lv_screen_load_anim(screen1_get(), LV_SCR_LOAD_ANIM_MOVE_RIGHT, 300, 0, false);
                 }
             }
         };
@@ -79,6 +90,7 @@ void ui_init(void)
         lv_obj_add_event_cb(screen1_get(), gesture_cb, LV_EVENT_GESTURE, nullptr);
         lv_obj_add_event_cb(screen2_get(), gesture_cb, LV_EVENT_GESTURE, nullptr);
         lv_obj_add_event_cb(screen3_get(), gesture_cb, LV_EVENT_GESTURE, nullptr);
+        lv_obj_add_event_cb(screen4_get(), gesture_cb, LV_EVENT_GESTURE, nullptr);
 
         lv_screen_load(screen2_get());
         bsp_display_unlock();

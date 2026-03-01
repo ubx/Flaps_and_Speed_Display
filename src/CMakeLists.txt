@@ -5,6 +5,7 @@ idf_component_register(
         "ui/screens/screen1.cpp"
         "ui/screens/screen2.cpp"
         "ui/screens/screen3.cpp"
+        "ui/screens/screen4.cpp"
         "flaputils.cpp"
         "../components/ui/fonts/digits_80.c"
         "../components/ui/fonts/digits_96.c"
