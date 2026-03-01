@@ -523,6 +523,9 @@ static void ui_create_screen2_deferred(void)
 
 static void ui_update_timer_cb(lv_timer_t* /*t*/)
 {
+    // Feeding the watchdog here is safe as this is called from the LVGL task context
+    esp_task_wdt_reset();
+
     if (lv_screen_active() != s_screen) return;
 
     /* Do heavy work (weight-dependent rebuild) slower */
