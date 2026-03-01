@@ -8,6 +8,36 @@
 #include "bsp/esp32_s3_touch_amoled_1_75.h"
 
 static const char* TAG = "ui";
+static lv_obj_t* s_label1 = nullptr;
+static lv_obj_t* s_label2 = nullptr;
+static lv_obj_t* s_label3 = nullptr;
+
+void set_label1(const char* text)
+{
+    if (bsp_display_lock(-1) == ESP_OK)
+    {
+        if (s_label1) lv_label_set_text(s_label1, text);
+        bsp_display_unlock();
+    }
+}
+
+void set_label2(const char* text)
+{
+    if (bsp_display_lock(-1) == ESP_OK)
+    {
+        if (s_label2) lv_label_set_text(s_label2, text);
+        bsp_display_unlock();
+    }
+}
+
+void set_label3(const char* text)
+{
+    if (bsp_display_lock(-1) == ESP_OK)
+    {
+        if (s_label3) lv_label_set_text(s_label3, text);
+        bsp_display_unlock();
+    }
+}
 
 void ui_init(void)
 {
@@ -34,6 +64,30 @@ void ui_init(void)
 
     if (bsp_display_lock(-1) == ESP_OK)
     {
+        // Set background color for the splash screen
+        lv_obj_t* act_scr = lv_screen_active();
+        lv_obj_set_style_bg_color(act_scr, lv_color_black(), 0);
+        lv_obj_set_style_bg_opa(act_scr, LV_OPA_COVER, 0);
+
+        // Simple splash screen labels
+        s_label1 = lv_label_create(act_scr);
+        lv_obj_set_style_text_color(s_label1, lv_color_white(), 0);
+        lv_obj_set_style_text_font(s_label1, &lv_font_montserrat_20, 0);
+        lv_obj_align(s_label1, LV_ALIGN_CENTER, 0, -50);
+        lv_label_set_text(s_label1, "Loading...");
+
+        s_label2 = lv_label_create(act_scr);
+        lv_obj_set_style_text_color(s_label2, lv_color_white(), 0);
+        lv_obj_set_style_text_font(s_label2, &lv_font_montserrat_16, 0);
+        lv_obj_align(s_label2, LV_ALIGN_CENTER, 0, 0);
+        lv_label_set_text(s_label2, "Please wait");
+
+        s_label3 = lv_label_create(act_scr);
+        lv_obj_set_style_text_color(s_label3, lv_color_white(), 0);
+        lv_obj_set_style_text_font(s_label3, &lv_font_montserrat_16, 0);
+        lv_obj_align(s_label3, LV_ALIGN_CENTER, 0, 40);
+        lv_label_set_text(s_label3, "");
+
         screen1_create();
         screen2_create();
         screen3_create();
@@ -92,7 +146,8 @@ void ui_init(void)
         lv_obj_add_event_cb(screen3_get(), gesture_cb, LV_EVENT_GESTURE, nullptr);
         lv_obj_add_event_cb(screen4_get(), gesture_cb, LV_EVENT_GESTURE, nullptr);
 
-        lv_screen_load(screen2_get());
+        // After some delay, we'll switch to screen2.
+        // But for now, just stay on the current screen where s_label1/2 were created.
         bsp_display_unlock();
     }
 

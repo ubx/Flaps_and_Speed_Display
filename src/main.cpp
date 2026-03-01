@@ -17,8 +17,20 @@
 
 #include "flaputils.hpp"
 #include "ui/ui.h"
+#include "ui/screens/screen2.hpp"
+#ifndef NATIVE_TEST_BUILD
+#include "bsp/esp32_s3_touch_amoled_1_75.h"
+#include "lvgl.h"
+#endif
 
-static const char* TAG = "CANReceiver";
+#define APP_NAME "Flaps & Speed"
+#define APP_VERSION "1.0.0"
+
+#ifndef GIT_REVISION
+#define GIT_REVISION "unknown"
+#endif
+
+static const char* TAG = "main";
 
 struct FlightData
 {
@@ -346,6 +358,19 @@ extern "C" void app_main(void)
             receiver.start();
             xTaskCreate(print_task, "print_task", 4096, &flight_state, 2, NULL);
             ui_init();
+
+            // show name, version and git rev
+            set_label1(APP_NAME);
+            set_label2("Version: " APP_VERSION);
+            set_label3("Git Rev: " GIT_REVISION);
+            vTaskDelay(pdMS_TO_TICKS(5000));
+
+            // Load screen2 after splash
+            if (bsp_display_lock(-1) == ESP_OK)
+            {
+                lv_screen_load_anim(screen2_get(), LV_SCR_LOAD_ANIM_FADE_ON, 500, 0, false);
+                bsp_display_unlock();
+            }
         }
         else
         {
