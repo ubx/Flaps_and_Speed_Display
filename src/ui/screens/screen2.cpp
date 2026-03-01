@@ -146,7 +146,7 @@ static void set_target_segment(int32_t tgt)
         for (int32_t i = 0; i <= max_seg && i < 31; i++)
         {
             if (s_seg_arcs[i]) lv_obj_set_style_arc_opa(s_seg_arcs[i], SEG_OPA_DIM, LV_PART_INDICATOR);
-            if (i % 8 == 0) esp_task_wdt_reset();
+            if (i % 4 == 0) esp_task_wdt_reset();
         }
     }
     else if (s_last_highlight_idx >= 0 && s_last_highlight_idx <= max_seg)
@@ -251,7 +251,7 @@ static void draw_variable_scale(lv_obj_t* parent,
         lv_obj_remove_flag(line, LV_OBJ_FLAG_HIDDEN);
         
         // Feed watchdog during potentially long loop
-        if (i % 8 == 0) {
+        if (i % 4 == 0) {
             esp_task_wdt_reset();
         }
     }
@@ -298,6 +298,11 @@ static void draw_variable_scale(lv_obj_t* parent,
         lv_obj_set_style_transform_pivot_x(lab, lw / 2, 0);
         lv_obj_set_style_transform_pivot_y(lab, lh / 2, 0);
         set_label_rotation_01deg(lab, (int32_t)(tang_deg * 10.0f));
+
+        // Feed watchdog
+        if (i % 4 == 0) {
+            esp_task_wdt_reset();
+        }
     }
 
     for (uint32_t i = count; i < 32; ++i)
@@ -506,7 +511,7 @@ static void ui_create_screen2_deferred(void)
             lv_obj_remove_flag(arc, LV_OBJ_FLAG_HIDDEN);
             
             // Feed watchdog during creation of many objects
-            if (i % 8 == 0) {
+            if (i % 4 == 0) {
                 esp_task_wdt_reset();
             }
         }
@@ -550,7 +555,7 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
     /* Update flap label/triangles at moderate rate (same as timer: 100ms) */
     static uint8_t mid_div = 0;
     mid_div++;
-    if (mid_div >= 1) // 1 * 100ms = 100ms
+    if (mid_div >= 2) // 2 * 100ms = 200ms
     {
         mid_div = 0;
 
