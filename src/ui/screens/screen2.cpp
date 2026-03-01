@@ -1,6 +1,7 @@
 #ifndef NATIVE_TEST_BUILD
 
 #include "esp_log.h"
+#include "esp_task_wdt.h"
 #include "lvgl.h"
 #include "../../flaputils.hpp"
 #include "bsp/esp32_s3_touch_amoled_1_75.h"
@@ -247,6 +248,11 @@ static void draw_variable_scale(lv_obj_t* parent,
 
         lv_line_set_points(line, s_tick_pts[i], 2);
         lv_obj_remove_flag(line, LV_OBJ_FLAG_HIDDEN);
+        
+        // Feed watchdog during potentially long loop
+        if (i % 8 == 0) {
+            esp_task_wdt_reset();
+        }
     }
 
     for (uint32_t i = count + 1; i < 33; ++i)
@@ -413,84 +419,78 @@ static void ui_create_screen2_deferred(void)
     double weight = get_weight_kg();
     if (s_initialized && std::abs(weight - s_last_weight) < 0.001) return;
 
-    /* Clean up existing arcs */
-    for (uint32_t i = 0; i < 32; i++)
-    {
-        if (s_seg_arcs[i])
-        {
-            lv_obj_delete(s_seg_arcs[i]);
-            s_seg_arcs[i] = nullptr;
-        }
-    }
-
     /* Build labels + segments */
     auto params = flaputils::get_flap_speed_ranges(weight);
-    if (!params.empty())
+    if (params.empty()) return;
+
+    uint32_t count = (uint32_t)params.size();
+    if (count > 31) count = 31;
+
+    s_seg_count = count;
+    s_last_highlight_idx = -9999;
+
+    const int32_t rot = 135;
+    const int32_t span = 270;
+
+    const int32_t ring_w = 20;
+    const int32_t ring_size = 430;
+
+    /* Compute weights */
+    float w_sum = 0.0f;
+    float w[32] = {0};
+
+    for (uint32_t i = 0; i < count; ++i)
     {
-        uint32_t count = (uint32_t)params.size();
-        if (count > 31) count = 31;
+        float lo = params[i].lower_speed;
+        float hi = params[i].upper_speed;
 
-        s_seg_count = count;
-        s_last_highlight_idx = -9999;
+        float wi = 0.0f;
+        if (lo >= 0.0f && hi >= 0.0f && hi > lo) wi = hi - lo;
+        else wi = 0.0f;
 
-        const int32_t rot = 135;
-        const int32_t span = 270;
+        w[i] = wi;
+        w_sum += wi;
+    }
 
-        const int32_t ring_w = 20;
-        const int32_t ring_size = 430;
+    /* Fallback: if everything is NA/zero, distribute equally */
+    if (w_sum <= 0.0f)
+    {
+        for (uint32_t i = 0; i < count; ++i) w[i] = 1.0f;
+        w_sum = (float)count;
+    }
 
-        for (uint32_t i = 0; i < 32; i++) s_seg_arcs[i] = nullptr;
+    const int32_t gap_deg = 2;
+    const int32_t usable_span = span - (int32_t)count * gap_deg;
+    const float usable_span_f = (usable_span > 0) ? (float)usable_span : (float)span;
 
-        /* Compute weights */
-        float w_sum = 0.0f;
-        float w[32] = {0};
+    float acc = 0.0f;
 
-        for (uint32_t i = 0; i < count; ++i)
+    for (uint32_t i = 0; i < 32; ++i)
+    {
+        if (i < count)
         {
-            float lo = params[i].lower_speed;
-            float hi = params[i].upper_speed;
+            lv_obj_t* arc = s_seg_arcs[i];
+            if (!arc)
+            {
+                arc = lv_arc_create(s_arc_container);
+                s_seg_arcs[i] = arc;
+                make_noninteractive(arc);
 
-            float wi = 0.0f;
-            if (lo >= 0.0f && hi >= 0.0f && hi > lo) wi = hi - lo;
-            else wi = 0.0f;
+                lv_obj_set_size(arc, ring_size, ring_size);
+                lv_obj_align(arc, LV_ALIGN_CENTER, 0, 0);
 
-            w[i] = wi;
-            w_sum += wi;
-        }
+                lv_obj_remove_style(arc, nullptr, LV_PART_KNOB);
 
-        /* Fallback: if everything is NA/zero, distribute equally */
-        if (w_sum <= 0.0f)
-        {
-            for (uint32_t i = 0; i < count; ++i) w[i] = 1.0f;
-            w_sum = (float)count;
-        }
+                lv_obj_set_style_arc_width(arc, ring_w, LV_PART_INDICATOR);
+                lv_obj_set_style_arc_width(arc, ring_w, LV_PART_MAIN);
+                lv_obj_set_style_arc_opa(arc, LV_OPA_0, LV_PART_MAIN);
 
-        const int32_t gap_deg = 2;
-        const int32_t usable_span = span - (int32_t)count * gap_deg;
-        const float usable_span_f = (usable_span > 0) ? (float)usable_span : (float)span;
+                lv_obj_set_style_arc_color(arc, lv_palette_main(LV_PALETTE_GREEN), LV_PART_INDICATOR);
 
-        float acc = 0.0f;
-
-        for (uint32_t i = 0; i < count; ++i)
-        {
-            if (i >= 31) break;
-
-            lv_obj_t* arc = lv_arc_create(s_arc_container);
-            s_seg_arcs[i] = arc;
-            make_noninteractive(arc);
-
-            lv_obj_set_size(arc, ring_size, ring_size);
-            lv_obj_align(arc, LV_ALIGN_CENTER, 0, 0);
-
-            lv_obj_remove_style(arc, nullptr, LV_PART_KNOB);
-
-            lv_obj_set_style_arc_width(arc, ring_w, LV_PART_INDICATOR);
-            lv_obj_set_style_arc_width(arc, ring_w, LV_PART_MAIN);
-            lv_obj_set_style_arc_opa(arc, LV_OPA_0, LV_PART_MAIN);
-
-            lv_obj_set_style_arc_color(arc, lv_palette_main(LV_PALETTE_GREEN), LV_PART_INDICATOR);
-
-            lv_arc_set_rotation(arc, (int16_t)rot);
+                lv_arc_set_rotation(arc, (int16_t)rot);
+                lv_obj_set_style_arc_opa(arc, SEG_OPA_DIM, LV_PART_INDICATOR);
+                lv_obj_move_background(arc);
+            }
 
             float a0f = (acc / w_sum) * usable_span_f;
             acc += w[i];
@@ -502,13 +502,15 @@ static void ui_create_screen2_deferred(void)
             if (a1 <= a0) a1 = a0 + 1;
 
             lv_arc_set_angles(arc, (int16_t)a0, (int16_t)a1);
-
-            lv_obj_set_style_arc_opa(arc, SEG_OPA_DIM, LV_PART_INDICATOR);
-            lv_obj_move_background(arc);
+            lv_obj_remove_flag(arc, LV_OBJ_FLAG_HIDDEN);
         }
-
-        draw_variable_scale(s_arc_container, params, count, w, w_sum, rot, span, gap_deg);
+        else
+        {
+            if (s_seg_arcs[i]) lv_obj_add_flag(s_seg_arcs[i], LV_OBJ_FLAG_HIDDEN);
+        }
     }
+
+    draw_variable_scale(s_arc_container, params, count, w, w_sum, rot, span, gap_deg);
 
     s_initialized = true;
     s_last_weight = weight;
