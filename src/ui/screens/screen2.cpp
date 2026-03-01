@@ -146,6 +146,7 @@ static void set_target_segment(int32_t tgt)
         for (int32_t i = 0; i <= max_seg && i < 31; i++)
         {
             if (s_seg_arcs[i]) lv_obj_set_style_arc_opa(s_seg_arcs[i], SEG_OPA_DIM, LV_PART_INDICATOR);
+            if (i % 8 == 0) esp_task_wdt_reset();
         }
     }
     else if (s_last_highlight_idx >= 0 && s_last_highlight_idx <= max_seg)
@@ -503,6 +504,11 @@ static void ui_create_screen2_deferred(void)
 
             lv_arc_set_angles(arc, (int16_t)a0, (int16_t)a1);
             lv_obj_remove_flag(arc, LV_OBJ_FLAG_HIDDEN);
+            
+            // Feed watchdog during creation of many objects
+            if (i % 8 == 0) {
+                esp_task_wdt_reset();
+            }
         }
         else
         {
@@ -587,8 +593,8 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
         }
     }
 
-    /* Needle: smooth at full rate (20ms) */
-    if (s_scale && s_needle)
+    /* Needle: smooth at full rate (100ms) - only update if visible */
+    if (s_scale && s_needle && lv_screen_active() == s_screen)
     {
         ui_update_asi(get_ias_kmh());
     }
