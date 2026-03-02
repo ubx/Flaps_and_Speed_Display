@@ -19,9 +19,13 @@ static lv_obj_t* s_label_flap_actual = nullptr;
 static lv_obj_t* s_label_flap_target = nullptr;
 static lv_obj_t* s_stale_cross_a = nullptr;
 static lv_obj_t* s_stale_cross_b = nullptr;
+static bool s_stale_overlay_visible = false;
 
 static void ui_set_stale_overlay(bool show)
 {
+    if (show == s_stale_overlay_visible) return;
+    s_stale_overlay_visible = show;
+
     if (show)
     {
         if (!s_stale_cross_a)
@@ -33,6 +37,7 @@ static void ui_set_stale_overlay(bool show)
             lv_obj_set_style_line_color(s_stale_cross_a, lv_palette_main(LV_PALETTE_RED), 0);
             lv_obj_set_style_line_rounded(s_stale_cross_a, true, 0);
         }
+        lv_obj_remove_flag(s_stale_cross_a, LV_OBJ_FLAG_HIDDEN);
         if (!s_stale_cross_b)
         {
             static lv_point_precise_t cross_b_pts[2] = {{406, 60}, {60, 406}};
@@ -42,24 +47,17 @@ static void ui_set_stale_overlay(bool show)
             lv_obj_set_style_line_color(s_stale_cross_b, lv_palette_main(LV_PALETTE_RED), 0);
             lv_obj_set_style_line_rounded(s_stale_cross_b, true, 0);
         }
+        lv_obj_remove_flag(s_stale_cross_b, LV_OBJ_FLAG_HIDDEN);
         return;
     }
 
-    if (s_stale_cross_a)
-    {
-        lv_obj_delete(s_stale_cross_a);
-        s_stale_cross_a = nullptr;
-    }
-    if (s_stale_cross_b)
-    {
-        lv_obj_delete(s_stale_cross_b);
-        s_stale_cross_b = nullptr;
-    }
+    if (s_stale_cross_a) lv_obj_add_flag(s_stale_cross_a, LV_OBJ_FLAG_HIDDEN);
+    if (s_stale_cross_b) lv_obj_add_flag(s_stale_cross_b, LV_OBJ_FLAG_HIDDEN);
 }
 
 static void ui_update_timer_cb(lv_timer_t* timer)
 {
-    if (!s_screen || !lv_obj_is_visible(s_screen)) return;
+    if (!s_screen || lv_screen_active() != s_screen) return;
     ui_set_stale_overlay(is_stale());
 
     char buf[64];
@@ -119,6 +117,7 @@ void screen4_create()
 
     s_stale_cross_a = nullptr;
     s_stale_cross_b = nullptr;
+    s_stale_overlay_visible = false;
 
     lv_timer_create(ui_update_timer_cb, 500, nullptr);
 }
