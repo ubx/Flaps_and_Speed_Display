@@ -27,17 +27,20 @@ sudo ip link set up can0
 
 2. **Run the script**:
    ```bash
+   cd ..
    ./test/play_canlog.py
    ```
 
 3. **Optional Arguments**:
    - `--time-gap SECONDS`: Override the timing from the log file with a fixed delay between messages.
      ```bash
-     ./test/play_canlog.py --time-gap 0.5
+     cd ..
+     ./test/play_canlog.py --time-gap 25
      ```
 
    - `--loop`: Loop the log file infinitely.
      ```bash
+     cd ..
      ./test/play_canlog.py --loop
      ```
 
