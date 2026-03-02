@@ -7,7 +7,7 @@
 #include <cstdio>
 
 extern float get_ias_kmh();
-extern double get_weight_kg();
+extern float get_weight_kg();
 extern flaputils::FlapSymbolResult get_flap_actual();
 extern flaputils::FlapSymbolResult get_flap_target();
 extern bool is_stale();

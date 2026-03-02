@@ -108,7 +108,7 @@ struct FlightData
             ias * 3.6, tas, cas, alt, vario, flap, lat, lon, gs, tt, dry_and_ballast_mass / 10, enl);
 
         const flaputils::FlapSymbolResult optimal = flaputils::get_optimal_flap(
-            (dry_and_ballast_mass / 10.0) + 84, ias * 3.6);
+            (dry_and_ballast_mass / 10.0f) + 84.0f, ias * 3.6f);
         const flaputils::FlapSymbolResult actual = flaputils::get_flap_symbol(flap);
         const char* opt_sym = flaputils::get_range_symbol_name(optimal.index);
         const char* act_sym = flaputils::get_flap_symbol_name(actual.index);
@@ -235,10 +235,10 @@ float get_ias_kmh()
     return flight_state.ias * 3.6f;
 }
 
-double get_weight_kg()
+float get_weight_kg()
 {
     std::lock_guard<std::mutex> lock(flight_state.mtx);
-    return (flight_state.dry_and_ballast_mass / 10.0) + 84.0;
+    return (flight_state.dry_and_ballast_mass / 10.0f) + 84.0f;
 }
 
 flaputils::FlapSymbolResult get_flap_actual()
@@ -250,9 +250,9 @@ flaputils::FlapSymbolResult get_flap_actual()
 
 flaputils::FlapSymbolResult get_flap_target()
 {
-    double weight = get_weight_kg();
+    float weight = get_weight_kg();
     std::lock_guard<std::mutex> lock(flight_state.mtx);
-    return flaputils::get_optimal_flap(weight, flight_state.ias * 3.6);
+    return flaputils::get_optimal_flap(weight, flight_state.ias * 3.6f);
 }
 
 bool is_stale()

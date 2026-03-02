@@ -22,12 +22,12 @@ namespace flaputils
     static int kTolerance = 6;
     static std::vector<FlapEntry> kFlapTable;
     static std::vector<int> kWeights;
-    static double kEmptyMassKg = 0.0;
+    static float kEmptyMassKg = 0.0f;
 
     struct Range
     {
-        double vmin;
-        double vmax;
+        float vmin;
+        float vmax;
     };
 
     struct Bereich
@@ -114,7 +114,7 @@ namespace flaputils
         if (sp)
         {
             cJSON* em = cJSON_GetObjectItem(sp, "empty_mass_kg");
-            if (em) kEmptyMassKg = em->valuedouble;
+            if (em) kEmptyMassKg = static_cast<float>(em->valuedouble);
 
             cJSON* opt = cJSON_GetObjectItem(sp, "optimale_fluggeschwindigkeit_kmh");
             if (opt)
@@ -151,13 +151,13 @@ namespace flaputils
                                 if (r_arr && cJSON_IsArray(r_arr) && cJSON_GetArraySize(r_arr) >= 2)
                                 {
                                     b.ranges.push_back({
-                                        cJSON_GetArrayItem(r_arr, 0)->valuedouble,
-                                        cJSON_GetArrayItem(r_arr, 1)->valuedouble
+                                        static_cast<float>(cJSON_GetArrayItem(r_arr, 0)->valuedouble),
+                                        static_cast<float>(cJSON_GetArrayItem(r_arr, 1)->valuedouble)
                                     });
                                 }
                                 else
                                 {
-                                    b.ranges.push_back({-1.0, -1.0}); // NA
+                                    b.ranges.push_back({-1.0f, -1.0f}); // NA
                                 }
                             }
                         }
@@ -172,7 +172,7 @@ namespace flaputils
         return true;
     }
 
-    double get_empty_mass() { return kEmptyMassKg; }
+    float get_empty_mass() { return kEmptyMassKg; }
 
     FlapSymbolResult get_flap_symbol(int position)
     {
@@ -187,24 +187,24 @@ namespace flaputils
         return {-1};
     }
 
-    static inline void weight_bracket(double w, int& i1, int& i2, double& factor)
+    static inline void weight_bracket(float w, int& i1, int& i2, float& factor)
     {
         if (kWeights.empty())
         {
             i1 = i2 = 0;
-            factor = 0.0;
+            factor = 0.0f;
             return;
         }
         if (w <= kWeights.front())
         {
             i1 = i2 = 0;
-            factor = 0.0;
+            factor = 0.0f;
             return;
         }
         if (w >= kWeights.back())
         {
             i1 = i2 = static_cast<int>(kWeights.size() - 1);
-            factor = 0.0;
+            factor = 0.0f;
             return;
         }
         for (std::size_t i = 0; i + 1 < kWeights.size(); ++i)
@@ -213,22 +213,23 @@ namespace flaputils
             {
                 i1 = static_cast<int>(i);
                 i2 = static_cast<int>(i + 1);
-                factor = (w - kWeights[i1]) / (double)(kWeights[i2] - kWeights[i1]);
+                factor = (w - static_cast<float>(kWeights[i1])) /
+                         static_cast<float>(kWeights[i2] - kWeights[i1]);
                 return;
             }
         }
         i1 = i2 = 0;
-        factor = 0.0;
+        factor = 0.0f;
     }
 
-    static inline bool has_range(const Range& r) { return r.vmin >= 0.0 && r.vmax >= 0.0; }
+    static inline bool has_range(const Range& r) { return r.vmin >= 0.0f && r.vmax >= 0.0f; }
 
-    FlapSymbolResult get_optimal_flap(double gewicht_kg, double geschwindigkeit_kmh)
+    FlapSymbolResult get_optimal_flap(float gewicht_kg, float geschwindigkeit_kmh)
     {
         if (kBereiche.empty() || kWeights.empty()) return {-1};
 
         int i1 = 0, i2 = 0;
-        double f = 0.0;
+        float f = 0.0f;
         weight_bracket(gewicht_kg, i1, i2, f);
 
         for (std::size_t idx = 0; idx < kBereiche.size(); ++idx)
@@ -239,8 +240,8 @@ namespace flaputils
             const Range r2 = b.ranges[i2];
             if (has_range(r1) && has_range(r2))
             {
-                const double vmin = r1.vmin + f * (r2.vmin - r1.vmin);
-                const double vmax = r1.vmax + f * (r2.vmax - r1.vmax);
+                const float vmin = r1.vmin + f * (r2.vmin - r1.vmin);
+                const float vmax = r1.vmax + f * (r2.vmax - r1.vmax);
                 if (geschwindigkeit_kmh >= vmin && geschwindigkeit_kmh <= vmax)
                     return {
                         static_cast<int>(idx)
@@ -276,13 +277,13 @@ namespace flaputils
         return result;
     }
     */
-    std::vector<FlapSpeedRange> get_flap_speed_ranges(double gewicht_kg)
+    std::vector<FlapSpeedRange> get_flap_speed_ranges(float gewicht_kg)
     {
         std::vector<FlapSpeedRange> result;
         if (kBereiche.empty() || kWeights.empty()) return result;
 
         int i1 = 0, i2 = 0;
-        double f = 0.0;
+        float f = 0.0f;
         weight_bracket(gewicht_kg, i1, i2, f);
 
         result.reserve(kBereiche.size());

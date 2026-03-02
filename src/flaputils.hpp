@@ -8,7 +8,7 @@
 namespace flaputils
 {
     // Returns the empty mass of the aircraft in kg (taken from flapDescriptor.json)
-    double get_empty_mass();
+    float get_empty_mass();
 
     // Loads the flap data from a JSON file. Returns true on success.
     bool load_data(const char* filepath);
@@ -27,7 +27,7 @@ namespace flaputils
     // Returns the optimal flap symbol (e.g. "L", "+2", "0", "S1") for a given
     // total weight (kg) and indicated airspeed (km/h).
     // Returns {nullptr, -1} if no matching range is found or data is unavailable.
-    FlapSymbolResult get_optimal_flap(double gewicht_kg, double geschwindigkeit_kmh);
+    FlapSymbolResult get_optimal_flap(float gewicht_kg, float geschwindigkeit_kmh);
 
     // Returns the symbol for a given flap index.
     const char* get_flap_symbol_name(int index);
@@ -44,7 +44,7 @@ namespace flaputils
         float upper_speed;
     };
 
-    std::vector<FlapSpeedRange> get_flap_speed_ranges(double gewicht_kg);
+    std::vector<FlapSpeedRange> get_flap_speed_ranges(float gewicht_kg);
 
 } // namespace flaputils
 

@@ -14,7 +14,7 @@ extern const lv_font_t digits_120;
 extern float get_ias_kmh();
 extern flaputils::FlapSymbolResult get_flap_actual();
 extern flaputils::FlapSymbolResult get_flap_target();
-extern double get_weight_kg();
+extern float get_weight_kg();
 extern bool is_stale();
 
 static lv_obj_t* s_screen = nullptr;
@@ -28,7 +28,7 @@ static lv_obj_t* s_stale_cross_a = nullptr;
 static lv_obj_t* s_stale_cross_b = nullptr;
 static bool s_stale_overlay_visible = false;
 static bool s_initialized = false;
-static double s_last_weight = -1.0;
+static float s_last_weight = -1.0f;
 
 /* Needle dimensions */
 static constexpr int32_t NEEDLE_INNER_RADIUS = 130;
@@ -460,8 +460,8 @@ static void ui_set_stale_overlay(bool show)
 
 static void ui_create_screen2_deferred(void)
 {
-    double weight = get_weight_kg();
-    if (s_initialized && std::abs(weight - s_last_weight) < 0.5) return;
+    float weight = get_weight_kg();
+    if (s_initialized && std::fabs(weight - s_last_weight) < 0.5f) return;
 
     /* Build labels + segments */
     auto params = flaputils::get_flap_speed_ranges(weight);
@@ -584,8 +584,8 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
     if (slow_div >= 10) // 10 * 100ms = 1s
     {
         slow_div = 0;
-        double current_weight = get_weight_kg();
-        if (!s_initialized || std::abs(current_weight - s_last_weight) >= 0.5)
+        float current_weight = get_weight_kg();
+        if (!s_initialized || std::fabs(current_weight - s_last_weight) >= 0.5f)
         {
             ui_create_screen2_deferred();
         }

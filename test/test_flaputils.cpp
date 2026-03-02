@@ -104,8 +104,8 @@ static int run_tests()
 
     struct TestCase
     {
-        double w;
-        double v;
+        float w;
+        float v;
         const char* expected;
         int expected_index;
     };
@@ -155,7 +155,7 @@ static int run_tests()
     {
         if (!loaded)
         {
-            auto ranges = get_flap_speed_ranges(450.0);
+            auto ranges = get_flap_speed_ranges(450.0f);
             if (!ranges.empty())
             {
                 ++fails;
@@ -170,13 +170,13 @@ static int run_tests()
         else
         {
             // Collect unique weights from test_cases
-            std::vector<double> unique_weights;
+            std::vector<float> unique_weights;
             for (const auto& tc : test_cases)
             {
                 bool found = false;
-                for (double uw : unique_weights)
+                for (float uw : unique_weights)
                 {
-                    if (std::abs(uw - tc.w) < 0.1)
+                    if (std::fabs(uw - tc.w) < 0.1f)
                     {
                         found = true;
                         break;
@@ -185,7 +185,7 @@ static int run_tests()
                 if (!found) unique_weights.push_back(tc.w);
             }
 
-            for (double test_weight : unique_weights)
+            for (float test_weight : unique_weights)
             {
                 auto ranges = get_flap_speed_ranges(test_weight);
                 std::printf("Weight %.1f kg:\n", test_weight);
