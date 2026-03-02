@@ -32,6 +32,7 @@
 #endif
 
 static const char* TAG = "main";
+static constexpr uint64_t STALE_TIMEOUT_MS = 10000ULL;
 
 struct FlightData
 {
@@ -124,9 +125,9 @@ struct FlightData
         const uint64_t now_ms = monotonic_ms();
         if (last_relevant_rx_ms == 0)
         {
-            return now_ms >= 20000ULL;
+            return now_ms >= STALE_TIMEOUT_MS;
         }
-        return (now_ms - last_relevant_rx_ms) >= 20000ULL;
+        return (now_ms - last_relevant_rx_ms) >= STALE_TIMEOUT_MS;
     }
 };
 
