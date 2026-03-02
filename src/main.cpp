@@ -47,16 +47,27 @@ struct FlightData
     float tt = 0;
     uint16_t dry_and_ballast_mass = 0;
     uint16_t enl = 0;
+    bool has_ias = false;
+    bool has_flap = false;
+    bool has_gs = false;
 
     void update_float(const std::string& key, float value)
     {
         std::lock_guard<std::mutex> lock(mtx);
-        if (key == "ias") ias = value;
+        if (key == "ias")
+        {
+            ias = value;
+            has_ias = true;
+        }
         else if (key == "tas") tas = value;
         else if (key == "cas") cas = value;
         else if (key == "alt") alt = value;
         else if (key == "vario") vario = value;
-        else if (key == "gs") gs = value;
+        else if (key == "gs")
+        {
+            gs = value;
+            has_gs = true;
+        }
         else if (key == "tt") tt = value;
     }
 
@@ -70,7 +81,11 @@ struct FlightData
     void update_int(const std::string& key, int value)
     {
         std::lock_guard<std::mutex> lock(mtx);
-        if (key == "flap") flap = value;
+        if (key == "flap")
+        {
+            flap = value;
+            has_flap = true;
+        }
     }
 
     void update_uint16(const std::string& key, uint16_t value)
@@ -97,6 +112,12 @@ struct FlightData
                opt_sym ? opt_sym : "N/A",
                act_sym ? act_sym : "N/A");
 #endif
+    }
+
+    bool is_stale()
+    {
+        std::lock_guard<std::mutex> lock(mtx);
+        return !has_ias && !has_flap && !has_gs;
     }
 };
 
@@ -223,6 +244,11 @@ flaputils::FlapSymbolResult get_flap_target()
     double weight = get_weight_kg();
     std::lock_guard<std::mutex> lock(flight_state.mtx);
     return flaputils::get_optimal_flap(weight, flight_state.ias * 3.6);
+}
+
+bool is_stale()
+{
+    return flight_state.is_stale();
 }
 
 void print_task(void* arg)
