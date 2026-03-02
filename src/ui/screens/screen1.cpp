@@ -11,6 +11,7 @@
 
 // Provided by your main.cpp (C++ symbols)
 extern float get_ias_kmh();
+extern bool is_stale();
 
 // UI objects
 extern const lv_font_t digits_120;
@@ -18,6 +19,8 @@ static lv_obj_t* s_screen = nullptr;
 static lv_obj_t* s_scale = nullptr;
 static lv_obj_t* s_needle = nullptr;
 static lv_obj_t* s_label = nullptr;
+static lv_obj_t* s_stale_cross_a = nullptr;
+static lv_obj_t* s_stale_cross_b = nullptr;
 
 // Needle dimensions
 static constexpr int32_t NEEDLE_INNER_RADIUS = 130;
@@ -202,6 +205,43 @@ static void ui_update_asi(float raw_kmh)
     ui_set_line_needle_value(s_scale, s_needle, NEEDLE_INNER_RADIUS, NEEDLE_OUTER_RADIUS, vi);
 }
 
+static void ui_set_stale_overlay(bool show)
+{
+    if (show)
+    {
+        if (!s_stale_cross_a)
+        {
+            static lv_point_precise_t cross_a_pts[2] = {{60, 60}, {406, 406}};
+            s_stale_cross_a = lv_line_create(s_screen);
+            lv_line_set_points(s_stale_cross_a, cross_a_pts, 2);
+            lv_obj_set_style_line_width(s_stale_cross_a, 10, 0);
+            lv_obj_set_style_line_color(s_stale_cross_a, lv_palette_main(LV_PALETTE_RED), 0);
+            lv_obj_set_style_line_rounded(s_stale_cross_a, true, 0);
+        }
+        if (!s_stale_cross_b)
+        {
+            static lv_point_precise_t cross_b_pts[2] = {{406, 60}, {60, 406}};
+            s_stale_cross_b = lv_line_create(s_screen);
+            lv_line_set_points(s_stale_cross_b, cross_b_pts, 2);
+            lv_obj_set_style_line_width(s_stale_cross_b, 10, 0);
+            lv_obj_set_style_line_color(s_stale_cross_b, lv_palette_main(LV_PALETTE_RED), 0);
+            lv_obj_set_style_line_rounded(s_stale_cross_b, true, 0);
+        }
+        return;
+    }
+
+    if (s_stale_cross_a)
+    {
+        lv_obj_delete(s_stale_cross_a);
+        s_stale_cross_a = nullptr;
+    }
+    if (s_stale_cross_b)
+    {
+        lv_obj_delete(s_stale_cross_b);
+        s_stale_cross_b = nullptr;
+    }
+}
+
 static void ui_create_gauge()
 {
     s_screen = lv_obj_create(nullptr);
@@ -246,11 +286,18 @@ static void ui_create_gauge()
 
     // Initial position (min of scale)
     ui_set_line_needle_value(s_scale, s_needle, NEEDLE_INNER_RADIUS, NEEDLE_OUTER_RADIUS, (int32_t)ASI_MIN);
+
+    // Stale overlay starts removed and is created on demand.
+    s_stale_cross_a = nullptr;
+    s_stale_cross_b = nullptr;
 }
 
 static void ui_update_timer_cb(lv_timer_t* /*t*/)
 {
     if (lv_screen_active() != s_screen) return;
+
+    const bool stale = is_stale();
+    ui_set_stale_overlay(stale);
 
     const float v = get_ias_kmh();
 

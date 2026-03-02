@@ -15,6 +15,7 @@ extern float get_ias_kmh();
 extern flaputils::FlapSymbolResult get_flap_actual();
 extern flaputils::FlapSymbolResult get_flap_target();
 extern double get_weight_kg();
+extern bool is_stale();
 
 static lv_obj_t* s_screen = nullptr;
 static lv_obj_t* s_flap_label = nullptr;
@@ -23,6 +24,8 @@ static lv_obj_t* s_scale = nullptr;         // lv_scale for needle
 static lv_obj_t* s_needle = nullptr;
 static lv_obj_t* s_triangle_up_canvas = nullptr;
 static lv_obj_t* s_triangle_down_canvas = nullptr;
+static lv_obj_t* s_stale_cross_a = nullptr;
+static lv_obj_t* s_stale_cross_b = nullptr;
 static bool s_initialized = false;
 static double s_last_weight = -1.0;
 
@@ -418,6 +421,43 @@ static void ui_update_asi(float raw_kmh)
     ui_set_line_needle_value(s_scale, s_needle, NEEDLE_INNER_RADIUS, NEEDLE_OUTER_RADIUS, vi);
 }
 
+static void ui_set_stale_overlay(bool show)
+{
+    if (show)
+    {
+        if (!s_stale_cross_a)
+        {
+            static lv_point_precise_t cross_a_pts[2] = {{60, 60}, {406, 406}};
+            s_stale_cross_a = lv_line_create(s_screen);
+            lv_line_set_points(s_stale_cross_a, cross_a_pts, 2);
+            lv_obj_set_style_line_width(s_stale_cross_a, 10, 0);
+            lv_obj_set_style_line_color(s_stale_cross_a, lv_palette_main(LV_PALETTE_RED), 0);
+            lv_obj_set_style_line_rounded(s_stale_cross_a, true, 0);
+        }
+        if (!s_stale_cross_b)
+        {
+            static lv_point_precise_t cross_b_pts[2] = {{406, 60}, {60, 406}};
+            s_stale_cross_b = lv_line_create(s_screen);
+            lv_line_set_points(s_stale_cross_b, cross_b_pts, 2);
+            lv_obj_set_style_line_width(s_stale_cross_b, 10, 0);
+            lv_obj_set_style_line_color(s_stale_cross_b, lv_palette_main(LV_PALETTE_RED), 0);
+            lv_obj_set_style_line_rounded(s_stale_cross_b, true, 0);
+        }
+        return;
+    }
+
+    if (s_stale_cross_a)
+    {
+        lv_obj_delete(s_stale_cross_a);
+        s_stale_cross_a = nullptr;
+    }
+    if (s_stale_cross_b)
+    {
+        lv_obj_delete(s_stale_cross_b);
+        s_stale_cross_b = nullptr;
+    }
+}
+
 /* ---------- deferred build ---------- */
 
 static void ui_create_screen2_deferred(void)
@@ -538,6 +578,7 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
     esp_task_wdt_reset();
 
     if (lv_screen_active() != s_screen) return;
+    ui_set_stale_overlay(is_stale());
 
     /* Do heavy work (weight-dependent rebuild) slower */
     static uint8_t slow_div = 0;
@@ -715,6 +756,8 @@ static void ui_create_screen2()
 
     lv_obj_add_flag(s_triangle_up_canvas, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(s_triangle_down_canvas, LV_OBJ_FLAG_HIDDEN);
+    s_stale_cross_a = nullptr;
+    s_stale_cross_b = nullptr;
 }
 
 void screen2_create()

@@ -8,6 +8,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/twai.h"
+#include "esp_timer.h"
 #include "esp_log.h"
 #include "esp_spiffs.h"
 #ifdef ENABLE_DIAGNOSTICS
@@ -47,9 +48,12 @@ struct FlightData
     float tt = 0;
     uint16_t dry_and_ballast_mass = 0;
     uint16_t enl = 0;
-    bool has_ias = false;
-    bool has_flap = false;
-    bool has_gs = false;
+    uint64_t last_relevant_rx_ms = 0;
+
+    static uint64_t monotonic_ms()
+    {
+        return static_cast<uint64_t>(esp_timer_get_time() / 1000ULL);
+    }
 
     void update_float(const std::string& key, float value)
     {
@@ -57,7 +61,7 @@ struct FlightData
         if (key == "ias")
         {
             ias = value;
-            has_ias = true;
+            last_relevant_rx_ms = monotonic_ms();
         }
         else if (key == "tas") tas = value;
         else if (key == "cas") cas = value;
@@ -66,7 +70,7 @@ struct FlightData
         else if (key == "gs")
         {
             gs = value;
-            has_gs = true;
+            last_relevant_rx_ms = monotonic_ms();
         }
         else if (key == "tt") tt = value;
     }
@@ -84,7 +88,7 @@ struct FlightData
         if (key == "flap")
         {
             flap = value;
-            has_flap = true;
+            last_relevant_rx_ms = monotonic_ms();
         }
     }
 
@@ -117,7 +121,12 @@ struct FlightData
     bool is_stale()
     {
         std::lock_guard<std::mutex> lock(mtx);
-        return !has_ias && !has_flap && !has_gs;
+        const uint64_t now_ms = monotonic_ms();
+        if (last_relevant_rx_ms == 0)
+        {
+            return now_ms >= 20000ULL;
+        }
+        return (now_ms - last_relevant_rx_ms) >= 20000ULL;
     }
 };
 
