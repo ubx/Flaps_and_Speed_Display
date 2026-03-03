@@ -1,9 +1,7 @@
 #ifndef NATIVE_TEST_BUILD
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdint>
 #include <mutex>
-#include <map>
 #include <string>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -54,7 +52,7 @@ struct FlightData
 
     static uint64_t monotonic_ms()
     {
-        return static_cast<uint64_t>(esp_timer_get_time() / 1000ULL);
+        return esp_timer_get_time() / 1000ULL;
     }
 
     void update_float(const std::string& key, float value)
@@ -79,14 +77,14 @@ struct FlightData
 
     void update_double(const std::string& key, double value)
     {
-        std::lock_guard<std::mutex> lock(mtx);
+        std::lock_guard lock(mtx);
         if (key == "lat") lat = value;
         else if (key == "lon") lon = value;
     }
 
     void update_int(const std::string& key, int value)
     {
-        std::lock_guard<std::mutex> lock(mtx);
+        std::lock_guard lock(mtx);
         if (key == "flap")
         {
             flap = value;
@@ -96,7 +94,7 @@ struct FlightData
 
     void update_uint16(const std::string& key, uint16_t value)
     {
-        std::lock_guard<std::mutex> lock(mtx);
+        std::lock_guard lock(mtx);
         if (key == "dry_and_ballast_mass") dry_and_ballast_mass = value;
         else if (key == "enl") enl = value;
     }
@@ -104,15 +102,15 @@ struct FlightData
     void print()
     {
 #ifndef ENABLE_DIAGNOSTICS
-        std::lock_guard<std::mutex> lock(mtx);
+        std::lock_guard lock(mtx);
         printf(
             "FlightData: IAS=%.2f, TAS=%.2f, CAS=%.2f, ALT=%.2f, Vario=%.2f, Flap=%d, Lat=%.7f, Lon=%.7f, GS=%.2f, TT=%.2f, Dry + Ballast Mass=%u, ENL=%u\n",
             ias * 3.6, tas, cas, alt, vario, flap, lat, lon, gs, tt, dry_and_ballast_mass / 10, enl);
 
-        const flaputils::FlapSymbolResult optimal = flaputils::get_optimal_flap(
-            (dry_and_ballast_mass / 10.0f) + 84.0f, ias * 3.6f);
+        const auto [index] = flaputils::get_optimal_flap(
+            dry_and_ballast_mass / 10 + 84, ias * 3.6f);
         const flaputils::FlapSymbolResult actual = flaputils::get_flap_symbol(flap);
-        const char* opt_sym = flaputils::get_range_symbol_name(optimal.index);
+        const char* opt_sym = flaputils::get_range_symbol_name(index);
         const char* act_sym = flaputils::get_flap_symbol_name(actual.index);
         printf("Flaps: Optimal=%s, Actual=%s\n",
                opt_sym ? opt_sym : "N/A",
@@ -122,7 +120,7 @@ struct FlightData
 
     bool is_stale()
     {
-        std::lock_guard<std::mutex> lock(mtx);
+        std::lock_guard lock(mtx);
         const uint64_t now_ms = monotonic_ms();
         if (last_relevant_rx_ms == 0)
         {
@@ -141,7 +139,7 @@ public:
 
     void start()
     {
-        xTaskCreatePinnedToCore(receive_task, "can_rx_task", 4096, this, 5, NULL, tskNO_AFFINITY);
+        xTaskCreatePinnedToCore(receive_task, "can_rx_task", 4096, this, 5, nullptr, tskNO_AFFINITY);
     }
 
 private:
@@ -149,11 +147,11 @@ private:
 
     static void receive_task(void* arg)
     {
-        CANReceiver* self = (CANReceiver*)arg;
+        auto self = static_cast<CANReceiver*>(arg);
         self->run();
     }
 
-    void run()
+    [[noreturn]] void run() const
     {
         twai_message_t message;
         while (true)
@@ -165,13 +163,12 @@ private:
         }
     }
 
-    void handle_message(const twai_message_t& msg)
+    void handle_message(const twai_message_t& msg) const
     {
         if (!(msg.flags & TWAI_MSG_FLAG_EXTD))
         {
             // Standard Frame
-            uint32_t id = msg.identifier;
-            switch (id)
+            switch (msg.identifier)
             {
             case 315: flight_data.update_float("ias", get_float(msg.data));
                 break;
@@ -205,24 +202,24 @@ private:
         }
     }
 
-    float get_float(const uint8_t* data)
+    static float get_float(const uint8_t* data)
     {
-        uint32_t raw = __builtin_bswap32(*(const uint32_t*)(data + 4));
+        uint32_t raw = __builtin_bswap32(*reinterpret_cast<const uint32_t*>(data + 4));
         return std::bit_cast<float>(raw); // C++20
     }
 
-    double get_double_l(const uint8_t* data)
+    static double get_double_l(const uint8_t* data)
     {
-        uint32_t raw = __builtin_bswap32(*(const uint32_t*)(data + 4));
-        return (int32_t)raw / 1E7;
+        uint32_t raw = __builtin_bswap32(*reinterpret_cast<const uint32_t*>(data + 4));
+        return static_cast<int32_t>(raw) / 1E7;
     }
 
-    uint16_t get_ushort(const uint8_t* data)
+    static uint16_t get_ushort(const uint8_t* data)
     {
-        return __builtin_bswap16(*(const uint16_t*)(data + 4));
+        return __builtin_bswap16(*reinterpret_cast<const uint16_t*>(data + 4));
     }
 
-    int get_char(const uint8_t* data)
+    static int get_char(const uint8_t* data)
     {
         return (int)data[4];
     }
@@ -240,7 +237,7 @@ float get_ias_kmh()
 float get_weight_kg()
 {
     std::lock_guard<std::mutex> lock(flight_state.mtx);
-    return (flight_state.dry_and_ballast_mass / 10.0f) + 84.0f;
+    return flight_state.dry_and_ballast_mass / 10 + 84;
 }
 
 flaputils::FlapSymbolResult get_flap_actual()
@@ -262,15 +259,13 @@ bool is_stale()
     return flight_state.is_stale();
 }
 
-void print_task(void* arg)
+[[noreturn]] void print_task(void* arg)
 {
-    FlightData* data = (FlightData*)arg;
-    int cnt = 0;
+    auto data = static_cast<FlightData*>(arg);
     while (true)
     {
         data->print();
 
-        cnt++;
 #if defined(ENABLE_DIAGNOSTICS) && (configGENERATE_RUN_TIME_STATS == 1) && (configUSE_STATS_FORMATTING_FUNCTIONS == 1)
         if (cnt % 10 == 0)
         {
@@ -388,8 +383,8 @@ extern "C" void app_main(void)
     }
 
     // Initialize TWAI driver
-    twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT((gpio_num_t)TWAI_TX_GPIO, (gpio_num_t)TWAI_RX_GPIO,
-                                                                 TWAI_MODE_NORMAL);
+    twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(static_cast<gpio_num_t>(TWAI_TX_GPIO),
+        static_cast<gpio_num_t>(TWAI_RX_GPIO),TWAI_MODE_NORMAL);
     twai_timing_config_t t_config = TWAI_TIMING_CONFIG_500KBITS();
     twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
 
@@ -399,7 +394,7 @@ extern "C" void app_main(void)
         {
             ESP_LOGI(TAG, "TWAI Driver started");
             receiver.start();
-            xTaskCreate(print_task, "print_task", 4096, &flight_state, 2, NULL);
+            xTaskCreate(print_task, "print_task", 4096, &flight_state, 2, nullptr);
             ui_init();
 
             // show name, version and git rev
