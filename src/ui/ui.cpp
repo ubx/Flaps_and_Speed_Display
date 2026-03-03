@@ -102,41 +102,43 @@ void ui_init()
             if (lv_event_get_code(e) != LV_EVENT_GESTURE) return;
 
             lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_get_act());
+            constexpr uint32_t kLoadAnimDurationMs = 300;
+            constexpr uint32_t kLoadAnimDelayMs = 0;
 
             if (dir == LV_DIR_BOTTOM) {
                 if (lv_screen_active() == screen1_get()) {
-                    lv_screen_load_anim(screen2_get(), LV_SCR_LOAD_ANIM_MOVE_BOTTOM, 300, 0, false);
+                    lv_screen_load_anim(screen2_get(), LV_SCR_LOAD_ANIM_MOVE_BOTTOM, kLoadAnimDurationMs, kLoadAnimDelayMs, false);
                 } else if (lv_screen_active() == screen2_get())
-                    lv_screen_load_anim(screen1_get(), LV_SCR_LOAD_ANIM_MOVE_BOTTOM, 300, 0, false);
+                    lv_screen_load_anim(screen1_get(), LV_SCR_LOAD_ANIM_MOVE_BOTTOM, kLoadAnimDurationMs, kLoadAnimDelayMs, false);
                 else {
                     /* If currently on screen3 or screen4, ignore up/down or go back to screen1 */
-                    lv_screen_load_anim(screen1_get(), LV_SCR_LOAD_ANIM_MOVE_BOTTOM, 300, 0, false);
+                    lv_screen_load_anim(screen1_get(), LV_SCR_LOAD_ANIM_MOVE_BOTTOM, kLoadAnimDurationMs, kLoadAnimDelayMs, false);
                 }
             }
             else if (dir == LV_DIR_TOP) {
                 if (lv_screen_active() == screen1_get()) {
-                    lv_screen_load_anim(screen2_get(), LV_SCR_LOAD_ANIM_MOVE_TOP, 300, 0, false);
+                    lv_screen_load_anim(screen2_get(), LV_SCR_LOAD_ANIM_MOVE_TOP, kLoadAnimDurationMs, kLoadAnimDelayMs, false);
                 } else if (lv_screen_active() == screen2_get())
-                    lv_screen_load_anim(screen1_get(), LV_SCR_LOAD_ANIM_MOVE_TOP, 300, 0, false);
+                    lv_screen_load_anim(screen1_get(), LV_SCR_LOAD_ANIM_MOVE_TOP, kLoadAnimDurationMs, kLoadAnimDelayMs, false);
                 else {
-                    lv_screen_load_anim(screen1_get(), LV_SCR_LOAD_ANIM_MOVE_TOP, 300, 0, false);
+                    lv_screen_load_anim(screen1_get(), LV_SCR_LOAD_ANIM_MOVE_TOP, kLoadAnimDurationMs, kLoadAnimDelayMs, false);
                 }
             }
             else if (dir == LV_DIR_RIGHT) {
                 /* Right swipe toggles between screen3 and screen4 */
                 if (lv_screen_active() == screen3_get()) {
-                    lv_screen_load_anim(screen4_get(), LV_SCR_LOAD_ANIM_MOVE_LEFT, 300, 0, false);
+                    lv_screen_load_anim(screen4_get(), LV_SCR_LOAD_ANIM_MOVE_LEFT, kLoadAnimDurationMs, kLoadAnimDelayMs, false);
                 } else if (lv_screen_active() == screen4_get()) {
-                    lv_screen_load_anim(screen3_get(), LV_SCR_LOAD_ANIM_MOVE_RIGHT, 300, 0, false);
+                    lv_screen_load_anim(screen3_get(), LV_SCR_LOAD_ANIM_MOVE_RIGHT, kLoadAnimDurationMs, kLoadAnimDelayMs, false);
                 } else {
                     /* From screen1 or screen2, enter screen3 via right swipe */
-                    lv_screen_load_anim(screen3_get(), LV_SCR_LOAD_ANIM_MOVE_LEFT, 300, 0, false);
+                    lv_screen_load_anim(screen3_get(), LV_SCR_LOAD_ANIM_MOVE_LEFT, kLoadAnimDurationMs, kLoadAnimDelayMs, false);
                 }
             }
             else if (dir == LV_DIR_LEFT) {
                 /* Left swipe to return from sub-screens (3 or 4) to the main cycle */
                 if (lv_screen_active() == screen3_get() || lv_screen_active() == screen4_get()) {
-                    lv_screen_load_anim(screen1_get(), LV_SCR_LOAD_ANIM_MOVE_RIGHT, 300, 0, false);
+                    lv_screen_load_anim(screen1_get(), LV_SCR_LOAD_ANIM_MOVE_RIGHT, kLoadAnimDurationMs, kLoadAnimDelayMs, false);
                 }
             }
         };
