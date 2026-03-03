@@ -58,7 +58,7 @@ namespace flaputils
             return false;
         }
 
-        char* buffer = (char*)malloc(len + 1);
+        char* buffer = static_cast<char*>(malloc(len + 1));
         if (!buffer)
         {
             printf("flaputils: Failed to allocate %ld bytes\n", len + 1);
@@ -83,11 +83,9 @@ namespace flaputils
         kBereiche.clear();
 
         // 1. flap2symbol
-        cJSON* f2s = cJSON_GetObjectItem(root, "flap2symbol");
-        if (f2s)
+        if (const cJSON* f2s = cJSON_GetObjectItem(root, "flap2symbol"))
         {
-            cJSON* tol = cJSON_GetObjectItem(f2s, "tolerance");
-            if (tol) kTolerance = tol->valueint;
+            if (cJSON* tol = cJSON_GetObjectItem(f2s, "tolerance")) kTolerance = tol->valueint;
 
             cJSON* table = cJSON_GetObjectItem(f2s, "table");
             if (table && cJSON_IsArray(table))
@@ -98,7 +96,7 @@ namespace flaputils
                     cJSON* item = cJSON_GetArrayItem(table, i);
                     if (cJSON_IsArray(item) && cJSON_GetArraySize(item) >= 2)
                     {
-                        int pos = cJSON_GetArrayItem(item, 0)->valueint;
+                        const int pos = cJSON_GetArrayItem(item, 0)->valueint;
                         cJSON* sym_item = cJSON_GetArrayItem(item, 1);
                         if (sym_item && sym_item->valuestring)
                         {
@@ -110,14 +108,11 @@ namespace flaputils
         }
 
         // 2. speedpolar
-        cJSON* sp = cJSON_GetObjectItem(root, "speedpolar");
-        if (sp)
+        if (const cJSON* sp = cJSON_GetObjectItem(root, "speedpolar"))
         {
-            cJSON* em = cJSON_GetObjectItem(sp, "empty_mass_kg");
-            if (em) kEmptyMassKg = static_cast<float>(em->valuedouble);
+            if (cJSON* em = cJSON_GetObjectItem(sp, "empty_mass_kg")) kEmptyMassKg = static_cast<float>(em->valuedouble);
 
-            cJSON* opt = cJSON_GetObjectItem(sp, "optimale_fluggeschwindigkeit_kmh");
-            if (opt)
+            if (cJSON* opt = cJSON_GetObjectItem(sp, "optimale_fluggeschwindigkeit_kmh"))
             {
                 cJSON* w_arr = cJSON_GetObjectItem(opt, "gewicht_kg");
                 if (w_arr && cJSON_IsArray(w_arr))
@@ -140,8 +135,7 @@ namespace flaputils
                         cJSON* wk = cJSON_GetObjectItem(b_item, "wk");
                         if (wk && wk->valuestring) b.wk = wk->valuestring;
 
-                        cJSON* g_obj = cJSON_GetObjectItem(b_item, "geschwindigkeit");
-                        if (g_obj)
+                        if (cJSON* g_obj = cJSON_GetObjectItem(b_item, "geschwindigkeit"))
                         {
                             for (int w : kWeights)
                             {
@@ -235,7 +229,7 @@ namespace flaputils
         for (std::size_t idx = 0; idx < kBereiche.size(); ++idx)
         {
             const auto& b = kBereiche[idx];
-            if (b.ranges.size() <= (std::size_t)std::max(i1, i2)) continue;
+            if (b.ranges.size() <= static_cast<std::size_t>(std::max(i1, i2))) continue;
             const Range r1 = b.ranges[i1];
             const Range r2 = b.ranges[i2];
             if (has_range(r1) && has_range(r2))
@@ -265,18 +259,6 @@ namespace flaputils
         return {-1};
     }
 
-    /*
-    std::vector<FlapSymbolResult> get_flap_params()
-    {
-        std::vector<FlapSymbolResult> result;
-        result.reserve(kFlapTable.size());
-        for (std::size_t i = 0; i < kFlapTable.size(); ++i)
-        {
-            result.push_back({kFlapTable[i].symbol.c_str(), static_cast<int>(i)});
-        }
-        return result;
-    }
-    */
     std::vector<FlapSpeedRange> get_flap_speed_ranges(float gewicht_kg)
     {
         std::vector<FlapSpeedRange> result;
@@ -290,7 +272,7 @@ namespace flaputils
         for (std::size_t idx = 0; idx < kBereiche.size(); ++idx)
         {
             const auto& b = kBereiche[idx];
-            if (b.ranges.size() <= (std::size_t)std::max(i1, i2)) continue;
+            if (b.ranges.size() <= static_cast<std::size_t>(std::max(i1, i2))) continue;
             
             const Range r1 = b.ranges[i1];
             const Range r2 = b.ranges[i2];
@@ -325,13 +307,13 @@ namespace flaputils
 
     const char* get_flap_symbol_name(int index)
     {
-        if (index < 0 || (std::size_t)index >= kFlapTable.size()) return nullptr;
+        if (index < 0 || static_cast<std::size_t>(index) >= kFlapTable.size()) return nullptr;
         return kFlapTable[index].symbol.c_str();
     }
 
     const char* get_range_symbol_name(int index)
     {
-        if (index < 0 || (std::size_t)index >= kBereiche.size()) return nullptr;
+        if (index < 0 || static_cast<std::size_t>(index) >= kBereiche.size()) return nullptr;
         return kBereiche[index].wk.c_str();
     }
 } // namespace flaputils
