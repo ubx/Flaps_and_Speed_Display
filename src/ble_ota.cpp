@@ -419,7 +419,7 @@ static int gatt_access_cb(uint16_t conn_handle, uint16_t attr_handle, ble_gatt_a
                     else
                     {
                         const uint8_t path_len = buf[10];
-                        const uint16_t header_len = 11;
+                        constexpr uint16_t header_len = 11;
                         if (path_len == 0 || (header_len + path_len) > len || path_len >= path_buf.size())
                         {
                             err = ESP_ERR_INVALID_ARG;
