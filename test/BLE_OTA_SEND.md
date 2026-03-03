@@ -20,6 +20,7 @@ Exactly one mode must be selected.
 ### 1) Firmware OTA (app partition)
 
 ```bash
+cd ..
 python test/ble_ota_send.py --bin .pio/build/esp32-s3-flaps/firmware.bin
 ```
 
@@ -33,6 +34,7 @@ Behavior:
 ### 2) Upload SPIFFS file (`flapDescriptor.json`)
 
 ```bash
+cd ..
 python test/ble_ota_send.py --spiffs-file spiffs_data/flapDescriptor.json
 ```
 
@@ -43,6 +45,7 @@ Default remote target path:
 Custom remote path:
 
 ```bash
+cd ..
 python test/ble_ota_send.py \
   --spiffs-file spiffs_data/flapDescriptor.json \
   --spiffs-remote /spiffs/flapDescriptor.json
