@@ -17,6 +17,7 @@
 #endif
 
 #include "flaputils.hpp"
+#include "ble_ota.hpp"
 #include "ui/ui.h"
 #include "ui/screens/screen2.hpp"
 #ifndef NATIVE_TEST_BUILD
@@ -378,6 +379,12 @@ extern "C" void app_main(void)
         {
             ESP_LOGE(TAG, "Failed to load flap data from SPIFFS");
         }
+    }
+
+    ret = ble_ota_init();
+    if (ret != ESP_OK)
+    {
+        ESP_LOGW(TAG, "BLE OTA init skipped: %s", esp_err_to_name(ret));
     }
 
     // Initialize TWAI driver
