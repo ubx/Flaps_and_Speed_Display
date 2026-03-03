@@ -3,6 +3,7 @@
 #ifndef NATIVE_TEST_BUILD
 
 #include <array>
+#include <cstdio>
 #include <cstdint>
 #include <cstring>
 #include <mutex>
@@ -28,7 +29,7 @@ static const char* TAG = "ble_ota";
 
 enum OtaCommand : uint8_t
 {
-    CMD_START = 0x01,  // [cmd][image_size_u32_le][crc32_u32_le]
+    CMD_START = 0x01,  // [cmd][size_u32_le][crc32_u32_le][optional target_u8][optional path_len_u8][optional path_bytes]
     CMD_FINISH = 0x02, // [cmd]
     CMD_ABORT = 0x03,  // [cmd]
     CMD_REBOOT = 0x04  // [cmd]
@@ -40,6 +41,12 @@ enum OtaState : uint8_t
     STATE_IN_PROGRESS = 1,
     STATE_READY_TO_REBOOT = 2,
     STATE_ERROR = 3
+};
+
+enum TransferTarget : uint8_t
+{
+    TARGET_APP_OTA = 0x00,
+    TARGET_SPIFFS_FILE = 0x02
 };
 
 struct __attribute__((packed)) OtaStatus
@@ -58,6 +65,8 @@ static bool s_initialized = false;
 static bool s_image_ready = false;
 static esp_ota_handle_t s_ota_handle = 0;
 static const esp_partition_t* s_update_partition = nullptr;
+static FILE* s_spiffs_file = nullptr;
+static TransferTarget s_transfer_target = TARGET_APP_OTA;
 static uint32_t s_expected_crc32 = 0;
 static uint8_t s_own_addr_type = BLE_OWN_ADDR_PUBLIC;
 
@@ -108,31 +117,67 @@ static void abort_session_locked()
     }
     s_ota_handle = 0;
     s_update_partition = nullptr;
+    if (s_spiffs_file != nullptr)
+    {
+        fclose(s_spiffs_file);
+        s_spiffs_file = nullptr;
+    }
     s_status.expected_size = 0;
     s_status.received_size = 0;
     s_status.running_crc32 = 0;
     s_expected_crc32 = 0;
     s_image_ready = false;
+    s_transfer_target = TARGET_APP_OTA;
 }
 
-static esp_err_t start_session_locked(uint32_t image_size, uint32_t expected_crc32)
+static esp_err_t start_session_locked(uint32_t image_size, uint32_t expected_crc32,
+                                      TransferTarget target, const char* spiffs_path)
 {
     abort_session_locked();
 
-    s_update_partition = esp_ota_get_next_update_partition(nullptr);
-    if (s_update_partition == nullptr)
+    if (target == TARGET_APP_OTA)
     {
-        ESP_LOGE(TAG, "No OTA app partition found. Add ota_0/ota_1 to partitions.csv.");
-        update_status_locked(STATE_ERROR, ESP_ERR_NOT_FOUND);
-        return ESP_ERR_NOT_FOUND;
-    }
+        s_update_partition = esp_ota_get_next_update_partition(nullptr);
+        if (s_update_partition == nullptr)
+        {
+            ESP_LOGE(TAG, "No OTA app partition found. Add ota_0/ota_1 to partitions.csv.");
+            update_status_locked(STATE_ERROR, ESP_ERR_NOT_FOUND);
+            return ESP_ERR_NOT_FOUND;
+        }
 
-    esp_err_t err = esp_ota_begin(s_update_partition, image_size, &s_ota_handle);
-    if (err != ESP_OK)
+        esp_err_t err = esp_ota_begin(s_update_partition, image_size, &s_ota_handle);
+        if (err != ESP_OK)
+        {
+            ESP_LOGE(TAG, "esp_ota_begin failed: %s", esp_err_to_name(err));
+            update_status_locked(STATE_ERROR, err);
+            return err;
+        }
+    }
+    else if (target == TARGET_SPIFFS_FILE)
     {
-        ESP_LOGE(TAG, "esp_ota_begin failed: %s", esp_err_to_name(err));
-        update_status_locked(STATE_ERROR, err);
-        return err;
+        if (spiffs_path == nullptr || spiffs_path[0] == '\0')
+        {
+            update_status_locked(STATE_ERROR, ESP_ERR_INVALID_ARG);
+            return ESP_ERR_INVALID_ARG;
+        }
+        if (strncmp(spiffs_path, "/spiffs/", 8) != 0)
+        {
+            ESP_LOGE(TAG, "SPIFFS path must start with /spiffs/: %s", spiffs_path);
+            update_status_locked(STATE_ERROR, ESP_ERR_INVALID_ARG);
+            return ESP_ERR_INVALID_ARG;
+        }
+        s_spiffs_file = fopen(spiffs_path, "wb");
+        if (s_spiffs_file == nullptr)
+        {
+            ESP_LOGE(TAG, "Failed to open SPIFFS file for write: %s", spiffs_path);
+            update_status_locked(STATE_ERROR, ESP_FAIL);
+            return ESP_FAIL;
+        }
+    }
+    else
+    {
+        update_status_locked(STATE_ERROR, ESP_ERR_INVALID_ARG);
+        return ESP_ERR_INVALID_ARG;
     }
 
     s_status.expected_size = image_size;
@@ -141,15 +186,18 @@ static esp_err_t start_session_locked(uint32_t image_size, uint32_t expected_crc
     s_status.reserved = 0;
     s_expected_crc32 = expected_crc32;
     s_image_ready = false;
+    s_transfer_target = target;
     update_status_locked(STATE_IN_PROGRESS, ESP_OK);
-    ESP_LOGI(TAG, "BLE OTA started, expected_size=%lu, expected_crc32=0x%08lx",
-             static_cast<unsigned long>(image_size), static_cast<unsigned long>(expected_crc32));
+    ESP_LOGI(TAG, "BLE transfer started: target=%u expected_size=%lu expected_crc32=0x%08lx",
+             static_cast<unsigned>(target),
+             static_cast<unsigned long>(image_size),
+             static_cast<unsigned long>(expected_crc32));
     return ESP_OK;
 }
 
 static esp_err_t write_chunk_locked(const uint8_t* data, uint16_t len)
 {
-    if (s_status.state != STATE_IN_PROGRESS || s_ota_handle == 0)
+    if (s_status.state != STATE_IN_PROGRESS)
     {
         update_status_locked(STATE_ERROR, ESP_ERR_INVALID_STATE);
         return ESP_ERR_INVALID_STATE;
@@ -168,13 +216,42 @@ static esp_err_t write_chunk_locked(const uint8_t* data, uint16_t len)
         return ESP_ERR_INVALID_SIZE;
     }
 
-    esp_err_t err = esp_ota_write(s_ota_handle, data, len);
-    if (err != ESP_OK)
+    if (s_transfer_target == TARGET_APP_OTA)
     {
-        ESP_LOGE(TAG, "esp_ota_write failed: %s", esp_err_to_name(err));
-        abort_session_locked();
-        update_status_locked(STATE_ERROR, err);
-        return err;
+        if (s_ota_handle == 0)
+        {
+            update_status_locked(STATE_ERROR, ESP_ERR_INVALID_STATE);
+            return ESP_ERR_INVALID_STATE;
+        }
+
+        esp_err_t err = esp_ota_write(s_ota_handle, data, len);
+        if (err != ESP_OK)
+        {
+            ESP_LOGE(TAG, "esp_ota_write failed: %s", esp_err_to_name(err));
+            abort_session_locked();
+            update_status_locked(STATE_ERROR, err);
+            return err;
+        }
+    }
+    else if (s_transfer_target == TARGET_SPIFFS_FILE)
+    {
+        if (s_spiffs_file == nullptr)
+        {
+            update_status_locked(STATE_ERROR, ESP_ERR_INVALID_STATE);
+            return ESP_ERR_INVALID_STATE;
+        }
+        if (fwrite(data, 1, len, s_spiffs_file) != len)
+        {
+            ESP_LOGE(TAG, "SPIFFS file write failed");
+            abort_session_locked();
+            update_status_locked(STATE_ERROR, ESP_FAIL);
+            return ESP_FAIL;
+        }
+    }
+    else
+    {
+        update_status_locked(STATE_ERROR, ESP_ERR_INVALID_STATE);
+        return ESP_ERR_INVALID_STATE;
     }
 
     s_status.running_crc32 = esp_crc32_le(s_status.running_crc32, data, len);
@@ -184,7 +261,7 @@ static esp_err_t write_chunk_locked(const uint8_t* data, uint16_t len)
 
 static esp_err_t finish_session_locked()
 {
-    if (s_status.state != STATE_IN_PROGRESS || s_ota_handle == 0 || s_update_partition == nullptr)
+    if (s_status.state != STATE_IN_PROGRESS)
     {
         update_status_locked(STATE_ERROR, ESP_ERR_INVALID_STATE);
         return ESP_ERR_INVALID_STATE;
@@ -210,30 +287,65 @@ static esp_err_t finish_session_locked()
         return ESP_ERR_INVALID_CRC;
     }
 
-    esp_err_t err = esp_ota_end(s_ota_handle);
-    if (err != ESP_OK)
+    if (s_transfer_target == TARGET_APP_OTA)
     {
-        ESP_LOGE(TAG, "esp_ota_end failed: %s", esp_err_to_name(err));
-        abort_session_locked();
-        update_status_locked(STATE_ERROR, err);
-        return err;
+        if (s_ota_handle == 0 || s_update_partition == nullptr)
+        {
+            update_status_locked(STATE_ERROR, ESP_ERR_INVALID_STATE);
+            return ESP_ERR_INVALID_STATE;
+        }
+
+        esp_err_t err = esp_ota_end(s_ota_handle);
+        if (err != ESP_OK)
+        {
+            ESP_LOGE(TAG, "esp_ota_end failed: %s", esp_err_to_name(err));
+            abort_session_locked();
+            update_status_locked(STATE_ERROR, err);
+            return err;
+        }
+
+        err = esp_ota_set_boot_partition(s_update_partition);
+        if (err != ESP_OK)
+        {
+            ESP_LOGE(TAG, "esp_ota_set_boot_partition failed: %s", esp_err_to_name(err));
+            abort_session_locked();
+            update_status_locked(STATE_ERROR, err);
+            return err;
+        }
+
+        s_ota_handle = 0;
+        s_update_partition = nullptr;
+        s_image_ready = true;
+        update_status_locked(STATE_READY_TO_REBOOT, ESP_OK);
+        ESP_LOGI(TAG, "BLE OTA image accepted and set as next boot partition");
+        return ESP_OK;
     }
 
-    err = esp_ota_set_boot_partition(s_update_partition);
-    if (err != ESP_OK)
+    if (s_transfer_target == TARGET_SPIFFS_FILE)
     {
-        ESP_LOGE(TAG, "esp_ota_set_boot_partition failed: %s", esp_err_to_name(err));
-        abort_session_locked();
-        update_status_locked(STATE_ERROR, err);
-        return err;
+        if (s_spiffs_file == nullptr)
+        {
+            update_status_locked(STATE_ERROR, ESP_ERR_INVALID_STATE);
+            return ESP_ERR_INVALID_STATE;
+        }
+        if (fflush(s_spiffs_file) != 0)
+        {
+            ESP_LOGE(TAG, "SPIFFS file flush failed");
+            abort_session_locked();
+            update_status_locked(STATE_ERROR, ESP_FAIL);
+            return ESP_FAIL;
+        }
+        fclose(s_spiffs_file);
+        s_spiffs_file = nullptr;
+        s_image_ready = false;
+        s_transfer_target = TARGET_APP_OTA;
+        update_status_locked(STATE_IDLE, ESP_OK);
+        ESP_LOGI(TAG, "BLE SPIFFS file transfer complete");
+        return ESP_OK;
     }
 
-    s_ota_handle = 0;
-    s_update_partition = nullptr;
-    s_image_ready = true;
-    update_status_locked(STATE_READY_TO_REBOOT, ESP_OK);
-    ESP_LOGI(TAG, "BLE OTA image accepted and set as next boot partition");
-    return ESP_OK;
+    update_status_locked(STATE_ERROR, ESP_ERR_INVALID_STATE);
+    return ESP_ERR_INVALID_STATE;
 }
 
 static int gatt_access_cb(uint16_t conn_handle, uint16_t attr_handle, ble_gatt_access_ctxt* ctxt, void* arg)
@@ -289,7 +401,42 @@ static int gatt_access_cb(uint16_t conn_handle, uint16_t attr_handle, ble_gatt_a
             {
                 const uint32_t image_size = read_le_u32(&buf[1]);
                 const uint32_t expected_crc32 = read_le_u32(&buf[5]);
-                err = start_session_locked(image_size, expected_crc32);
+                TransferTarget target = TARGET_APP_OTA;
+                const char* spiffs_path = nullptr;
+                std::array<char, 128> path_buf{};
+
+                if (len >= 10)
+                {
+                    target = static_cast<TransferTarget>(buf[9]);
+                }
+
+                if (target == TARGET_SPIFFS_FILE)
+                {
+                    if (len < 11)
+                    {
+                        err = ESP_ERR_INVALID_ARG;
+                    }
+                    else
+                    {
+                        const uint8_t path_len = buf[10];
+                        const uint16_t header_len = 11;
+                        if (path_len == 0 || (header_len + path_len) > len || path_len >= path_buf.size())
+                        {
+                            err = ESP_ERR_INVALID_ARG;
+                        }
+                        else
+                        {
+                            memcpy(path_buf.data(), &buf[header_len], path_len);
+                            path_buf[path_len] = '\0';
+                            spiffs_path = path_buf.data();
+                        }
+                    }
+                }
+
+                if (err == ESP_OK)
+                {
+                    err = start_session_locked(image_size, expected_crc32, target, spiffs_path);
+                }
             }
         }
         else if (cmd == CMD_FINISH)
