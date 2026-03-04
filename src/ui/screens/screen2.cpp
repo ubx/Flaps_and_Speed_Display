@@ -80,6 +80,13 @@ static constexpr float STICTION_BAND = 0.35f;     // km/h
 static constexpr float MAX_RATE_KMH_PER_SEC = 420.0f;
 static constexpr float MAX_ACCEL_KMH_PER_SEC2 = 2200.0f;
 
+static inline void feed_task_wdt_if_subscribed(void)
+{
+    if (esp_task_wdt_status(nullptr) == ESP_OK) {
+        esp_task_wdt_reset();
+    }
+}
+
 /* ---------- helpers ---------- */
 
 static inline void make_noninteractive(lv_obj_t* o)
@@ -150,7 +157,7 @@ static void set_target_segment(int32_t tgt)
         for (int32_t i = 0; i <= max_seg && i < 31; i++)
         {
             if (s_seg_arcs[i]) lv_obj_set_style_arc_opa(s_seg_arcs[i], SEG_OPA_DIM, LV_PART_INDICATOR);
-            if (i % 4 == 0) esp_task_wdt_reset();
+            if (i % 4 == 0) feed_task_wdt_if_subscribed();
         }
     }
     else if (s_last_highlight_idx >= 0 && s_last_highlight_idx <= max_seg)
@@ -255,9 +262,7 @@ static void draw_variable_scale(lv_obj_t* parent,
         lv_obj_remove_flag(line, LV_OBJ_FLAG_HIDDEN);
         
         // Feed watchdog during potentially long loop
-        if (i % 4 == 0) {
-            esp_task_wdt_reset();
-        }
+        if (i % 4 == 0) feed_task_wdt_if_subscribed();
     }
 
     for (uint32_t i = count + 1; i < 33; ++i)
@@ -304,9 +309,7 @@ static void draw_variable_scale(lv_obj_t* parent,
         set_label_rotation_01deg(lab, (int32_t)(tang_deg * 10.0f));
 
         // Feed watchdog
-        if (i % 4 == 0) {
-            esp_task_wdt_reset();
-        }
+        if (i % 4 == 0) feed_task_wdt_if_subscribed();
     }
 
     for (uint32_t i = count; i < 32; ++i)
@@ -549,9 +552,7 @@ static void ui_create_screen2_deferred(void)
             lv_obj_remove_flag(arc, LV_OBJ_FLAG_HIDDEN);
             
             // Feed watchdog during creation of many objects
-            if (i % 4 == 0) {
-                esp_task_wdt_reset();
-            }
+            if (i % 4 == 0) feed_task_wdt_if_subscribed();
         }
         else
         {
@@ -573,7 +574,7 @@ static void ui_create_screen2_deferred(void)
 static void ui_update_timer_cb(lv_timer_t* /*t*/)
 {
     // Feeding the watchdog here is safe as this is called from the LVGL task context
-    esp_task_wdt_reset();
+    feed_task_wdt_if_subscribed();
 
     if (lv_screen_active() != s_screen) return;
     ui_set_stale_overlay(is_stale());
