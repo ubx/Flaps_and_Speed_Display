@@ -53,6 +53,8 @@ void ui_init()
             .mirror_y = 1
         }
     };
+    // Dedicate CPU1 to LVGL and keep CPU0 for app/CAN work.
+    // CPU1 idle-task WDT check is disabled in sdkconfig to avoid false positives during heavy UI redraw.
     cfg.lv_adapter_cfg.task_core_id = 1;
 
     lv_display_t* disp = bsp_display_start_with_config(&cfg);
