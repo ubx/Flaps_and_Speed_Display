@@ -9,6 +9,7 @@
 #include "esp_timer.h"
 #include "esp_log.h"
 #include "esp_spiffs.h"
+#include "esp_task_wdt.h"
 #ifdef ENABLE_DIAGNOSTICS
 #include "esp_partition.h"
 #include <dirent.h>
@@ -228,6 +229,46 @@ private:
 static FlightData flight_state;
 static CANReceiver receiver(flight_state);
 
+static void configure_task_wdt_for_ui(void)
+{
+#if CONFIG_ESP_TASK_WDT_EN && !CONFIG_FREERTOS_UNICORE
+    esp_task_wdt_config_t twdt_cfg = {
+        .timeout_ms = CONFIG_ESP_TASK_WDT_TIMEOUT_S * 1000,
+        .idle_core_mask = (1U << 0), // monitor CPU0 idle only
+#if CONFIG_ESP_TASK_WDT_PANIC
+        .trigger_panic = true,
+#else
+        .trigger_panic = false,
+#endif
+    };
+
+    esp_err_t ret = esp_task_wdt_reconfigure(&twdt_cfg);
+    if (ret == ESP_OK)
+    {
+        ESP_LOGI(TAG, "Reconfigured TWDT to monitor IDLE0 only");
+        return;
+    }
+
+    // Fallback path if reconfigure is unavailable/blocked
+    TaskHandle_t idle1 = xTaskGetIdleTaskHandleForCore(1);
+    if (!idle1)
+    {
+        ESP_LOGW(TAG, "IDLE1 handle unavailable; TWDT reconfigure failed: %s", esp_err_to_name(ret));
+        return;
+    }
+
+    ret = esp_task_wdt_delete(idle1);
+    if (ret == ESP_OK || ret == ESP_ERR_NOT_FOUND)
+    {
+        ESP_LOGI(TAG, "Cleared IDLE1 watchdog subscription");
+    }
+    else
+    {
+        ESP_LOGW(TAG, "Failed to clear IDLE1 watchdog subscription: %s", esp_err_to_name(ret));
+    }
+#endif
+}
+
 float get_ias_kmh()
 {
     std::lock_guard<std::mutex> lock(flight_state.mtx);
@@ -281,6 +322,7 @@ bool is_stale()
 
 extern "C" void app_main(void)
 {
+    configure_task_wdt_for_ui();
     vTaskDelay(pdMS_TO_TICKS(2000));
     // Initialize SPIFFS
 
