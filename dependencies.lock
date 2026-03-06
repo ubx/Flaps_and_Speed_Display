@@ -30,7 +30,7 @@ dependencies:
       require: private
       version: '>=4.0'
     source:
-      registry_url: https://components.espressif.com
+      registry_url: https://components.espressif.com/
       type: service
     version: 1.5.4
   espressif/esp_io_expander:
@@ -54,7 +54,7 @@ dependencies:
       require: private
       version: '>=5.2'
     source:
-      registry_url: https://components.espressif.com
+      registry_url: https://components.espressif.com/
       type: service
     version: 2.0.3
   espressif/esp_lcd_co5300:
@@ -68,7 +68,7 @@ dependencies:
       require: private
       version: '>=5.4'
     source:
-      registry_url: https://components.espressif.com
+      registry_url: https://components.espressif.com/
       type: service
     version: 2.0.3
   espressif/esp_lcd_panel_io_additions:
@@ -86,7 +86,7 @@ dependencies:
       require: public
       version: ^1
     source:
-      registry_url: https://components.espressif.com
+      registry_url: https://components.espressif.com/
       type: service
     version: 1.0.1
   espressif/esp_lcd_touch:
@@ -248,44 +248,10 @@ dependencies:
       type: service
     version: 9.5.0
   waveshare/esp32_s3_touch_amoled_1_75:
-    component_hash: 5a3ce651233db602b49264418689c96ac2633fee38d8026ebe86a35536907db2
-    dependencies:
-    - name: espressif/esp_codec_dev
-      registry_url: https://components.espressif.com
-      require: public
-      version: ~1.5
-    - name: espressif/esp_io_expander_tca9554
-      registry_url: https://components.espressif.com
-      require: public
-      version: ^2
-    - name: espressif/esp_lcd_co5300
-      registry_url: https://components.espressif.com
-      require: private
-      version: '*'
-    - name: espressif/esp_lcd_panel_io_additions
-      registry_url: https://components.espressif.com
-      require: private
-      version: ^1
-    - name: espressif/esp_lvgl_adapter
-      registry_url: https://components.espressif.com
-      require: public
-      version: ^0.1.*
-    - name: idf
-      require: private
-      version: '>=5.5'
-    - name: lvgl/lvgl
-      registry_url: https://components.espressif.com
-      require: private
-      version: '>=8,<10'
-    - name: waveshare/esp_lcd_touch_cst9217
-      registry_url: https://components.espressif.com
-      require: private
-      version: '*'
+    dependencies: []
     source:
-      registry_url: https://components.espressif.com/
-      type: service
-    targets:
-    - esp32s3
+      path: /media/andreas/data2/workspace2/Flaps_and_Speed_Display/components/waveshare__esp32_s3_touch_amoled_1_75
+      type: local
     version: 2.0.6
   waveshare/esp_lcd_touch_cst9217:
     component_hash: 27a00845832b7987cacf4c4125cbed5415d940987583065b01870ac080930856
@@ -298,11 +264,15 @@ dependencies:
       require: private
       version: '>=4.4.2'
     source:
-      registry_url: https://components.espressif.com
+      registry_url: https://components.espressif.com/
       type: service
     version: 1.0.4
 direct_dependencies:
 - espressif/button
+- espressif/esp_codec_dev
+- espressif/esp_io_expander_tca9554
+- espressif/esp_lcd_co5300
+- espressif/esp_lcd_panel_io_additions
 - espressif/esp_lcd_touch
 - espressif/esp_lv_decoder
 - espressif/esp_lv_fs
@@ -312,6 +282,7 @@ direct_dependencies:
 - idf
 - lvgl/lvgl
 - waveshare/esp32_s3_touch_amoled_1_75
-manifest_hash: 59c66c63cce569612e897248ddef9f4c54ce1e5a494b45d0f0fc9b2d5ea7f4f6
+- waveshare/esp_lcd_touch_cst9217
+manifest_hash: 6b258c0ee42836de1c81fb6be1edb4463d57dd733a56c36d80d33933bc6b4754
 target: esp32s3
 version: 2.0.0

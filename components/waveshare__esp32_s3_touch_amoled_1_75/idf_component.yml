@@ -1,0 +1,26 @@
+dependencies:
+  esp_codec_dev:
+    public: true
+    version: ~1.5
+  esp_io_expander_tca9554:
+    public: true
+    version: ^2
+  esp_lcd_co5300: '*'
+  esp_lcd_panel_io_additions: ^1
+  espressif/esp_lvgl_adapter:
+    public: true
+    version: ^0.1.*
+  idf: '>=5.5'
+  lvgl/lvgl: '>=8,<10'
+  waveshare/esp_lcd_touch_cst9217: '*'
+description: Board Support Package (BSP) for Waveshare ESP32-S3-Touch-AMOLED-1.75
+repository: git://github.com/waveshareteam/Waveshare-ESP32-components.git
+repository_info:
+  commit_sha: e81486c57b63352692382053496ee24a9ab74574
+  path: bsp/esp32_s3_touch_amoled_1_75
+tags:
+- bsp
+targets:
+- esp32s3
+url: https://www.waveshare.com/esp32-s3-touch-amoled-1.75.htm
+version: 2.0.6
