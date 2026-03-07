@@ -18,11 +18,17 @@ For each `(dry_and_ballast_mass, flaps, ias)` combination, it sends these CAN fr
 
 ## Encoding
 
-- `dry_and_ballast_mass`: stored as big-endian unsigned 16-bit value in bytes `4..5`
-- `flaps`: stored in byte `4`
-- `ias`: input is in `km/h`, encoded as big-endian float in `m/s` in bytes `4..7`
+- `dry_and_ballast_mass`: 2-byte payload, stored as big-endian unsigned 16-bit value
+- `flaps`: 1-byte payload
+- `ias`: 8-byte payload, input is in `km/h`, encoded as big-endian float in `m/s` in bytes `4..7`
 
-Unused bytes are set to `0`.
+On the wire:
+
+- `dry_and_ballast_mass` is sent with DLC `2`
+- `flaps` is sent with DLC `1`
+- `ias` is sent with DLC `8`
+
+For SocketCAN transport, the internal frame buffer is still padded to 8 bytes as required, but the transmitted DLC matches the actual payload size.
 
 ## Timing
 

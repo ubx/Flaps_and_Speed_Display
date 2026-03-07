@@ -21,9 +21,10 @@ def parse_can_id(id_hex):
 
 
 def send_can_frame(sock, can_id, data):
-    # Padding the data to 8 bytes if needed
+    # SocketCAN requires an 8-byte data buffer, but DLC must reflect the actual payload size.
+    data_len = len(data)
     data = data.ljust(8, b'\x00')
-    can_pkt = struct.pack(CAN_FRAME_FMT, can_id, len(data), data)
+    can_pkt = struct.pack(CAN_FRAME_FMT, can_id, data_len, data)
     try:
         sock.send(can_pkt)
     except socket.error as e:
@@ -36,11 +37,11 @@ def build_ias_frame(ias_kmh):
 
 
 def build_flaps_frame(flaps):
-    return bytes([0, 0, 0, 0, flaps])
+    return bytes([flaps])
 
 
 def build_dry_and_ballast_mass_frame(mass):
-    return b"\x00\x00\x00\x00" + struct.pack(">H", mass)
+    return struct.pack(">H", mass)
 
 
 def emit_sweep(sock, time_gap):
