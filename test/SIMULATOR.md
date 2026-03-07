@@ -6,7 +6,7 @@
 
 The script iterates through this parameter sweep:
 
-- `dry_and_ballast_mass`: `280` to `600 kg`, increment `20`
+- `dry_and_ballast_mass`: `380` to `600 kg`, increment `20`
 - `flaps`: `94, 167, 243, 84, 156, 191, 230, 250`
 - `ias`: `40` to `280 km/h`, increment `10`
 
@@ -34,5 +34,6 @@ Without `--loop`, the script runs the sweep once and exits.
 ## Example
 
 ```bash
+cd ..
 python3 test/simulator.py --time-gap 1.0 --loop
 ```

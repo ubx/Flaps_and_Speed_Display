@@ -44,7 +44,7 @@ def build_dry_and_ballast_mass_frame(mass):
 
 
 def emit_sweep(sock, time_gap):
-    for dry_and_ballast_mass in range(2800, 6000, 200):
+    for dry_and_ballast_mass in range(3800, 6001, 200):
         for flaps in FLAPS_VALUES:
             for ias in range(40, 281, 10):
                 messages = [
