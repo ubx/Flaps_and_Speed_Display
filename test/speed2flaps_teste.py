@@ -36,6 +36,12 @@ class ControlPanel(QWidget):
         super().__init__()
         self.setWindowTitle("Control Panel")
         self.sock = sock
+        self._state = {
+            "ias": 40,
+            "mass": 390,
+            "flaps": FLAPS_VALUES[0],
+        }
+        self._initializing = True
 
         root = QVBoxLayout(self)
 
@@ -45,11 +51,11 @@ class ControlPanel(QWidget):
 
         # ---------- IAS (40..279 km/h) ----------
         self.ias_slider = QSlider(Qt.Horizontal)
-        self.ias_slider.setRange(40, 279)
+        self.ias_slider.setRange(0, 279)
         self.ias_spin = QSpinBox()
-        self.ias_spin.setRange(40, 279)
+        self.ias_spin.setRange(0, 279)
         self.ias_unit = QLabel("km/h")
-        self.ias_unit.setMinimumWidth(45)
+        self.ias_unit.setMinimumWidth(5)
 
         self.ias_slider.valueChanged.connect(self.ias_spin.setValue)
         self.ias_spin.valueChanged.connect(self.ias_slider.setValue)
@@ -108,46 +114,29 @@ class ControlPanel(QWidget):
         self._update_flaps_label(0)
 
         # Emit initial snapshot once
+        self._initializing = False
         self._emit_all()
 
     # ---- Public helper: current values snapshot ----
     def current_values(self) -> dict:
-        return {
-            "ias": int(self.ias_spin.value()),
-            "mass": int(self.mass_spin.value()),
-            "flaps": int(self._current_flaps_value()),
-        }
+        return dict(self._state)
 
     # ---- Internal: signal emitters ----
     def _on_ias_changed(self, v: int):
-        self.iasChanged.emit(int(v))
-        self.valuesChanged.emit(self.current_values())
-        if self.sock:
-            # ID 315: IAS (km/h) -> m/s (/ 3.6)
-            # main.cpp: get_float(msg.data) reads big-endian float starting at index 4
-            data = bytearray(8)
-            struct.pack_into(">f", data, 4, v / 3.6)
-            send_can_frame(self.sock, 315, data)
+        self._state["ias"] = int(v)
+        if not self._initializing:
+            self._emit_all()
 
     def _on_mass_changed(self, v: int):
-        self.massChanged.emit(int(v))
-        self.valuesChanged.emit(self.current_values())
-        if self.sock:
-            # ID 1515: dry_and_ballast_mass (Hg -> kg * 10)
-            data = bytearray(8)
-            struct.pack_into(">H", data, 4, v * 10)
-            send_can_frame(self.sock, 1515, data)
+        self._state["mass"] = int(v)
+        if not self._initializing:
+            self._emit_all()
 
     def _on_flaps_index_changed(self, idx: int):
         self._update_flaps_label(idx)
-        v = self._current_flaps_value()
-        self.flapsChanged.emit(int(v))
-        self.valuesChanged.emit(self.current_values())
-        if self.sock:
-            # ID 340: flap
-            data = bytearray(8)
-            data[4] = v & 0xFF
-            send_can_frame(self.sock, 340, data)
+        self._state["flaps"] = int(self._current_flaps_value())
+        if not self._initializing:
+            self._emit_all()
 
     def _emit_all(self):
         vals = self.current_values()
@@ -155,6 +144,27 @@ class ControlPanel(QWidget):
         self.massChanged.emit(vals["mass"])
         self.flapsChanged.emit(vals["flaps"])
         self.valuesChanged.emit(vals)
+        self._send_all_can_frames(vals)
+
+    def _send_all_can_frames(self, vals: dict):
+        if not self.sock:
+            return
+
+        # ID 315: IAS (km/h) -> m/s (/ 3.6)
+        # main.cpp: get_float(msg.data) reads big-endian float starting at index 4
+        ias_data = bytearray(8)
+        struct.pack_into(">f", ias_data, 4, vals["ias"] / 3.6)
+        send_can_frame(self.sock, 315, ias_data)
+
+        # ID 1515: dry_and_ballast_mass (Hg -> kg * 10)
+        mass_data = bytearray(8)
+        struct.pack_into(">H", mass_data, 4, vals["mass"] * 10)
+        send_can_frame(self.sock, 1515, mass_data)
+
+        # ID 340: flap
+        flaps_data = bytearray(8)
+        flaps_data[4] = vals["flaps"] & 0xFF
+        send_can_frame(self.sock, 340, flaps_data)
 
     # ---- Flaps helpers ----
     def _current_flaps_value(self) -> int:
