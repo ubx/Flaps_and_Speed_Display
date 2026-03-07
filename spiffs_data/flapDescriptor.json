@@ -226,5 +226,15 @@
         }
       ]
     }
+  },
+  "lowspeed": {
+    "Description": "Takeoff and Landing",
+    "wk": "-1",
+    "geschwindigkeit": {
+      "*": [
+        0,
+        40
+      ]
+    }
   }
 }

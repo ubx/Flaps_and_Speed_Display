@@ -23,6 +23,7 @@ namespace flaputils
     static std::vector<FlapEntry> kFlapTable;
     static std::vector<int> kWeights;
     static float kEmptyMassKg = 0.0f;
+    static std::string kLowSpeedWk;
 
     struct Range
     {
@@ -37,6 +38,19 @@ namespace flaputils
     };
 
     static std::vector<Bereich> kBereiche;
+    static Range kLowSpeedRange{-1.0f, -1.0f};
+
+    static int find_flap_index_by_symbol(const std::string& symbol)
+    {
+        for (std::size_t i = 0; i < kFlapTable.size(); ++i)
+        {
+            if (kFlapTable[i].symbol == symbol)
+            {
+                return static_cast<int>(i);
+            }
+        }
+        return -1;
+    }
 
     bool load_data(const char* filepath)
     {
@@ -81,6 +95,8 @@ namespace flaputils
         kFlapTable.clear();
         kWeights.clear();
         kBereiche.clear();
+        kLowSpeedWk.clear();
+        kLowSpeedRange = {-1.0f, -1.0f};
 
         // 1. flap2symbol
         if (const cJSON* f2s = cJSON_GetObjectItem(root, "flap2symbol"))
@@ -161,6 +177,27 @@ namespace flaputils
             }
         }
 
+        // 3. lowspeed
+        if (const cJSON* ls = cJSON_GetObjectItem(root, "lowspeed"))
+        {
+            if (const cJSON* wk = cJSON_GetObjectItem(ls, "wk"); wk && wk->valuestring)
+            {
+                kLowSpeedWk = wk->valuestring;
+            }
+
+            if (const cJSON* geschwindigkeit = cJSON_GetObjectItem(ls, "geschwindigkeit"))
+            {
+                if (cJSON* wildcard = cJSON_GetObjectItem(geschwindigkeit, "*");
+                    wildcard && cJSON_IsArray(wildcard) && cJSON_GetArraySize(wildcard) >= 2)
+                {
+                    kLowSpeedRange = {
+                        static_cast<float>(cJSON_GetArrayItem(wildcard, 0)->valuedouble),
+                        static_cast<float>(cJSON_GetArrayItem(wildcard, 1)->valuedouble)
+                    };
+                }
+            }
+        }
+
         cJSON_Delete(root);
         free(buffer);
         return true;
@@ -220,6 +257,13 @@ namespace flaputils
 
     FlapSymbolResult get_optimal_flap(float gewicht_kg, float geschwindigkeit_kmh)
     {
+        if (has_range(kLowSpeedRange) &&
+            geschwindigkeit_kmh >= kLowSpeedRange.vmin &&
+            geschwindigkeit_kmh <= kLowSpeedRange.vmax)
+        {
+            return {find_flap_index_by_symbol(kLowSpeedWk)};
+        }
+
         if (kBereiche.empty() || kWeights.empty()) return {-1};
 
         int i1 = 0, i2 = 0;
