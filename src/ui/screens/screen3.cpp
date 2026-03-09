@@ -1,28 +1,23 @@
-#ifndef NATIVE_TEST_BUILD
-
-#include "esp_log.h"
 #include "lvgl.h"
-
-// Waveshare BSP for this exact board (handles power rails + CO5300 + pins)
-#include "bsp/esp32_s3_touch_amoled_1_75.h"
+#include "../../platform/ui_platform.hpp"
 extern const lv_font_t digits_120;
 
 static lv_obj_t* s_screen = nullptr;
 
 static void brightness_plus_event_cb(lv_event_t* e)
 {
-    int brightness = bsp_display_brightness_get();
+    int brightness = ui_platform_get_brightness();
     brightness += 10;
     if (brightness > 100) brightness = 100;
-    bsp_display_brightness_set(brightness);
+    ui_platform_set_brightness(brightness);
 }
 
 static void brightness_minus_event_cb(lv_event_t* e)
 {
-    int brightness = bsp_display_brightness_get();
+    int brightness = ui_platform_get_brightness();
     brightness -= 10;
     if (brightness < 30) brightness = 30;
-    bsp_display_brightness_set(brightness);
+    ui_platform_set_brightness(brightness);
 }
 
 static void ui_create_screen3()
@@ -76,14 +71,3 @@ lv_obj_t* screen3_get()
 {
     return s_screen;
 }
-
-#else
-void screen3_create()
-{
-}
-
-lv_obj_t* screen3_get()
-{
-    return nullptr;
-}
-#endif

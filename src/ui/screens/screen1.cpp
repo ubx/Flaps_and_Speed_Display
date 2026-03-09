@@ -1,13 +1,6 @@
 #include <cmath>
-
-#ifndef NATIVE_TEST_BUILD
-
-#include "esp_log.h"
 #include "lvgl.h"
 #include "../../flaputils.hpp"
-
-// Waveshare BSP for this exact board (handles power rails + CO5300 + pins)
-#include "bsp/esp32_s3_touch_amoled_1_75.h"
 
 // Provided by your main.cpp (C++ symbols)
 extern float get_ias_kmh();
@@ -341,8 +334,3 @@ lv_obj_t* screen1_get()
 {
     return s_screen;
 }
-
-#else
-void screen1_create() {}
-lv_obj_t* screen1_get() { return nullptr; }
-#endif

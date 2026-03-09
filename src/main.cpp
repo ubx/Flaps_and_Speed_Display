@@ -462,4 +462,357 @@ extern "C" void app_main(void)
         ESP_LOGE(TAG, "Failed to install TWAI driver");
     }
 }
+#else
+#include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <cmath>
+#include <csignal>
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
+#include <cerrno>
+#include <mutex>
+#include <string>
+#include <thread>
+#include <vector>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <unistd.h>
+#include <linux/can.h>
+#include <linux/can/raw.h>
+#include <net/if.h>
+
+#include "flaputils.hpp"
+#include "lvgl.h"
+#include "platform/ui_platform.hpp"
+#include "ui/ui.h"
+#include "ui/screens/screen1.hpp"
+#include "ui/screens/screen2.hpp"
+#include "ui/screens/screen3.hpp"
+#include "ui/screens/screen4.hpp"
+
+#ifndef APP_NAME
+#define APP_NAME "Flaps & Speed"
+#define APP_VERSION "1.0.0"
+#endif
+#ifndef GIT_REVISION
+#define GIT_REVISION "unknown"
+#endif
+
+static constexpr uint64_t STALE_TIMEOUT_MS = 10000ULL;
+
+struct FlightData
+{
+    std::mutex mtx;
+    float ias_mps = 0.0f;
+    int flap = 0;
+    uint16_t dry_and_ballast_mass = 3800;
+    uint64_t last_relevant_rx_ms = 0;
+
+    static uint64_t monotonic_ms()
+    {
+        using namespace std::chrono;
+        return duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count();
+    }
+
+    void update(float ias_kmh, int flap_position, float total_weight_kg)
+    {
+        std::lock_guard lock(mtx);
+        ias_mps = ias_kmh / 3.6f;
+        flap = flap_position;
+        const float dry_and_ballast = std::max(0.0f, total_weight_kg - 84.0f);
+        dry_and_ballast_mass = static_cast<uint16_t>(std::lround(dry_and_ballast * 10.0f));
+        last_relevant_rx_ms = monotonic_ms();
+    }
+
+    bool is_stale()
+    {
+        std::lock_guard lock(mtx);
+        const uint64_t now_ms = monotonic_ms();
+        if (last_relevant_rx_ms == 0) return now_ms >= STALE_TIMEOUT_MS;
+        return (now_ms - last_relevant_rx_ms) >= STALE_TIMEOUT_MS;
+    }
+};
+
+struct SimulatorConfig
+{
+    int start_screen = 2;
+    bool auto_cycle = false;
+    int cycle_seconds = 8;
+    int splash_ms = 1500;
+    std::string can_iface = "can0";
+};
+
+static FlightData g_flight_state;
+static std::atomic<bool> g_running{true};
+
+static void handle_signal(int)
+{
+    g_running = false;
+}
+
+static int parse_int_arg(const char* value, int fallback)
+{
+    return value ? std::atoi(value) : fallback;
+}
+
+static float parse_float_arg(const char* value, float fallback)
+{
+    return value ? std::strtof(value, nullptr) : fallback;
+}
+
+static SimulatorConfig parse_args(int argc, char** argv)
+{
+    SimulatorConfig cfg;
+    for (int i = 1; i < argc; ++i)
+    {
+        if (std::strcmp(argv[i], "--screen") == 0 && i + 1 < argc)
+        {
+            cfg.start_screen = std::clamp(parse_int_arg(argv[++i], cfg.start_screen), 1, 4);
+        }
+        else if (std::strcmp(argv[i], "--auto-cycle") == 0)
+        {
+            cfg.auto_cycle = true;
+        }
+        else if (std::strcmp(argv[i], "--cycle-seconds") == 0 && i + 1 < argc)
+        {
+            cfg.cycle_seconds = std::max(1, parse_int_arg(argv[++i], cfg.cycle_seconds));
+        }
+        else if (std::strcmp(argv[i], "--speed") == 0 && i + 1 < argc)
+        {
+            ++i;
+        }
+        else if (std::strcmp(argv[i], "--can-iface") == 0 && i + 1 < argc)
+        {
+            cfg.can_iface = argv[++i];
+        }
+        else if (std::strcmp(argv[i], "--no-splash") == 0)
+        {
+            cfg.splash_ms = 0;
+        }
+        else if (std::strcmp(argv[i], "--help") == 0)
+        {
+            std::printf(
+                "Usage: .pio/build/native/program [--screen 1..4] [--auto-cycle] [--cycle-seconds N] [--can-iface can0] [--no-splash]\n");
+            std::exit(0);
+        }
+    }
+    return cfg;
+}
+
+static lv_obj_t* get_screen_by_index(int screen)
+{
+    switch (screen)
+    {
+    case 1: return screen1_get();
+    case 2: return screen2_get();
+    case 3: return screen3_get();
+    case 4: return screen4_get();
+    default: return screen2_get();
+    }
+}
+
+static void load_screen(int screen, lv_screen_load_anim_t anim)
+{
+    if (!ui_platform_lock(-1)) return;
+    lv_obj_t* target = get_screen_by_index(screen);
+    if (target)
+    {
+#ifdef NATIVE_SIMULATOR
+        (void)anim;
+        lv_screen_load(target);
+#else
+        lv_screen_load_anim(target, anim, 250, 0, false);
+#endif
+    }
+    ui_platform_unlock();
+}
+
+static float decode_be_float(const uint8_t* data)
+{
+    uint32_t raw = 0;
+    std::memcpy(&raw, data + 4, sizeof(raw));
+    raw = __builtin_bswap32(raw);
+    float value = 0.0f;
+    std::memcpy(&value, &raw, sizeof(value));
+    return value;
+}
+
+static uint16_t decode_be_u16(const uint8_t* data)
+{
+    uint16_t raw = 0;
+    std::memcpy(&raw, data + 4, sizeof(raw));
+    return __builtin_bswap16(raw);
+}
+
+static int open_can_socket(const std::string& iface)
+{
+    const int fd = socket(PF_CAN, SOCK_RAW, CAN_RAW);
+    if (fd < 0)
+    {
+        std::fprintf(stderr, "Failed to create CAN socket for %s: %s\n", iface.c_str(), std::strerror(errno));
+        return -1;
+    }
+
+    ifreq ifr {};
+    std::snprintf(ifr.ifr_name, IFNAMSIZ, "%s", iface.c_str());
+    if (ioctl(fd, SIOCGIFINDEX, &ifr) < 0)
+    {
+        std::fprintf(stderr, "Failed to resolve CAN interface %s: %s\n", iface.c_str(), std::strerror(errno));
+        close(fd);
+        return -1;
+    }
+
+    sockaddr_can addr {};
+    addr.can_family = AF_CAN;
+    addr.can_ifindex = ifr.ifr_ifindex;
+
+    timeval timeout {};
+    timeout.tv_sec = 1;
+    timeout.tv_usec = 0;
+    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+
+    if (bind(fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0)
+    {
+        std::fprintf(stderr, "Failed to bind %s: %s\n", iface.c_str(), std::strerror(errno));
+        close(fd);
+        return -1;
+    }
+
+    return fd;
+}
+
+static void can_receiver_task(std::string iface)
+{
+    const int fd = open_can_socket(iface);
+    if (fd < 0)
+    {
+        g_running = false;
+        return;
+    }
+
+    while (g_running.load())
+    {
+        can_frame frame {};
+        const ssize_t nread = read(fd, &frame, sizeof(frame));
+        if (nread < 0)
+        {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) continue;
+            std::fprintf(stderr, "CAN read error on %s: %s\n", iface.c_str(), std::strerror(errno));
+            break;
+        }
+        if (nread != sizeof(frame)) continue;
+        if (frame.can_id & CAN_EFF_FLAG) continue;
+
+        std::lock_guard lock(g_flight_state.mtx);
+        switch (frame.can_id)
+        {
+        case 315:
+            g_flight_state.ias_mps = decode_be_float(frame.data);
+            g_flight_state.last_relevant_rx_ms = FlightData::monotonic_ms();
+            break;
+        case 340:
+            g_flight_state.flap = static_cast<int>(frame.data[4]);
+            g_flight_state.last_relevant_rx_ms = FlightData::monotonic_ms();
+            break;
+        case 1515:
+            g_flight_state.dry_and_ballast_mass = decode_be_u16(frame.data);
+            break;
+        default:
+            break;
+        }
+    }
+
+    close(fd);
+    g_running = false;
+}
+
+static void pump_ui_for(std::chrono::milliseconds duration)
+{
+    const auto until = std::chrono::steady_clock::now() + duration;
+    while (g_running.load() && std::chrono::steady_clock::now() < until)
+    {
+        const uint32_t sleep_ms = lv_timer_handler();
+        std::this_thread::sleep_for(std::chrono::milliseconds(std::clamp<uint32_t>(sleep_ms, 1, 10)));
+    }
+}
+
+float get_ias_kmh()
+{
+    std::lock_guard lock(g_flight_state.mtx);
+    return g_flight_state.ias_mps * 3.6f;
+}
+
+float get_weight_kg()
+{
+    std::lock_guard lock(g_flight_state.mtx);
+    return g_flight_state.dry_and_ballast_mass / 10.0f + 84.0f;
+}
+
+flaputils::FlapSymbolResult get_flap_actual()
+{
+    std::lock_guard lock(g_flight_state.mtx);
+    return flaputils::get_flap_symbol(g_flight_state.flap);
+}
+
+flaputils::FlapSymbolResult get_flap_target()
+{
+    std::lock_guard lock(g_flight_state.mtx);
+    const float weight_kg = g_flight_state.dry_and_ballast_mass / 10.0f + 84.0f;
+    return flaputils::get_optimal_flap(weight_kg, g_flight_state.ias_mps * 3.6f);
+}
+
+bool is_stale()
+{
+    return g_flight_state.is_stale();
+}
+
+int main(int argc, char** argv)
+{
+    std::signal(SIGINT, handle_signal);
+    std::signal(SIGTERM, handle_signal);
+
+    const SimulatorConfig cfg = parse_args(argc, argv);
+    if (!flaputils::load_data("spiffs_data/flapDescriptor.json"))
+    {
+        std::fprintf(stderr, "Failed to load spiffs_data/flapDescriptor.json\n");
+        return 1;
+    }
+
+    std::thread can_thread(can_receiver_task, cfg.can_iface);
+
+    ui_init();
+    set_label1(APP_NAME);
+    set_label2("Version: " APP_VERSION);
+    set_label3("Git Rev: " GIT_REVISION);
+
+    if (cfg.splash_ms > 0)
+    {
+        pump_ui_for(std::chrono::milliseconds(cfg.splash_ms));
+    }
+
+    load_screen(cfg.start_screen, LV_SCR_LOAD_ANIM_FADE_ON);
+
+    auto next_cycle = std::chrono::steady_clock::now() + std::chrono::seconds(cfg.cycle_seconds);
+    int current_screen = cfg.start_screen;
+
+    while (g_running.load())
+    {
+        const uint32_t sleep_ms = lv_timer_handler();
+
+        if (cfg.auto_cycle && std::chrono::steady_clock::now() >= next_cycle)
+        {
+            current_screen = (current_screen % 4) + 1;
+            load_screen(current_screen, LV_SCR_LOAD_ANIM_FADE_ON);
+            next_cycle = std::chrono::steady_clock::now() + std::chrono::seconds(cfg.cycle_seconds);
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(std::clamp<uint32_t>(sleep_ms, 1, 10)));
+    }
+
+    can_thread.join();
+    return 0;
+}
 #endif // NATIVE_TEST_BUILD

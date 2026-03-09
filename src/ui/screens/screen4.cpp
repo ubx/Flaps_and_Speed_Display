@@ -1,9 +1,5 @@
-#ifndef NATIVE_TEST_BUILD
-
-#include "esp_log.h"
 #include "lvgl.h"
 #include "../../flaputils.hpp"
-#include "bsp/esp32_s3_touch_amoled_1_75.h"
 #include <cstdio>
 
 extern float get_ias_kmh();
@@ -126,5 +122,3 @@ lv_obj_t* screen4_get()
 {
     return s_screen;
 }
-
-#endif

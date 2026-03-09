@@ -1,13 +1,12 @@
-#ifndef NATIVE_TEST_BUILD
-
-#include "esp_log.h"
-#include "esp_task_wdt.h"
 #include "lvgl.h"
 #include "../../flaputils.hpp"
-#include "bsp/esp32_s3_touch_amoled_1_75.h"
 #include <cmath>
 #include <cstdint>
 #include <vector>
+
+#ifndef NATIVE_SIMULATOR
+#include "esp_task_wdt.h"
+#endif
 
 extern const lv_font_t digits_120;
 
@@ -82,9 +81,11 @@ static constexpr float MAX_ACCEL_KMH_PER_SEC2 = 2200.0f;
 
 static inline void feed_task_wdt_if_subscribed(void)
 {
+#ifndef NATIVE_SIMULATOR
     if (esp_task_wdt_status(nullptr) == ESP_OK) {
         esp_task_wdt_reset();
     }
+#endif
 }
 
 /* ---------- helpers ---------- */
@@ -783,8 +784,3 @@ lv_obj_t* screen2_get()
 {
     return s_screen;
 }
-
-#else
-void screen2_create() {}
-lv_obj_t* screen2_get() { return nullptr; }
-#endif

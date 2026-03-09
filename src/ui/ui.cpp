@@ -4,8 +4,13 @@
 #include "screens/screen2.hpp"
 #include "screens/screen3.hpp"
 #include "screens/screen4.hpp"
-#include "esp_log.h"
-#include "bsp/esp32_s3_touch_amoled_1_75.h"
+#include "../platform/ui_platform.hpp"
+
+#ifdef NATIVE_SIMULATOR
+#include <cstdio>
+#define ESP_LOGI(tag, fmt, ...) std::printf("I (%s) " fmt "\n", tag, ##__VA_ARGS__)
+#define ESP_LOGE(tag, fmt, ...) std::fprintf(stderr, "E (%s) " fmt "\n", tag, ##__VA_ARGS__)
+#endif
 
 static const char* TAG = "ui";
 static lv_obj_t* s_label1 = nullptr;
@@ -14,57 +19,39 @@ static lv_obj_t* s_label3 = nullptr;
 
 void set_label1(const char* text)
 {
-    if (bsp_display_lock(-1) == ESP_OK)
+    if (ui_platform_lock(-1))
     {
         if (s_label1) lv_label_set_text(s_label1, text);
-        bsp_display_unlock();
+        ui_platform_unlock();
     }
 }
 
 void set_label2(const char* text)
 {
-    if (bsp_display_lock(-1) == ESP_OK)
+    if (ui_platform_lock(-1))
     {
         if (s_label2) lv_label_set_text(s_label2, text);
-        bsp_display_unlock();
+        ui_platform_unlock();
     }
 }
 
 void set_label3(const char* text)
 {
-    if (bsp_display_lock(-1) == ESP_OK)
+    if (ui_platform_lock(-1))
     {
         if (s_label3) lv_label_set_text(s_label3, text);
-        bsp_display_unlock();
+        ui_platform_unlock();
     }
 }
 
 void ui_init()
 {
-    ESP_LOGI(TAG, "Initializing UI...");
-
-    bsp_display_cfg_t cfg = {
-        .lv_adapter_cfg = ESP_LV_ADAPTER_DEFAULT_CONFIG(),
-        .rotation = ESP_LV_ADAPTER_ROTATE_0,
-        .tear_avoid_mode = ESP_LV_ADAPTER_TEAR_AVOID_MODE_NONE,
-        .touch_flags = {
-            .swap_xy = 0,
-            .mirror_x = 1,
-            .mirror_y = 1
-        }
-    };
-    // Dedicate CPU1 to LVGL and keep CPU0 for app/CAN work.
-    // CPU1 idle-task WDT check is disabled in sdkconfig to avoid false positives during heavy UI redraw.
-    cfg.lv_adapter_cfg.task_core_id = 1;
-
-    lv_display_t* disp = bsp_display_start_with_config(&cfg);
-    if (!disp)
+    if (!ui_platform_init_display())
     {
-        ESP_LOGE(TAG, "bsp_display_start_with_config() failed");
         return;
     }
 
-    if (bsp_display_lock(-1) == ESP_OK)
+    if (ui_platform_lock(-1))
     {
         // Set background color for the splash screen
         lv_obj_t* act_scr = lv_screen_active();
@@ -152,8 +139,6 @@ void ui_init()
 
         // After some delay, we'll switch to screen2.
         // But for now, just stay on the current screen where s_label1/2 was created.
-        bsp_display_unlock();
+        ui_platform_unlock();
     }
-
-    ESP_LOGI(TAG, "UI initialized");
 }
