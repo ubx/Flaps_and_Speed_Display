@@ -23,7 +23,7 @@
     </configurations>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="43cc1920-1edd-4f08-afaa-a3fb752c0deb" name="Changes" comment="Add PlatformIO SDL simulator target" />
+    <list default="true" id="43cc1920-1edd-4f08-afaa-a3fb752c0deb" name="Changes" comment="Add IntelliJ IDEA configuration files (.idea) to the repository." />
     <list id="d2308b04-a695-44a2-b2b5-82f7123769f7" name="idea" comment="idea" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -285,7 +285,15 @@
       <option name="project" value="LOCAL" />
       <updated>1773094506035</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="Add IntelliJ IDEA configuration files (.idea) to the repository.">
+      <option name="closed" value="true" />
+      <created>1773096119399</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1773096119399</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
