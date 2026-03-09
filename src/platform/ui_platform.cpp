@@ -62,9 +62,7 @@ lv_display_t* ui_platform_get_display()
     return g_display;
 }
 #else
-extern "C" {
 #include "bsp/esp32_s3_touch_amoled_1_75.h"
-}
 
 bool ui_platform_init_display()
 {

@@ -2,6 +2,7 @@ idf_component_register(
         SRCS
         "main.cpp"
         "ble_ota.cpp"
+        "platform/ui_platform.cpp"
         "ui/ui.cpp"
         "ui/screens/screen1.cpp"
         "ui/screens/screen2.cpp"
