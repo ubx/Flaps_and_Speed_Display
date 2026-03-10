@@ -102,8 +102,6 @@ The displayed flying weight is calculated as:
 
 `dry_and_ballast_mass kg`
 
-The extra `84 kg` is a fixed pilot allowance used by the firmware.
-
 ## Stale Data Indication
 
 If no relevant live data is received for **10 seconds**, the display marks the active flying screen as stale.
