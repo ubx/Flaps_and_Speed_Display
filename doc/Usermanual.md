@@ -96,11 +96,8 @@ The unit compares:
 
 - current IAS from CAN bus data
 - current flap position from CAN bus data
+- current weight from CAN bus data
 - the configured flap schedule in [`spiffs_data/flapDescriptor.json`](/media/andreas/data2/workspace2/Flaps_and_Speed_Display/spiffs_data/flapDescriptor.json)
-
-The displayed flying weight is calculated as:
-
-`dry_and_ballast_mass kg`
 
 ## Stale Data Indication
 
