@@ -17,4 +17,5 @@ and flaps position, receiving real-time data via the CAN bus (TWAI).
 - demo mode
 - ~~special flap positions for start and landing~~
 - 3D print housing
-- PCB board 
+- PCB board
+- User Manual
