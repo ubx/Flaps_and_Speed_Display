@@ -35,7 +35,7 @@ The display has four screens. Navigation is done with swipe gestures:
 
 ### 1. Speed Screen
 
-![Speed screen](./Speed.png)
+![Speed screen](./Speed_round.png)
 
 This is the primary airspeed display.
 
@@ -48,7 +48,7 @@ Use this screen when you want the clearest possible IAS indication.
 
 ### 2. Flaps Screen
 
-![Flaps screen](./Flaps.png)
+![Flaps screen](./flaps_round.png)
 
 This screen combines airspeed with flap guidance.
 
@@ -65,7 +65,7 @@ Typical flap symbols are `L`, `+2`, `+1`, `0`, `-1`, `-2`, `S`, and `S1`.
 
 ### 3. Settings / Brightness Screen
 
-![Brightness screen](./Brightness.png)
+![Brightness screen](./Brightness_round.png)
 
 This screen is used to adjust the display brightness.
 
@@ -79,7 +79,7 @@ Brightness changes in **10% steps**.
 
 ### 4. Live Params Screen
 
-![Live parameters screen](./Life_Params.png)
+![Live parameters screen](./Life_Params_round.png)
 
 This screen shows the values used internally for flap guidance.
 
@@ -108,7 +108,7 @@ The extra `84 kg` is a fixed pilot allowance used by the firmware.
 
 If no relevant live data is received for **10 seconds**, the display marks the active flying screen as stale.
 
-![Stale indication on flaps screen](./Flaps-Stale.png)
+![Stale indication on flaps screen](./Flaps-Stale_round.png)
 
 The stale condition is shown by a large **red X** across the active screen.
 
