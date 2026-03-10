@@ -1,5 +1,8 @@
 # Flaps & Speed Display User Manual
 
+**Document version:** 1.0  
+**Date:** 10.03.2026
+
 ## Purpose
 
 The **Flaps & Speed Display** is a touchscreen flight display for the ESP32-S3 AMOLED unit. It receives live data from the CAN bus and shows:
