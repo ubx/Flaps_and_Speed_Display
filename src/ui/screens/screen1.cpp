@@ -306,8 +306,7 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
         div = 0;
         if (s_label)
         {
-            const int32_t vi = (int32_t)lroundf(s_x);
-            lv_label_set_text_fmt(s_label, "%d", (int)vi);
+            lv_label_set_text_fmt(s_label, "%d", (int)v);
         }
     }
 }
