@@ -123,3 +123,5 @@ This indicates that the shown IAS/flap information should no longer be trusted u
 - All speed values are displayed in **km/h**
 - Flap recommendations depend on the flap polar stored in the JSON configuration
 - If flap input data does not match a known position, the flap indication may show no valid symbol
+- The current `flapDescriptor` and the guidance described in this manual are based on the Ventus 3 reference shown below
+- ![Ventus 3 reference](./Ventus3-OptSpeed.png)
