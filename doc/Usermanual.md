@@ -10,7 +10,6 @@ The **Flaps & Speed Display** is a touchscreen flight display for the ESP32-S3 A
 - indicated airspeed (IAS)
 - current flap setting
 - recommended flap setting
-- calculated flying weight
 - display brightness settings
 
 The display is controlled entirely by touch gestures and on-screen buttons.
