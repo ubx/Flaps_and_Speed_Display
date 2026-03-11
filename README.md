@@ -18,4 +18,4 @@ and flaps position, receiving real-time data via the CAN bus (TWAI).
 - ~~special flap positions for start and landing~~
 - 3D print housing
 - PCB board
-- User Manual
+- ~~User Manual~~
