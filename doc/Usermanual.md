@@ -65,6 +65,13 @@ This screen combines airspeed with flap guidance.
 
 Typical flap symbols are `L`, `+2`, `+1`, `0`, `-1`, `-2`, `S`, and `S1`.
 
+The current configuration also defines a special **lowspeed** setting in [`spiffs_data/flapDescriptor.json`](/media/andreas/data2/workspace2/Flaps_and_Speed_Display/spiffs_data/flapDescriptor.json):
+
+- flap setting: `-1`
+- speed range: `0 to 40 km/h`
+
+This lowspeed setting is intended for takeoff and landing and is handled separately from the normal flap speed bands.
+
 ### 3. Settings / Brightness Screen
 
 ![Brightness screen](./Brightness_round.png)
