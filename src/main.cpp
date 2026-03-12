@@ -112,7 +112,7 @@ struct FlightData
         std::lock_guard lock(mtx);
         printf(
             "FlightData: IAS=%.2f, TAS=%.2f, CAS=%.2f, ALT=%.2f, Vario=%.2f, Flap=%d, Lat=%.7f, Lon=%.7f, GS=%.2f, TT=%.2f, Dry + Ballast Mass=%u, ENL=%u, Wind Speed=%.2f, Wind Dir=%.2f, Heading=%.2f\n",
-            ias * 3.6, tas, cas, alt, vario, flap, lat, lon, gs, tt, dry_and_ballast_mass / 10, enl, wind_speed, wind_direction, heading);
+            ias * 3.6, tas * 3.6, cas * 3.6, alt, vario, flap, lat, lon, gs, tt, dry_and_ballast_mass / 10, enl, wind_speed, wind_direction, heading);
 
         const auto [index] = flaputils::get_optimal_flap(
             dry_and_ballast_mass / 10 + 84, ias * 3.6f);
@@ -518,9 +518,22 @@ static constexpr uint64_t STALE_TIMEOUT_MS = 10000ULL;
 struct FlightData
 {
     std::mutex mtx;
-    float ias_mps = 0.0f;
+    float ias = 0;
+    float tas = 0;
+    float ias_mps = 0; // for compatibility with existing native code if needed, but we'll rename it
+    float cas = 0;
+    float alt = 0;
+    float vario = 0;
     int flap = 0;
+    double lat = 0;
+    double lon = 0;
+    float gs = 0;
+    float tt = 0;
     uint16_t dry_and_ballast_mass = 3800;
+    uint16_t enl = 0;
+    float wind_speed = 0;
+    float wind_direction = 0;
+    float heading = 0;
     uint64_t last_relevant_rx_ms = 0;
 
     static uint64_t monotonic_ms()
@@ -532,11 +545,29 @@ struct FlightData
     void update(float ias_kmh, int flap_position, float total_weight_kg)
     {
         std::lock_guard lock(mtx);
-        ias_mps = ias_kmh / 3.6f;
+        ias = ias_kmh / 3.6f;
+        ias_mps = ias;
         flap = flap_position;
         const float dry_and_ballast = std::max(0.0f, total_weight_kg - 84.0f);
         dry_and_ballast_mass = static_cast<uint16_t>(std::lround(dry_and_ballast * 10.0f));
         last_relevant_rx_ms = monotonic_ms();
+    }
+
+    void print()
+    {
+        std::lock_guard lock(mtx);
+        printf(
+            "FlightData: IAS=%.2f, TAS=%.2f, CAS=%.2f, ALT=%.2f, Vario=%.2f, Flap=%d, Lat=%.7f, Lon=%.7f, GS=%.2f, TT=%.2f, Dry + Ballast Mass=%u, ENL=%u, Wind Speed=%.2f, Wind Dir=%.2f, Heading=%.2f\n",
+            ias * 3.6, tas * 3.6, cas * 3.6, alt, vario, flap, lat, lon, gs, tt, dry_and_ballast_mass / 10, enl, wind_speed, wind_direction, heading);
+
+        const auto [index] = flaputils::get_optimal_flap(
+            dry_and_ballast_mass / 10 + 84, ias * 3.6f);
+        const flaputils::FlapSymbolResult actual = flaputils::get_flap_symbol(flap);
+        const char* opt_sym = flaputils::get_range_symbol_name(index);
+        const char* act_sym = flaputils::get_flap_symbol_name(actual.index);
+        printf("Flaps: Optimal=%s, Actual=%s\n",
+               opt_sym ? opt_sym : "N/A",
+               act_sym ? act_sym : "N/A");
     }
 
     bool is_stale()
@@ -652,11 +683,24 @@ static float decode_be_float(const uint8_t* data)
     return value;
 }
 
+static double decode_be_double_l(const uint8_t* data)
+{
+    uint32_t raw = 0;
+    std::memcpy(&raw, data + 4, sizeof(raw));
+    raw = __builtin_bswap32(raw);
+    return static_cast<int32_t>(raw) / 1E7;
+}
+
 static uint16_t decode_be_u16(const uint8_t* data)
 {
     uint16_t raw = 0;
     std::memcpy(&raw, data + 4, sizeof(raw));
     return __builtin_bswap16(raw);
+}
+
+static int decode_char(const uint8_t* data)
+{
+    return static_cast<int>(data[4]);
 }
 
 static int open_can_socket(const std::string& iface)
@@ -722,15 +766,42 @@ static void can_receiver_task(std::string iface)
         switch (frame.can_id)
         {
         case 315:
-            g_flight_state.ias_mps = decode_be_float(frame.data);
+            g_flight_state.ias = decode_be_float(frame.data);
+            g_flight_state.ias_mps = g_flight_state.ias;
             g_flight_state.last_relevant_rx_ms = FlightData::monotonic_ms();
             break;
+        case 316: g_flight_state.tas = decode_be_float(frame.data);
+            break;
+        case 317: g_flight_state.cas = decode_be_float(frame.data);
+            break;
+        case 321: g_flight_state.heading = decode_be_float(frame.data);
+            break;
+        case 322: g_flight_state.alt = decode_be_float(frame.data);
+            break;
+        case 333: g_flight_state.wind_speed = decode_be_float(frame.data);
+            break;
+        case 334: g_flight_state.wind_direction = decode_be_float(frame.data);
+            break;
         case 340:
-            g_flight_state.flap = static_cast<int>(frame.data[4]);
+            g_flight_state.flap = decode_char(frame.data);
             g_flight_state.last_relevant_rx_ms = FlightData::monotonic_ms();
+            break;
+        case 354: g_flight_state.vario = decode_be_float(frame.data);
+            break;
+        case 1036: g_flight_state.lat = decode_be_double_l(frame.data);
+            break;
+        case 1037: g_flight_state.lon = decode_be_double_l(frame.data);
+            break;
+        case 1039:
+            g_flight_state.gs = decode_be_float(frame.data);
+            g_flight_state.last_relevant_rx_ms = FlightData::monotonic_ms();
+            break;
+        case 1040: g_flight_state.tt = decode_be_float(frame.data);
             break;
         case 1515:
             g_flight_state.dry_and_ballast_mass = decode_be_u16(frame.data);
+            break;
+        case 1506: g_flight_state.enl = decode_be_u16(frame.data);
             break;
         default:
             break;
@@ -754,7 +825,7 @@ static void pump_ui_for(std::chrono::milliseconds duration)
 float get_ias_kmh()
 {
     std::lock_guard lock(g_flight_state.mtx);
-    return g_flight_state.ias_mps * 3.6f;
+    return g_flight_state.ias * 3.6f;
 }
 
 float get_weight_kg()
@@ -773,12 +844,21 @@ flaputils::FlapSymbolResult get_flap_target()
 {
     std::lock_guard lock(g_flight_state.mtx);
     const float weight_kg = g_flight_state.dry_and_ballast_mass / 10.0f + 84.0f;
-    return flaputils::get_optimal_flap(weight_kg, g_flight_state.ias_mps * 3.6f);
+    return flaputils::get_optimal_flap(weight_kg, g_flight_state.ias * 3.6f);
 }
 
 bool is_stale()
 {
     return g_flight_state.is_stale();
+}
+
+static void print_task(FlightData* data)
+{
+    while (g_running.load())
+    {
+        data->print();
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
 }
 
 int main(int argc, char** argv)
@@ -794,6 +874,7 @@ int main(int argc, char** argv)
     }
 
     std::thread can_thread(can_receiver_task, cfg.can_iface);
+    std::thread print_thread(print_task, &g_flight_state);
 
     ui_init();
     set_label1(APP_NAME);
@@ -825,6 +906,7 @@ int main(int argc, char** argv)
     }
 
     can_thread.join();
+    print_thread.join();
     return 0;
 }
 #endif // NATIVE_TEST_BUILD
