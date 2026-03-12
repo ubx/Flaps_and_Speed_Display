@@ -12,10 +12,27 @@ def wrap_deg_180(angle_deg):
     return ((angle_deg + 180.0) % 360.0) - 180.0
 
 
+def weighted_lstsq(A, b, w):
+    """
+    Solve weighted least squares:
+        minimize sum_i w_i * (A_i x - b_i)^2
+    """
+    w = np.asarray(w, dtype=float)
+    if np.any(w <= 0):
+        raise ValueError("All weights must be > 0")
+
+    sw = np.sqrt(w)
+    Aw = A * sw[:, None]
+    bw = b * sw
+    sol, _, rank, svals = np.linalg.lstsq(Aw, bw, rcond=None)
+    return sol, rank, svals
+
+
 def estimate_wind(track_deg, gs, tas,
                   min_tas=1.0,
                   min_gs=1.0,
-                  max_residual_keep=None):
+                  max_residual_keep=None,
+                  weights=None):
     """
     Estimate a constant wind vector from multiple samples.
 
@@ -28,13 +45,15 @@ def estimate_wind(track_deg, gs, tas,
         min_tas           : reject samples with TAS < min_tas
         min_gs            : reject samples with GS < min_gs
         max_residual_keep : optional 2nd-pass outlier rejection threshold in m/s
+        weights           : optional per-sample weights, same length as input
 
     Returns dict with:
         wx, wy              : wind vector components
         wind_speed          : wind magnitude
         wind_to_deg         : direction the wind vector points TO, deg [-180..+180)
         wind_from_deg       : aviation direction wind comes FROM, deg [-180..+180)
-        residual_rms        : RMS fit error in m/s
+        residual_rms        : unweighted RMS fit error in m/s
+        weighted_residual_rms : weighted RMS fit error in m/s
         residual_mean       : mean fit residual in m/s
         residual_max_abs    : max absolute residual in m/s
         rank                : least-squares matrix rank
@@ -57,14 +76,23 @@ def estimate_wind(track_deg, gs, tas,
     if n_input < 3:
         raise ValueError("Need at least 3 samples")
 
+    if weights is None:
+        weights = np.ones(n_input, dtype=float)
+    else:
+        weights = np.asarray(weights, dtype=float)
+        if len(weights) != n_input:
+            raise ValueError("weights must have same length as inputs")
+
     track_wrapped = np.asarray([wrap_deg_180(x) for x in track_deg], dtype=float)
 
     valid = (
             np.isfinite(track_wrapped) &
             np.isfinite(gs) &
             np.isfinite(tas) &
+            np.isfinite(weights) &
             (gs >= min_gs) &
-            (tas >= min_tas)
+            (tas >= min_tas) &
+            (weights > 0.0)
     )
 
     if np.count_nonzero(valid) < 3:
@@ -74,6 +102,7 @@ def estimate_wind(track_deg, gs, tas,
         trk = np.deg2rad(track_wrapped[mask])
         gs_m = gs[mask]
         tas_m = tas[mask]
+        w_m = weights[mask]
 
         gx = gs_m * np.cos(trk)
         gy = gs_m * np.sin(trk)
@@ -82,7 +111,7 @@ def estimate_wind(track_deg, gs, tas,
         A = np.column_stack((-2.0 * gx, -2.0 * gy, np.ones_like(gx)))
         b = tas_m**2 - gx**2 - gy**2
 
-        sol, _, rank, svals = np.linalg.lstsq(A, b, rcond=None)
+        sol, rank, svals = weighted_lstsq(A, b, w_m)
         wx, wy, _c = sol
 
         tas_fit = np.sqrt((gx - wx) ** 2 + (gy - wy) ** 2)
@@ -96,6 +125,7 @@ def estimate_wind(track_deg, gs, tas,
             "wx": float(wx),
             "wy": float(wy),
             "res": res,
+            "w": w_m,
             "rank": int(rank),
             "condition_number": cond,
         }
@@ -116,12 +146,14 @@ def estimate_wind(track_deg, gs, tas,
     wx = fit["wx"]
     wy = fit["wy"]
     res = fit["res"]
+    w_used = fit["w"]
 
     wind_speed = math.hypot(wx, wy)
     wind_to_deg = wrap_deg_180(math.degrees(math.atan2(wy, wx)))
     wind_from_deg = wrap_deg_180(wind_to_deg + 180.0)
 
     residual_rms = float(np.sqrt(np.mean(res**2)))
+    weighted_residual_rms = float(np.sqrt(np.sum(w_used * res**2) / np.sum(w_used)))
     residual_mean = float(np.mean(res))
     residual_max_abs = float(np.max(np.abs(res)))
 
@@ -150,9 +182,9 @@ def estimate_wind(track_deg, gs, tas,
     else:
         quality_parts.append("geometry good")
 
-    if residual_rms > 5.0:
+    if weighted_residual_rms > 5.0:
         quality_parts.append("fit noisy")
-    elif residual_rms > 2.0:
+    elif weighted_residual_rms > 2.0:
         quality_parts.append("fit fair")
     else:
         quality_parts.append("fit good")
@@ -166,6 +198,7 @@ def estimate_wind(track_deg, gs, tas,
         "wind_to_deg": float(wind_to_deg),
         "wind_from_deg": float(wind_from_deg),
         "residual_rms": residual_rms,
+        "weighted_residual_rms": weighted_residual_rms,
         "residual_mean": residual_mean,
         "residual_max_abs": residual_max_abs,
         "rank": fit["rank"],
@@ -183,6 +216,25 @@ def prune_old_samples(samples, now_s, window_sec):
     cutoff = now_s - window_sec
     while samples and samples[0]["t"] < cutoff:
         samples.popleft()
+
+
+def make_age_weights(samples, now_s, tau_sec):
+    """
+    Exponential weighting by age:
+        w = exp(-age / tau_sec)
+
+    Newest samples get weight near 1.
+    Older samples get lower weights.
+    """
+    if tau_sec <= 0:
+        raise ValueError("tau_sec must be > 0")
+
+    weights = []
+    for s in samples:
+        age = max(0.0, now_s - s["t"])
+        w = math.exp(-age / tau_sec)
+        weights.append(w)
+    return weights
 
 
 def main():
@@ -206,17 +258,18 @@ def main():
     latest_gs = None
     latest_track = None
 
-    # Sliding window of samples: each entry is {"t": ..., "track": ..., "gs": ..., "tas": ...}
+    # Each sample: {"t": ..., "track": ..., "gs": ..., "tas": ...}
     samples = collections.deque()
 
     last_estimate_time = time.time()
     last_sample_time = 0.0
     last_sampled_track = None
 
-    window_sec = 30.0          # use only the last 30 seconds
-    sample_interval_s = 0.5    # time-based throttle
-    min_track_step_deg = 3.0   # or keep if track changed enough
-    estimate_period_s = 2.0    # recompute every 2 seconds
+    window_sec = 30.0
+    weight_tau_sec = 12.0      # newer samples dominate; try 10..20 s
+    sample_interval_s = 0.5
+    min_track_step_deg = 3.0
+    estimate_period_s = 2.0
 
     while True:
         try:
@@ -232,7 +285,6 @@ def main():
 
             now = time.time()
 
-            # Sample on fresh track updates when we have all three values
             if can_id == 1040 and latest_tas is not None and latest_gs is not None:
                 track_now = wrap_deg_180(latest_track)
 
@@ -252,15 +304,14 @@ def main():
                     last_sample_time = now
                     last_sampled_track = track_now
 
-            # Remove old samples outside the time window
             prune_old_samples(samples, now, window_sec)
 
-            # Periodic estimate from current sliding window
             if (now - last_estimate_time) >= estimate_period_s:
                 if len(samples) >= 3:
                     track_arr = [s["track"] for s in samples]
                     gs_arr = [s["gs"] for s in samples]
                     tas_arr = [s["tas"] for s in samples]
+                    weights = make_age_weights(samples, now, weight_tau_sec)
 
                     try:
                         result = estimate_wind(
@@ -269,21 +320,25 @@ def main():
                             tas_arr,
                             min_tas=5.0,
                             min_gs=5.0,
-                            max_residual_keep=4.0
+                            max_residual_keep=4.0,
+                            weights=weights,
                         )
 
                         age_oldest = now - samples[0]["t"]
                         age_newest = now - samples[-1]["t"]
+                        w_min = min(weights)
+                        w_max = max(weights)
 
                         print(
                             "Wind: "
                             f"{result['wind_speed']:.1f} m/s "
                             f"from {result['wind_from_deg']:.1f} deg "
                             f"(used={result['n_used']}/{result['n_input']}, "
-                            f"rms={result['residual_rms']:.2f}, "
+                            f"wrms={result['weighted_residual_rms']:.2f}, "
                             f"cond={result['condition_number']:.1f}, "
                             f"spread={result['heading_spread_deg']:.1f}, "
                             f"window={age_oldest:.1f}s..{age_newest:.1f}s ago, "
+                            f"w={w_min:.3f}..{w_max:.3f}, "
                             f"{result['quality']})"
                         )
                     except Exception as e:
@@ -306,6 +361,7 @@ if __name__ == "__main__":
         track_deg = [-120, -90, -60, -30, 0, 30, 60, 90, 120, 150]
         gs = [92, 96, 102, 108, 111, 109, 103, 97, 91, 88]
         tas = [100, 100, 100, 100, 100, 100, 100, 100, 100, 100]
+        weights = np.linspace(0.3, 1.0, len(track_deg))
 
         result = estimate_wind(
             track_deg,
@@ -313,7 +369,8 @@ if __name__ == "__main__":
             tas,
             min_tas=1.0,
             min_gs=1.0,
-            max_residual_keep=4.0
+            max_residual_keep=4.0,
+            weights=weights,
         )
         print(result)
     else:
