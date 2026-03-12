@@ -49,6 +49,9 @@ struct FlightData
     float tt = 0;
     uint16_t dry_and_ballast_mass = 0;
     uint16_t enl = 0;
+    float wind_speed = 0;
+    float wind_direction = 0;
+    float heading = 0;
     uint64_t last_relevant_rx_ms = 0;
 
     static uint64_t monotonic_ms()
@@ -74,6 +77,9 @@ struct FlightData
             last_relevant_rx_ms = monotonic_ms();
         }
         else if (key == "tt") tt = value;
+        else if (key == "wind_speed") wind_speed = value;
+        else if (key == "wind_direction") wind_direction = value;
+        else if (key == "heading") heading = value;
     }
 
     void update_double(const std::string& key, double value)
@@ -105,8 +111,8 @@ struct FlightData
 #ifndef ENABLE_DIAGNOSTICS
         std::lock_guard lock(mtx);
         printf(
-            "FlightData: IAS=%.2f, TAS=%.2f, CAS=%.2f, ALT=%.2f, Vario=%.2f, Flap=%d, Lat=%.7f, Lon=%.7f, GS=%.2f, TT=%.2f, Dry + Ballast Mass=%u, ENL=%u\n",
-            ias * 3.6, tas, cas, alt, vario, flap, lat, lon, gs, tt, dry_and_ballast_mass / 10, enl);
+            "FlightData: IAS=%.2f, TAS=%.2f, CAS=%.2f, ALT=%.2f, Vario=%.2f, Flap=%d, Lat=%.7f, Lon=%.7f, GS=%.2f, TT=%.2f, Dry + Ballast Mass=%u, ENL=%u, Wind Speed=%.2f, Wind Dir=%.2f, Heading=%.2f\n",
+            ias * 3.6, tas, cas, alt, vario, flap, lat, lon, gs, tt, dry_and_ballast_mass / 10, enl, wind_speed, wind_direction, heading);
 
         const auto [index] = flaputils::get_optimal_flap(
             dry_and_ballast_mass / 10 + 84, ias * 3.6f);
@@ -177,7 +183,13 @@ private:
                 break;
             case 317: flight_data.update_float("cas", get_float(msg.data));
                 break;
+            case 321: flight_data.update_float("heading", get_float(msg.data));
+                break;
             case 322: flight_data.update_float("alt", get_float(msg.data));
+                break;
+            case 333: flight_data.update_float("wind_speed", get_float(msg.data));
+                break;
+            case 334: flight_data.update_float("wind_direction", get_float(msg.data));
                 break;
             case 340: flight_data.update_int("flap", get_char(msg.data));
                 break;
