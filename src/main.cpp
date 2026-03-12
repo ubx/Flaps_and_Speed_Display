@@ -44,7 +44,7 @@ struct FlightData
     int flap = 0;
     double lat = 0;
     double lon = 0;
-    float gs = 0;
+    float gps_ground_speed = 0;
     float gps_true_track = 0;
     uint16_t dry_and_ballast_mass = 0;
     uint16_t enl = 0;
@@ -69,9 +69,9 @@ struct FlightData
         else if (key == "tas") tas = value;
         else if (key == "alt") alt = value;
         else if (key == "vario") vario = value;
-        else if (key == "gs")
+        else if (key == "gps_ground_speed")
         {
-            gs = value;
+            gps_ground_speed = value;
             last_relevant_rx_ms = monotonic_ms();
         }
         else if (key == "gps_true_track") gps_true_track = value;
@@ -109,8 +109,8 @@ struct FlightData
 #ifndef ENABLE_DIAGNOSTICS
         std::lock_guard lock(mtx);
         printf(
-            "FlightData: IAS=%.2f, TAS=%.2f, ALT=%.2f, Vario=%.2f, Flap=%d, Lat=%.7f, Lon=%.7f, GS=%.2f, GPS True Track=%.2f, Dry + Ballast Mass=%u, ENL=%u, Wind Speed=%.2f, Wind Dir=%.2f, Heading=%.2f\n",
-            ias * 3.6, tas * 3.6, alt, vario, flap, lat, lon, gs, gps_true_track, dry_and_ballast_mass / 10, enl, wind_speed, wind_direction, heading);
+            "FlightData: IAS=%.2f, TAS=%.2f, ALT=%.2f, Vario=%.2f, Flap=%d, Lat=%.7f, Lon=%.7f, GPS Ground Speed=%.2f, GPS True Track=%.2f, Dry + Ballast Mass=%u, ENL=%u, Wind Speed=%.2f, Wind Dir=%.2f, Heading=%.2f\n",
+            ias * 3.6, tas * 3.6, alt, vario, flap, lat, lon, gps_ground_speed, gps_true_track, dry_and_ballast_mass / 10, enl, wind_speed, wind_direction, heading);
 
         const auto [index] = flaputils::get_optimal_flap(
             dry_and_ballast_mass / 10 + 84, ias * 3.6f);
@@ -189,7 +189,7 @@ private:
                 break;
             case 340: flight_data.update_int("flap", get_char(msg.data));
                 break;
-            case 1039: flight_data.update_float("gs", get_float(msg.data));
+            case 1039: flight_data.update_float("gps_ground_speed", get_float(msg.data));
                 break;
             case 1040: flight_data.update_float("gps_true_track", get_float(msg.data));
                 break;
@@ -516,7 +516,7 @@ struct FlightData
     int flap = 0;
     double lat = 0;
     double lon = 0;
-    float gs = 0;
+    float gps_ground_speed = 0;
     float gps_true_track = 0;
     uint16_t dry_and_ballast_mass = 3800;
     uint16_t enl = 0;
@@ -546,8 +546,8 @@ struct FlightData
     {
         std::lock_guard lock(mtx);
         printf(
-            "FlightData: IAS=%.2f, TAS=%.2f, ALT=%.2f, Vario=%.2f, Flap=%d, Lat=%.7f, Lon=%.7f, GS=%.2f, GPS True Track=%.2f, Dry + Ballast Mass=%u, ENL=%u, Wind Speed=%.2f, Wind Dir=%.2f, Heading=%.2f\n",
-            ias * 3.6, tas * 3.6, alt, vario, flap, lat, lon, gs, gps_true_track, dry_and_ballast_mass / 10, enl, wind_speed, wind_direction, heading);
+            "FlightData: IAS=%.2f, TAS=%.2f, ALT=%.2f, Vario=%.2f, Flap=%d, Lat=%.7f, Lon=%.7f, GPS Ground Speed=%.2f, GPS True Track=%.2f, Dry + Ballast Mass=%u, ENL=%u, Wind Speed=%.2f, Wind Dir=%.2f, Heading=%.2f\n",
+            ias * 3.6, tas * 3.6, alt, vario, flap, lat, lon, gps_ground_speed, gps_true_track, dry_and_ballast_mass / 10, enl, wind_speed, wind_direction, heading);
 
         const auto [index] = flaputils::get_optimal_flap(
             dry_and_ballast_mass / 10 + 84, ias * 3.6f);
@@ -776,7 +776,7 @@ static void can_receiver_task(std::string iface)
         case 354: g_flight_state.vario = decode_be_float(frame.data);
             break;
         case 1039:
-            g_flight_state.gs = decode_be_float(frame.data);
+            g_flight_state.gps_ground_speed = decode_be_float(frame.data);
             g_flight_state.last_relevant_rx_ms = FlightData::monotonic_ms();
             break;
         case 1040: g_flight_state.gps_true_track = decode_be_float(frame.data);
