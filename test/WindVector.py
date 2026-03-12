@@ -28,11 +28,48 @@ def weighted_lstsq(A, b, w):
     return sol, rank, svals
 
 
+def robust_scale_mad(x, eps=1e-6):
+    """
+    Robust scale estimate from MAD.
+    Returns sigma ~= std for Gaussian data.
+    """
+    x = np.asarray(x, dtype=float)
+    med = np.median(x)
+    mad = np.median(np.abs(x - med))
+    sigma = 1.4826 * mad
+    return max(float(sigma), eps)
+
+
+def huber_weights(residuals, k=1.5, scale=None, eps=1e-9):
+    """
+    Huber robust weights for IRLS.
+
+    residuals : array
+    k         : threshold in sigma units
+    scale     : robust scale; if None, estimated from residuals
+
+    Returns weights in (0, 1].
+    """
+    r = np.asarray(residuals, dtype=float)
+    if scale is None:
+        scale = robust_scale_mad(r)
+
+    t = np.abs(r) / max(scale, eps)
+    w = np.ones_like(t)
+    mask = t > k
+    w[mask] = (k / np.maximum(t[mask], eps))
+    return w, scale
+
+
 def estimate_wind(track_deg, gs, tas,
                   min_tas=1.0,
                   min_gs=1.0,
                   max_residual_keep=None,
-                  weights=None):
+                  weights=None,
+                  robust=True,
+                  robust_k=1.5,
+                  robust_max_iter=10,
+                  robust_tol=1e-3):
     """
     Estimate a constant wind vector from multiple samples.
 
@@ -44,25 +81,33 @@ def estimate_wind(track_deg, gs, tas,
     Optional:
         min_tas           : reject samples with TAS < min_tas
         min_gs            : reject samples with GS < min_gs
-        max_residual_keep : optional 2nd-pass outlier rejection threshold in m/s
-        weights           : optional per-sample weights, same length as input
+        max_residual_keep : optional final hard residual cutoff in m/s
+        weights           : optional base per-sample weights, same length as input
+        robust            : enable robust IRLS weighting
+        robust_k          : Huber threshold in sigma units
+        robust_max_iter   : max IRLS iterations
+        robust_tol        : convergence tolerance on [wx, wy, C]
 
     Returns dict with:
-        wx, wy              : wind vector components
-        wind_speed          : wind magnitude
-        wind_to_deg         : direction the wind vector points TO, deg [-180..+180)
-        wind_from_deg       : aviation direction wind comes FROM, deg [-180..+180)
-        residual_rms        : unweighted RMS fit error in m/s
-        weighted_residual_rms : weighted RMS fit error in m/s
-        residual_mean       : mean fit residual in m/s
-        residual_max_abs    : max absolute residual in m/s
-        rank                : least-squares matrix rank
-        condition_number    : lower is better
-        heading_spread_deg  : rough measure of track spread
-        n_input             : input sample count
-        n_used              : used sample count
-        quality             : human-readable quality hint
-        samples_used_mask   : boolean mask of used samples
+        wx, wy
+        wind_speed
+        wind_to_deg
+        wind_from_deg
+        residual_rms
+        weighted_residual_rms
+        residual_mean
+        residual_max_abs
+        robust_scale
+        robust_iterations
+        robust_weight_min
+        robust_weight_max
+        rank
+        condition_number
+        heading_spread_deg
+        n_input
+        n_used
+        quality
+        samples_used_mask
     """
 
     track_deg = np.asarray(track_deg, dtype=float)
@@ -98,11 +143,10 @@ def estimate_wind(track_deg, gs, tas,
     if np.count_nonzero(valid) < 3:
         raise ValueError("Not enough valid samples after filtering")
 
-    def solve_one_pass(mask):
+    def build_problem(mask):
         trk = np.deg2rad(track_wrapped[mask])
         gs_m = gs[mask]
         tas_m = tas[mask]
-        w_m = weights[mask]
 
         gx = gs_m * np.cos(trk)
         gy = gs_m * np.sin(trk)
@@ -110,12 +154,42 @@ def estimate_wind(track_deg, gs, tas,
         # -2*gx*Wx -2*gy*Wy + C = tas^2 - gx^2 - gy^2
         A = np.column_stack((-2.0 * gx, -2.0 * gy, np.ones_like(gx)))
         b = tas_m**2 - gx**2 - gy**2
+        return gx, gy, tas_m, A, b
 
-        sol, rank, svals = weighted_lstsq(A, b, w_m)
+    def solve_one_pass(mask):
+        gx, gy, tas_m, A, b = build_problem(mask)
+        base_w = weights[mask].copy()
+
+        # Initial plain weighted solve
+        sol, rank, svals = weighted_lstsq(A, b, base_w)
+
+        robust_w = np.ones_like(base_w)
+        robust_scale = 0.0
+        robust_iterations = 0
+
+        if robust:
+            prev_sol = sol.copy()
+
+            for it in range(robust_max_iter):
+                wx, wy, _c = sol
+                tas_fit = np.sqrt((gx - wx) ** 2 + (gy - wy) ** 2)
+                res = tas_fit - tas_m
+
+                robust_w, robust_scale = huber_weights(res, k=robust_k)
+                total_w = base_w * robust_w
+
+                sol, rank, svals = weighted_lstsq(A, b, total_w)
+                robust_iterations = it + 1
+
+                if np.max(np.abs(sol - prev_sol)) < robust_tol:
+                    break
+                prev_sol = sol.copy()
+
         wx, wy, _c = sol
-
         tas_fit = np.sqrt((gx - wx) ** 2 + (gy - wy) ** 2)
         res = tas_fit - tas_m
+
+        total_w = base_w * robust_w
 
         cond = float("inf")
         if len(svals) >= 2 and np.min(svals) > 0:
@@ -125,13 +199,18 @@ def estimate_wind(track_deg, gs, tas,
             "wx": float(wx),
             "wy": float(wy),
             "res": res,
-            "w": w_m,
+            "base_w": base_w,
+            "robust_w": robust_w,
+            "total_w": total_w,
+            "robust_scale": float(robust_scale),
+            "robust_iterations": int(robust_iterations),
             "rank": int(rank),
             "condition_number": cond,
         }
 
     fit = solve_one_pass(valid)
 
+    # Optional final hard rejection after robust solve
     if max_residual_keep is not None:
         used_idx = np.where(valid)[0]
         keep_local = np.abs(fit["res"]) <= max_residual_keep
@@ -146,14 +225,15 @@ def estimate_wind(track_deg, gs, tas,
     wx = fit["wx"]
     wy = fit["wy"]
     res = fit["res"]
-    w_used = fit["w"]
+    total_w = fit["total_w"]
+    robust_w = fit["robust_w"]
 
     wind_speed = math.hypot(wx, wy)
     wind_to_deg = wrap_deg_180(math.degrees(math.atan2(wy, wx)))
     wind_from_deg = wrap_deg_180(wind_to_deg + 180.0)
 
     residual_rms = float(np.sqrt(np.mean(res**2)))
-    weighted_residual_rms = float(np.sqrt(np.sum(w_used * res**2) / np.sum(w_used)))
+    weighted_residual_rms = float(np.sqrt(np.sum(total_w * res**2) / np.sum(total_w)))
     residual_mean = float(np.mean(res))
     residual_max_abs = float(np.max(np.abs(res)))
 
@@ -189,6 +269,9 @@ def estimate_wind(track_deg, gs, tas,
     else:
         quality_parts.append("fit good")
 
+    if robust and np.min(robust_w) < 0.3:
+        quality_parts.append("outliers suppressed")
+
     quality = ", ".join(quality_parts)
 
     return {
@@ -201,6 +284,10 @@ def estimate_wind(track_deg, gs, tas,
         "weighted_residual_rms": weighted_residual_rms,
         "residual_mean": residual_mean,
         "residual_max_abs": residual_max_abs,
+        "robust_scale": float(fit["robust_scale"]),
+        "robust_iterations": int(fit["robust_iterations"]),
+        "robust_weight_min": float(np.min(robust_w)),
+        "robust_weight_max": float(np.max(robust_w)),
         "rank": fit["rank"],
         "condition_number": fit["condition_number"],
         "heading_spread_deg": heading_spread_deg,
@@ -222,9 +309,6 @@ def make_age_weights(samples, now_s, tau_sec):
     """
     Exponential weighting by age:
         w = exp(-age / tau_sec)
-
-    Newest samples get weight near 1.
-    Older samples get lower weights.
     """
     if tau_sec <= 0:
         raise ValueError("tau_sec must be > 0")
@@ -266,7 +350,7 @@ def main():
     last_sampled_track = None
 
     window_sec = 30.0
-    weight_tau_sec = 12.0      # newer samples dominate; try 10..20 s
+    weight_tau_sec = 12.0
     sample_interval_s = 0.5
     min_track_step_deg = 3.0
     estimate_period_s = 2.0
@@ -320,8 +404,12 @@ def main():
                             tas_arr,
                             min_tas=5.0,
                             min_gs=5.0,
-                            max_residual_keep=4.0,
+                            max_residual_keep=8.0,   # optional hard backup cutoff
                             weights=weights,
+                            robust=True,
+                            robust_k=1.5,
+                            robust_max_iter=10,
+                            robust_tol=1e-3,
                         )
 
                         age_oldest = now - samples[0]["t"]
@@ -337,8 +425,10 @@ def main():
                             f"wrms={result['weighted_residual_rms']:.2f}, "
                             f"cond={result['condition_number']:.1f}, "
                             f"spread={result['heading_spread_deg']:.1f}, "
+                            f"rscale={result['robust_scale']:.2f}, "
+                            f"rw={result['robust_weight_min']:.2f}..{result['robust_weight_max']:.2f}, "
+                            f"agew={w_min:.3f}..{w_max:.3f}, "
                             f"window={age_oldest:.1f}s..{age_newest:.1f}s ago, "
-                            f"w={w_min:.3f}..{w_max:.3f}, "
                             f"{result['quality']})"
                         )
                     except Exception as e:
@@ -360,7 +450,7 @@ if __name__ == "__main__":
     if "--test" in sys.argv:
         track_deg = [-120, -90, -60, -30, 0, 30, 60, 90, 120, 150]
         gs = [92, 96, 102, 108, 111, 109, 103, 97, 91, 88]
-        tas = [100, 100, 100, 100, 100, 100, 100, 100, 100, 100]
+        tas = [100, 100, 100, 100, 100, 100, 100, 100, 100, 130]  # deliberate outlier
         weights = np.linspace(0.3, 1.0, len(track_deg))
 
         result = estimate_wind(
@@ -369,8 +459,12 @@ if __name__ == "__main__":
             tas,
             min_tas=1.0,
             min_gs=1.0,
-            max_residual_keep=4.0,
+            max_residual_keep=8.0,
             weights=weights,
+            robust=True,
+            robust_k=1.5,
+            robust_max_iter=10,
+            robust_tol=1e-3,
         )
         print(result)
     else:
