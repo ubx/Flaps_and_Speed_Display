@@ -12,6 +12,20 @@ def wrap_deg_180(angle_deg):
     return ((angle_deg + 180.0) % 360.0) - 180.0
 
 
+def bearing_deg_to_unit_xy(track_deg):
+    """
+    Convert a navigation bearing (0=north, 90=east) to an x/y unit vector.
+    x is east, y is north.
+    """
+    trk = np.deg2rad(track_deg)
+    return np.sin(trk), np.cos(trk)
+
+
+def vector_xy_to_bearing_deg(x, y):
+    """Convert an east/north vector to a navigation bearing."""
+    return wrap_deg_180(math.degrees(math.atan2(x, y)))
+
+
 def weighted_lstsq(A, b, w):
     """
     Solve weighted least squares:
@@ -144,12 +158,13 @@ def estimate_wind(track_deg, gs, tas,
         raise ValueError("Not enough valid samples after filtering")
 
     def build_problem(mask):
-        trk = np.deg2rad(track_wrapped[mask])
+        trk = track_wrapped[mask]
         gs_m = gs[mask]
         tas_m = tas[mask]
 
-        gx = gs_m * np.cos(trk)
-        gy = gs_m * np.sin(trk)
+        ux, uy = bearing_deg_to_unit_xy(trk)
+        gx = gs_m * ux
+        gy = gs_m * uy
 
         # -2*gx*Wx -2*gy*Wy + C = tas^2 - gx^2 - gy^2
         A = np.column_stack((-2.0 * gx, -2.0 * gy, np.ones_like(gx)))
@@ -230,7 +245,7 @@ def estimate_wind(track_deg, gs, tas,
 
     wind_speed = math.hypot(wx, wy)
     wind_speed_kmh = wind_speed * 3.6
-    wind_to_deg = wrap_deg_180(math.degrees(math.atan2(wy, wx)))
+    wind_to_deg = vector_xy_to_bearing_deg(wx, wy)
     wind_from_deg = wrap_deg_180(wind_to_deg + 180.0)
 
     residual_rms = float(np.sqrt(np.mean(res**2)))
@@ -343,6 +358,9 @@ def main():
     latest_tas = None
     latest_gs = None
     latest_track = None
+    latest_tas_time = None
+    latest_gs_time = None
+    latest_track_time = None
 
     # Each sample: {"t": ..., "track": ..., "gs": ..., "tas": ...}
     samples = collections.deque()
@@ -356,23 +374,39 @@ def main():
     sample_interval_s = 0.5
     min_track_step_deg = 3.0
     estimate_period_s = 2.0
+    max_signal_age_s = 1.0
+    max_sample_skew_s = 0.25
 
     while True:
         try:
             can_pkt = sock.recv(16)
             can_id, length, data = struct.unpack(CAN_FRAME_FMT, can_pkt)
+            now = time.time()
 
             if can_id == 316:  # tas
                 latest_tas = struct.unpack(">f", data[4:8])[0]
+                latest_tas_time = now
             elif can_id == 1039:  # gps_ground_speed
                 latest_gs = struct.unpack(">f", data[4:8])[0]
+                latest_gs_time = now
             elif can_id == 1040:  # gps_true_track
                 latest_track = struct.unpack(">f", data[4:8])[0]
+                latest_track_time = now
 
-            now = time.time()
-
-            if can_id == 1040 and latest_tas is not None and latest_gs is not None:
+            if (
+                can_id == 1040 and
+                latest_tas is not None and
+                latest_gs is not None and
+                latest_tas_time is not None and
+                latest_gs_time is not None and
+                latest_track_time is not None
+            ):
                 track_now = wrap_deg_180(latest_track)
+                sample_times = [latest_tas_time, latest_gs_time, latest_track_time]
+                newest_sample_time = max(sample_times)
+                oldest_sample_time = min(sample_times)
+                signals_fresh = (now - oldest_sample_time) <= max_signal_age_s
+                signals_aligned = (newest_sample_time - oldest_sample_time) <= max_sample_skew_s
 
                 allow_by_time = (now - last_sample_time) >= sample_interval_s
                 allow_by_angle = (
@@ -380,7 +414,7 @@ def main():
                         abs(wrap_deg_180(track_now - last_sampled_track)) >= min_track_step_deg
                 )
 
-                if allow_by_time or allow_by_angle:
+                if signals_fresh and signals_aligned and (allow_by_time or allow_by_angle):
                     samples.append({
                         "t": now,
                         "track": track_now,
@@ -450,10 +484,19 @@ def main():
 
 if __name__ == "__main__":
     if "--test" in sys.argv:
-        track_deg = [-120, -90, -60, -30, 0, 30, 60, 90, 120, 150]
-        gs = [92, 96, 102, 108, 111, 109, 103, 97, 91, 88]
-        tas = [100, 100, 100, 100, 100, 100, 100, 100, 100, 130]  # deliberate outlier
-        weights = np.linspace(0.3, 1.0, len(track_deg))
+        wind_xy = np.array([10.0, 0.0])
+        headings_deg = [0, 90, 180, 270]
+        track_deg = []
+        gs = []
+        tas = []
+
+        for heading_deg in headings_deg:
+            ux, uy = bearing_deg_to_unit_xy(heading_deg)
+            air_xy = 100.0 * np.array([ux, uy])
+            ground_xy = air_xy + wind_xy
+            track_deg.append(vector_xy_to_bearing_deg(ground_xy[0], ground_xy[1]))
+            gs.append(float(np.hypot(ground_xy[0], ground_xy[1])))
+            tas.append(100.0)
 
         result = estimate_wind(
             track_deg,
@@ -461,8 +504,8 @@ if __name__ == "__main__":
             tas,
             min_tas=1.0,
             min_gs=1.0,
-            max_residual_keep=8.0,
-            weights=weights,
+            max_residual_keep=None,
+            weights=np.ones(len(track_deg)),
             robust=True,
             robust_k=1.5,
             robust_max_iter=10,
