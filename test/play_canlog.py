@@ -90,9 +90,6 @@ def main():
                     elif id_int == 316:
                         val = struct.unpack(">f", data[4:8])[0]
                         msg_info = f"tas: {val:.2f}"
-                    elif id_int == 317:
-                        val = struct.unpack(">f", data[4:8])[0]
-                        msg_info = f"cas: {val:.2f}"
                     elif id_int == 322:
                         val = struct.unpack(">f", data[4:8])[0]
                         msg_info = f"alt: {val:.2f}"

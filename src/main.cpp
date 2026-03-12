@@ -39,7 +39,6 @@ struct FlightData
     std::mutex mtx;
     float ias = 0;
     float tas = 0;
-    float cas = 0;
     float alt = 0;
     float vario = 0;
     int flap = 0;
@@ -68,7 +67,6 @@ struct FlightData
             last_relevant_rx_ms = monotonic_ms();
         }
         else if (key == "tas") tas = value;
-        else if (key == "cas") cas = value;
         else if (key == "alt") alt = value;
         else if (key == "vario") vario = value;
         else if (key == "gs")
@@ -111,8 +109,8 @@ struct FlightData
 #ifndef ENABLE_DIAGNOSTICS
         std::lock_guard lock(mtx);
         printf(
-            "FlightData: IAS=%.2f, TAS=%.2f, CAS=%.2f, ALT=%.2f, Vario=%.2f, Flap=%d, Lat=%.7f, Lon=%.7f, GS=%.2f, TT=%.2f, Dry + Ballast Mass=%u, ENL=%u, Wind Speed=%.2f, Wind Dir=%.2f, Heading=%.2f\n",
-            ias * 3.6, tas * 3.6, cas * 3.6, alt, vario, flap, lat, lon, gs, tt, dry_and_ballast_mass / 10, enl, wind_speed, wind_direction, heading);
+            "FlightData: IAS=%.2f, TAS=%.2f, ALT=%.2f, Vario=%.2f, Flap=%d, Lat=%.7f, Lon=%.7f, GS=%.2f, TT=%.2f, Dry + Ballast Mass=%u, ENL=%u, Wind Speed=%.2f, Wind Dir=%.2f, Heading=%.2f\n",
+            ias * 3.6, tas * 3.6, alt, vario, flap, lat, lon, gs, tt, dry_and_ballast_mass / 10, enl, wind_speed, wind_direction, heading);
 
         const auto [index] = flaputils::get_optimal_flap(
             dry_and_ballast_mass / 10 + 84, ias * 3.6f);
@@ -180,8 +178,6 @@ private:
             case 315: flight_data.update_float("ias", get_float(msg.data));
                 break;
             case 316: flight_data.update_float("tas", get_float(msg.data));
-                break;
-            case 317: flight_data.update_float("cas", get_float(msg.data));
                 break;
             case 321: flight_data.update_float("heading", get_float(msg.data));
                 break;
@@ -521,7 +517,6 @@ struct FlightData
     float ias = 0;
     float tas = 0;
     float ias_mps = 0; // for compatibility with existing native code if needed, but we'll rename it
-    float cas = 0;
     float alt = 0;
     float vario = 0;
     int flap = 0;
@@ -557,8 +552,8 @@ struct FlightData
     {
         std::lock_guard lock(mtx);
         printf(
-            "FlightData: IAS=%.2f, TAS=%.2f, CAS=%.2f, ALT=%.2f, Vario=%.2f, Flap=%d, Lat=%.7f, Lon=%.7f, GS=%.2f, TT=%.2f, Dry + Ballast Mass=%u, ENL=%u, Wind Speed=%.2f, Wind Dir=%.2f, Heading=%.2f\n",
-            ias * 3.6, tas * 3.6, cas * 3.6, alt, vario, flap, lat, lon, gs, tt, dry_and_ballast_mass / 10, enl, wind_speed, wind_direction, heading);
+            "FlightData: IAS=%.2f, TAS=%.2f, ALT=%.2f, Vario=%.2f, Flap=%d, Lat=%.7f, Lon=%.7f, GS=%.2f, TT=%.2f, Dry + Ballast Mass=%u, ENL=%u, Wind Speed=%.2f, Wind Dir=%.2f, Heading=%.2f\n",
+            ias * 3.6, tas * 3.6, alt, vario, flap, lat, lon, gs, tt, dry_and_ballast_mass / 10, enl, wind_speed, wind_direction, heading);
 
         const auto [index] = flaputils::get_optimal_flap(
             dry_and_ballast_mass / 10 + 84, ias * 3.6f);
@@ -771,8 +766,6 @@ static void can_receiver_task(std::string iface)
             g_flight_state.last_relevant_rx_ms = FlightData::monotonic_ms();
             break;
         case 316: g_flight_state.tas = decode_be_float(frame.data);
-            break;
-        case 317: g_flight_state.cas = decode_be_float(frame.data);
             break;
         case 321: g_flight_state.heading = decode_be_float(frame.data);
             break;
