@@ -118,7 +118,6 @@ def estimate_wind(track_deg, gs, tas,
     res = fit["res"]
 
     wind_speed = math.hypot(wx, wy)
-
     wind_to_deg = wrap_deg_180(math.degrees(math.atan2(wy, wx)))
     wind_from_deg = wrap_deg_180(wind_to_deg + 180.0)
 
@@ -130,7 +129,7 @@ def estimate_wind(track_deg, gs, tas,
     if len(used_tracks) >= 2:
         c = np.mean(np.cos(np.deg2rad(used_tracks)))
         s = np.mean(np.sin(np.deg2rad(used_tracks)))
-        R = math.hypot(c, s)   # 1=tightly clustered, 0=well spread
+        R = math.hypot(c, s)
         heading_spread_deg = float((1.0 - R) * 180.0)
     else:
         heading_spread_deg = 0.0
@@ -179,12 +178,19 @@ def estimate_wind(track_deg, gs, tas,
     }
 
 
+def prune_old_samples(samples, now_s, window_sec):
+    """Remove samples older than the sliding time window."""
+    cutoff = now_s - window_sec
+    while samples and samples[0]["t"] < cutoff:
+        samples.popleft()
+
+
 def main():
     # CAN frame format: 4 bytes ID, 1 byte length, 3 bytes padding, 8 bytes data
     CAN_FRAME_FMT = "=IB3x8s"
 
     interface = "can0"
-    if len(sys.argv) > 1:
+    if len(sys.argv) > 1 and not sys.argv[1].startswith("--"):
         interface = sys.argv[1]
 
     try:
@@ -200,23 +206,23 @@ def main():
     latest_gs = None
     latest_track = None
 
-    samples_tas = collections.deque(maxlen=100)
-    samples_gs = collections.deque(maxlen=100)
-    samples_track = collections.deque(maxlen=100)
+    # Sliding window of samples: each entry is {"t": ..., "track": ..., "gs": ..., "tas": ...}
+    samples = collections.deque()
 
     last_estimate_time = time.time()
     last_sample_time = 0.0
-    sample_interval_s = 0.5      # prevent oversampling
-    min_track_step_deg = 3.0     # keep new point if track changed enough
-
     last_sampled_track = None
+
+    window_sec = 30.0          # use only the last 30 seconds
+    sample_interval_s = 0.5    # time-based throttle
+    min_track_step_deg = 3.0   # or keep if track changed enough
+    estimate_period_s = 2.0    # recompute every 2 seconds
 
     while True:
         try:
             can_pkt = sock.recv(16)
             can_id, length, data = struct.unpack(CAN_FRAME_FMT, can_pkt)
 
-            # IDs as in main.cpp
             if can_id == 316:  # tas
                 latest_tas = struct.unpack(">f", data[4:8])[0]
             elif can_id == 1039:  # gps_ground_speed
@@ -224,9 +230,10 @@ def main():
             elif can_id == 1040:  # gps_true_track
                 latest_track = struct.unpack(">f", data[4:8])[0]
 
-            # Take a sample mainly on fresh track updates, but throttle it.
+            now = time.time()
+
+            # Sample on fresh track updates when we have all three values
             if can_id == 1040 and latest_tas is not None and latest_gs is not None:
-                now = time.time()
                 track_now = wrap_deg_180(latest_track)
 
                 allow_by_time = (now - last_sample_time) >= sample_interval_s
@@ -236,39 +243,55 @@ def main():
                 )
 
                 if allow_by_time or allow_by_angle:
-                    samples_tas.append(latest_tas)
-                    samples_gs.append(latest_gs)
-                    samples_track.append(track_now)
-
+                    samples.append({
+                        "t": now,
+                        "track": track_now,
+                        "gs": latest_gs,
+                        "tas": latest_tas,
+                    })
                     last_sample_time = now
                     last_sampled_track = track_now
 
-            current_time = time.time()
-            if current_time - last_estimate_time > 2.0 and len(samples_tas) >= 3:
-                try:
-                    result = estimate_wind(
-                        list(samples_track),
-                        list(samples_gs),
-                        list(samples_tas),
-                        min_tas=5.0,
-                        min_gs=5.0,
-                        max_residual_keep=4.0
-                    )
+            # Remove old samples outside the time window
+            prune_old_samples(samples, now, window_sec)
 
-                    print(
-                        "Wind: "
-                        f"{result['wind_speed']:.1f} m/s "
-                        f"from {result['wind_from_deg']:.1f} deg "
-                        f"(used={result['n_used']}/{result['n_input']}, "
-                        f"rms={result['residual_rms']:.2f}, "
-                        f"cond={result['condition_number']:.1f}, "
-                        f"spread={result['heading_spread_deg']:.1f}, "
-                        f"{result['quality']})"
-                    )
-                except Exception as e:
-                    print(f"Estimation error: {e}")
+            # Periodic estimate from current sliding window
+            if (now - last_estimate_time) >= estimate_period_s:
+                if len(samples) >= 3:
+                    track_arr = [s["track"] for s in samples]
+                    gs_arr = [s["gs"] for s in samples]
+                    tas_arr = [s["tas"] for s in samples]
 
-                last_estimate_time = current_time
+                    try:
+                        result = estimate_wind(
+                            track_arr,
+                            gs_arr,
+                            tas_arr,
+                            min_tas=5.0,
+                            min_gs=5.0,
+                            max_residual_keep=4.0
+                        )
+
+                        age_oldest = now - samples[0]["t"]
+                        age_newest = now - samples[-1]["t"]
+
+                        print(
+                            "Wind: "
+                            f"{result['wind_speed']:.1f} m/s "
+                            f"from {result['wind_from_deg']:.1f} deg "
+                            f"(used={result['n_used']}/{result['n_input']}, "
+                            f"rms={result['residual_rms']:.2f}, "
+                            f"cond={result['condition_number']:.1f}, "
+                            f"spread={result['heading_spread_deg']:.1f}, "
+                            f"window={age_oldest:.1f}s..{age_newest:.1f}s ago, "
+                            f"{result['quality']})"
+                        )
+                    except Exception as e:
+                        print(f"Estimation error: {e}")
+                else:
+                    print(f"Wind: not enough samples in last {window_sec:.0f}s")
+
+                last_estimate_time = now
 
         except KeyboardInterrupt:
             break
@@ -279,10 +302,10 @@ def main():
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "--test":
-        track_deg = [-90, -45, 0, 45, 90, 135, 180, -135]
-        gs = [110, 118, 125, 120, 112, 102, 95, 100]
-        tas = [105, 105, 105, 105, 105, 105, 105, 105]
+    if "--test" in sys.argv:
+        track_deg = [-120, -90, -60, -30, 0, 30, 60, 90, 120, 150]
+        gs = [92, 96, 102, 108, 111, 109, 103, 97, 91, 88]
+        tas = [100, 100, 100, 100, 100, 100, 100, 100, 100, 100]
 
         result = estimate_wind(
             track_deg,
