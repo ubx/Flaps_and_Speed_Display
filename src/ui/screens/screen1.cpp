@@ -233,6 +233,13 @@ static void ui_set_stale_overlay(bool show)
     if (s_stale_cross_b) lv_obj_add_flag(s_stale_cross_b, LV_OBJ_FLAG_HIDDEN);
 }
 
+static inline void make_noninteractive(lv_obj_t* o)
+{
+    if (!o) return;
+    lv_obj_remove_flag(o, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(o, LV_OBJ_FLAG_SCROLLABLE);
+}
+
 static void ui_create_gauge()
 {
     s_screen = lv_obj_create(nullptr);
@@ -274,6 +281,14 @@ static void ui_create_gauge()
     lv_obj_set_style_text_font(unit, &lv_font_montserrat_16, 0);
     lv_label_set_text(unit, "km/h");
     lv_obj_align(unit, LV_ALIGN_CENTER, 0, 80);
+
+    /* Title */
+    lv_obj_t* title = lv_label_create(s_screen);
+    make_noninteractive(title);
+    lv_label_set_text(title, "IAS");
+    lv_obj_set_style_text_color(title, lv_color_white(), 0);
+    lv_obj_set_style_text_font(title, &lv_font_montserrat_16, 0);
+    lv_obj_align(title, LV_ALIGN_BOTTOM_MID, 0, -10);
 
     // Initial position (min of scale)
     ui_set_line_needle_value(s_scale, s_needle, NEEDLE_INNER_RADIUS, NEEDLE_OUTER_RADIUS, (int32_t)ASI_MIN);
