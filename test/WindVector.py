@@ -229,6 +229,7 @@ def estimate_wind(track_deg, gs, tas,
     robust_w = fit["robust_w"]
 
     wind_speed = math.hypot(wx, wy)
+    wind_speed_kmh = wind_speed * 3.6
     wind_to_deg = wrap_deg_180(math.degrees(math.atan2(wy, wx)))
     wind_from_deg = wrap_deg_180(wind_to_deg + 180.0)
 
@@ -278,6 +279,7 @@ def estimate_wind(track_deg, gs, tas,
         "wx": float(wx),
         "wy": float(wy),
         "wind_speed": float(wind_speed),
+        "wind_speed_kmh": float(wind_speed_kmh),
         "wind_to_deg": float(wind_to_deg),
         "wind_from_deg": float(wind_from_deg),
         "residual_rms": residual_rms,
@@ -419,7 +421,7 @@ def main():
 
                         print(
                             "Wind: "
-                            f"{result['wind_speed']:.1f} m/s "
+                            f"{result['wind_speed']:.1f} m/s ({result['wind_speed_kmh']:.1f} km/h) "
                             f"from {result['wind_from_deg']:.1f} deg "
                             f"(used={result['n_used']}/{result['n_input']}, "
                             f"wrms={result['weighted_residual_rms']:.2f}, "
