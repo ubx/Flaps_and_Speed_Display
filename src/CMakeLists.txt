@@ -14,5 +14,6 @@ idf_component_register(
         "../components/ui/fonts/digits_120.c"
         INCLUDE_DIRS
         "."
-        "../include"
+        "ui"
+        "ui/screens"
 )

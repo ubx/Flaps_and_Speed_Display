@@ -1,10 +1,8 @@
 #include <cmath>
 #include "lvgl.h"
-#include "../../flaputils.hpp"
-
-// Provided by your main.cpp (C++ symbols)
-extern float get_ias_kmh();
-extern bool is_stale();
+#include "../ui.h"
+#include "../ui_helpers.hpp"
+#include "flaputils.hpp"
 
 // UI objects
 extern const lv_font_t digits_120;

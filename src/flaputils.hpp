@@ -1,5 +1,4 @@
-#ifndef FLAPUTILS_HPP
-#define FLAPUTILS_HPP
+#pragma once
 
 #include <vector>
 #include <string>
@@ -46,5 +45,3 @@ namespace flaputils
     std::vector<FlapSpeedRange> get_flap_speed_ranges(float gewicht_kg);
 
 } // namespace flaputils
-
-#endif // FLAPUTILS_HPP

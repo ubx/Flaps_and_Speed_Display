@@ -1,5 +1,7 @@
 #include "lvgl.h"
-#include "../../flaputils.hpp"
+#include "../ui.h"
+#include "../ui_helpers.hpp"
+#include "flaputils.hpp"
 #include <cmath>
 #include <cstdint>
 #include <vector>
@@ -9,12 +11,6 @@
 #endif
 
 extern const lv_font_t digits_120;
-
-extern float get_ias_kmh();
-extern flaputils::FlapSymbolResult get_flap_actual();
-extern flaputils::FlapSymbolResult get_flap_target();
-extern float get_weight_kg();
-extern bool is_stale();
 
 static lv_obj_t* s_screen = nullptr;
 static lv_obj_t* s_flap_label = nullptr;

@@ -1,12 +1,8 @@
 #include "lvgl.h"
-#include "../../flaputils.hpp"
+#include "../ui.h"
+#include "../ui_helpers.hpp"
+#include "flaputils.hpp"
 #include <cstdio>
-
-extern float get_ias_kmh();
-extern float get_weight_kg();
-extern flaputils::FlapSymbolResult get_flap_actual();
-extern flaputils::FlapSymbolResult get_flap_target();
-extern bool is_stale();
 
 static lv_obj_t* s_screen = nullptr;
 static lv_obj_t* s_label_ias = nullptr;
