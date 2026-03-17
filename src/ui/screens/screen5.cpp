@@ -13,7 +13,7 @@
 #define MINOR_STEP     10
 
 #define DIGIT_COUNT    5
-#define DIGIT_WIDTH    60
+#define DIGIT_WIDTH    80    // match font width
 #define DIGIT_HEIGHT   120
 #define DIGIT_SPACING  4
 
@@ -31,6 +31,8 @@ static StaleOverlayState s_stale_overlay;
 
 static float s_alt_filtered = 0;
 
+/* ================= DRAW EVENT ================= */
+
 static void tape_draw_event(lv_event_t* e)
 {
     lv_obj_t* obj = lv_event_get_target_obj(e);
@@ -40,16 +42,13 @@ static void tape_draw_event(lv_event_t* e)
     lv_obj_get_coords(obj, &coords);
 
     int center_y = (coords.y1 + coords.y2) / 2;
-
     float alt = s_alt_filtered;
-
     int base_alt = ((int)alt / MINOR_STEP) * MINOR_STEP;
 
     for (int a = base_alt - 500; a <= base_alt + 500; a += MINOR_STEP)
     {
         float dy = (alt - a) * PIXELS_PER_M;
         int y = center_y + (int)dy;
-
         if (y < coords.y1 || y > coords.y2) continue;
 
         bool major = (a % MAJOR_STEP == 0);
@@ -59,12 +58,8 @@ static void tape_draw_event(lv_event_t* e)
         lv_draw_line_dsc_init(&line);
         line.color = lv_color_white();
         line.width = major ? 3 : 1;
-
-        line.p1.x = coords.x1 + 5;
-        line.p1.y = y;
-        line.p2.x = coords.x1 + 5 + line_len;
-        line.p2.y = y;
-
+        line.p1.x = coords.x1 + 5; line.p1.y = y;
+        line.p2.x = coords.x1 + 5 + line_len; line.p2.y = y;
         lv_draw_line(layer, &line);
 
         if (major)
@@ -77,13 +72,7 @@ static void tape_draw_event(lv_event_t* e)
             label.color = lv_color_white();
             label.font = &lv_font_montserrat_20;
 
-            lv_area_t txt_area = {
-                coords.x1 + 40,
-                y - 12,
-                coords.x2,
-                y + 12
-            };
-
+            lv_area_t txt_area = { coords.x1 + 40, y - 12, coords.x2, y + 12 };
             label.text = buf;
             label.text_static = false;
             lv_draw_label(layer, &label, &txt_area);
@@ -95,34 +84,25 @@ static void tape_draw_event(lv_event_t* e)
 
 static void update_altitude(float alt)
 {
-    /* Low-pass filter */
     s_alt_filtered = 0.9f * s_alt_filtered + 0.1f * alt;
 
     int alt_int = (int)roundf(s_alt_filtered);
-
-    /* Clamp */
     if (alt_int < 0) alt_int = 0;
     if (alt_int > 99999) alt_int = 99999;
 
-    /* Leading zero blanking */
     bool leading = true;
-
     static const int k_divisors[DIGIT_COUNT] = {10000, 1000, 100, 10, 1};
 
     for (int i = 0; i < DIGIT_COUNT; i++)
     {
-        int div = k_divisors[i];
-        int d = (alt_int / div) % 10;
+        int d = (alt_int / k_divisors[i]) % 10;
 
-        if (d != 0 || i == DIGIT_COUNT - 1)
-            leading = false;
+        if (d != 0 || i == DIGIT_COUNT - 1) leading = false;
 
         if (s_digit[i])
         {
             if (leading)
-            {
-                lv_label_set_text(s_digit[i], " ");
-            }
+                lv_label_set_text(s_digit[i], ""); // safe for font without space glyph
             else
             {
                 char c[2] = { (char)('0' + d), '\0' };
@@ -132,9 +112,7 @@ static void update_altitude(float alt)
     }
 
     if (s_unit_label)
-    {
         lv_label_set_text(s_unit_label, "m");
-    }
 
     lv_obj_invalidate(s_tape);
 }
@@ -153,7 +131,6 @@ static inline void make_noninteractive(lv_obj_t* o)
 static void ui_update_timer_cb(lv_timer_t* timer)
 {
     if (!s_screen || lv_screen_active() != s_screen) return;
-
     ui_set_stale_overlay(s_screen, s_stale_overlay, is_stale());
     update_altitude(get_alt_m());
 }
@@ -170,18 +147,15 @@ void screen5_create()
     s_tape = lv_obj_create(s_screen);
     lv_obj_set_size(s_tape, TAPE_WIDTH, TAPE_HEIGHT);
     lv_obj_align(s_tape, LV_ALIGN_CENTER, 0, 0);
-
     lv_obj_set_style_bg_color(s_tape, lv_color_black(), 0);
     lv_obj_set_style_border_color(s_tape, lv_color_white(), 0);
     lv_obj_set_style_border_width(s_tape, 2, 0);
-
     lv_obj_add_event_cb(s_tape, tape_draw_event, LV_EVENT_DRAW_MAIN, NULL);
 
     /* Center box */
     s_center_box = lv_obj_create(s_screen);
     lv_obj_set_size(s_center_box, TAPE_WIDTH + 180, 140);
     lv_obj_align(s_center_box, LV_ALIGN_CENTER, 0, 0);
-
     lv_obj_set_style_bg_color(s_center_box, lv_color_black(), 0);
     lv_obj_set_style_border_color(s_center_box, lv_color_white(), 0);
     lv_obj_set_style_border_width(s_center_box, 3, 0);
@@ -192,27 +166,21 @@ void screen5_create()
                     DIGIT_COUNT * DIGIT_WIDTH + (DIGIT_COUNT - 1) * DIGIT_SPACING,
                     DIGIT_HEIGHT);
     lv_obj_center(digit_container);
-
     lv_obj_set_style_bg_opa(digit_container, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(digit_container, 0, 0);
-    lv_obj_set_style_pad_all(digit_container, 0, 0);
     lv_obj_clear_flag(digit_container, LV_OBJ_FLAG_SCROLLABLE);
 
-    /* Create digits */
+    /* Create digit labels */
     for (int i = 0; i < DIGIT_COUNT; i++)
     {
         s_digit[i] = lv_label_create(digit_container);
-
         lv_obj_set_size(s_digit[i], DIGIT_WIDTH, DIGIT_HEIGHT);
         lv_obj_set_style_text_align(s_digit[i], LV_TEXT_ALIGN_CENTER, 0);
-
         lv_obj_set_style_text_font(s_digit[i], &mono_digits_120, 0);
         lv_obj_set_style_text_color(s_digit[i], lv_color_white(), 0);
-
         lv_label_set_text(s_digit[i], "0");
-
-        lv_obj_align(s_digit[i], LV_ALIGN_LEFT_MID,
-                     i * (DIGIT_WIDTH + DIGIT_SPACING), 0);
+        lv_obj_set_style_text_line_space(s_digit[i], 0, 0);
+        lv_obj_align(s_digit[i], LV_ALIGN_LEFT_MID, i * (DIGIT_WIDTH + DIGIT_SPACING), 0);
     }
 
     /* Unit label */
