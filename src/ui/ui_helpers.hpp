@@ -16,6 +16,12 @@ inline float get_weight_kg(const FlightData& state)
     return state.dry_and_ballast_mass / 10.0f + 84.0f;
 }
 
+inline float get_alt_m(const FlightData& state)
+{
+    std::lock_guard<std::mutex> lock(state.mtx);
+    return state.alt;
+}
+
 inline flaputils::FlapSymbolResult get_flap_actual(const FlightData& state)
 {
     std::lock_guard<std::mutex> lock(state.mtx);

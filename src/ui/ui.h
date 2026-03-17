@@ -10,6 +10,7 @@ void set_label3(const char* text);
 // Global data access wrappers
 float get_ias_kmh();
 float get_weight_kg();
+float get_alt_m();
 flaputils::FlapSymbolResult get_flap_actual();
 flaputils::FlapSymbolResult get_flap_target();
 bool is_stale();
