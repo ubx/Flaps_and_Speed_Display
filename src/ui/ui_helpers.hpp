@@ -22,6 +22,36 @@ inline float get_alt_m(const FlightData& state)
     return state.alt;
 }
 
+inline float get_heading(const FlightData& state)
+{
+    std::lock_guard<std::mutex> lock(state.mtx);
+    return state.heading;
+}
+
+inline float get_wind_speed_kmh(const FlightData& state)
+{
+    std::lock_guard<std::mutex> lock(state.mtx);
+    return state.wind_speed * 3.6f;
+}
+
+inline float get_wind_direction(const FlightData& state)
+{
+    std::lock_guard<std::mutex> lock(state.mtx);
+    return state.wind_direction;
+}
+
+inline float get_gps_ground_speed_kmh(const FlightData& state)
+{
+    std::lock_guard<std::mutex> lock(state.mtx);
+    return state.gps_ground_speed * 3.6f;
+}
+
+inline float get_gps_true_track(const FlightData& state)
+{
+    std::lock_guard<std::mutex> lock(state.mtx);
+    return state.gps_true_track;
+}
+
 inline flaputils::FlapSymbolResult get_flap_actual(const FlightData& state)
 {
     std::lock_guard<std::mutex> lock(state.mtx);

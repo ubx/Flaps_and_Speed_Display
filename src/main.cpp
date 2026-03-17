@@ -412,6 +412,11 @@ int main(int argc, char** argv)
 float get_ias_kmh() { return ::get_ias_kmh(g_flight_state); }
 float get_weight_kg() { return ::get_weight_kg(g_flight_state); }
 float get_alt_m() { return ::get_alt_m(g_flight_state); }
+float get_heading() { return ::get_heading(g_flight_state); }
+float get_wind_speed_kmh() { return ::get_wind_speed_kmh(g_flight_state); }
+float get_wind_direction() { return ::get_wind_direction(g_flight_state); }
+float get_gps_ground_speed_kmh() { return ::get_gps_ground_speed_kmh(g_flight_state); }
+float get_gps_true_track() { return ::get_gps_true_track(g_flight_state); }
 flaputils::FlapSymbolResult get_flap_actual() { return ::get_flap_actual(g_flight_state); }
 flaputils::FlapSymbolResult get_flap_target() { return ::get_flap_target(g_flight_state); }
 bool is_stale() { return g_flight_state.is_stale(); }
