@@ -1,5 +1,6 @@
 #include "lvgl.h"
 #include "../ui.h"
+#include "../ui_helpers.hpp"
 #include <cmath>
 #include <cstdio>
 
@@ -18,9 +19,7 @@ static lv_obj_t* s_tape = nullptr;
 static lv_obj_t* s_center_box = nullptr;
 static lv_obj_t* s_alt_label = nullptr;
 static lv_obj_t* s_unit_label = nullptr;
-static lv_obj_t* s_stale_cross_a = nullptr;
-static lv_obj_t* s_stale_cross_b = nullptr;
-static bool s_stale_overlay_visible = false;
+static StaleOverlayState s_stale_overlay;
 
 static float s_alt_filtered = 0;
 
@@ -111,41 +110,6 @@ static void update_altitude(float alt)
     lv_obj_invalidate(s_tape);
 }
 
-/* ================= STALE OVERLAY ================= */
-
-static void ui_set_stale_overlay(bool show)
-{
-    if (show == s_stale_overlay_visible) return;
-    s_stale_overlay_visible = show;
-
-    if (show)
-    {
-        if (!s_stale_cross_a)
-        {
-            static lv_point_precise_t cross_a_pts[2] = {{60, 60}, {406, 406}};
-            s_stale_cross_a = lv_line_create(s_screen);
-            lv_line_set_points(s_stale_cross_a, cross_a_pts, 2);
-            lv_obj_set_style_line_width(s_stale_cross_a, 10, 0);
-            lv_obj_set_style_line_color(s_stale_cross_a, lv_palette_main(LV_PALETTE_RED), 0);
-            lv_obj_set_style_line_rounded(s_stale_cross_a, true, 0);
-        }
-        lv_obj_remove_flag(s_stale_cross_a, LV_OBJ_FLAG_HIDDEN);
-        if (!s_stale_cross_b)
-        {
-            static lv_point_precise_t cross_b_pts[2] = {{406, 60}, {60, 406}};
-            s_stale_cross_b = lv_line_create(s_screen);
-            lv_line_set_points(s_stale_cross_b, cross_b_pts, 2);
-            lv_obj_set_style_line_width(s_stale_cross_b, 10, 0);
-            lv_obj_set_style_line_color(s_stale_cross_b, lv_palette_main(LV_PALETTE_RED), 0);
-            lv_obj_set_style_line_rounded(s_stale_cross_b, true, 0);
-        }
-        lv_obj_remove_flag(s_stale_cross_b, LV_OBJ_FLAG_HIDDEN);
-        return;
-    }
-
-    if (s_stale_cross_a) lv_obj_add_flag(s_stale_cross_a, LV_OBJ_FLAG_HIDDEN);
-    if (s_stale_cross_b) lv_obj_add_flag(s_stale_cross_b, LV_OBJ_FLAG_HIDDEN);
-}
 
 /* ================= UTILS ================= */
 
@@ -162,7 +126,7 @@ static void ui_update_timer_cb(lv_timer_t* timer)
 {
     if (!s_screen || lv_screen_active() != s_screen) return;
 
-    ui_set_stale_overlay(is_stale());
+    ui_set_stale_overlay(s_screen, s_stale_overlay, is_stale());
     update_altitude(get_alt_m());
 }
 
@@ -216,7 +180,7 @@ void screen5_create()
     lv_obj_set_style_text_font(title, &lv_font_montserrat_16, 0);
     lv_obj_align(title, LV_ALIGN_BOTTOM_MID, 0, -10);
 
-    /* store label pointer via user data if needed */
+    s_stale_overlay = {};
 
     lv_timer_create(ui_update_timer_cb, 33, NULL);
 }

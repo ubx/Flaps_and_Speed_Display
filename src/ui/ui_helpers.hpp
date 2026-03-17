@@ -2,7 +2,48 @@
 
 #include "flight_data.hpp"
 #include "flaputils.hpp"
+#include "lvgl.h"
 #include <cstdio>
+
+struct StaleOverlayState {
+    lv_obj_t* cross_a = nullptr;
+    lv_obj_t* cross_b = nullptr;
+    bool visible = false;
+};
+
+inline void ui_set_stale_overlay(lv_obj_t* parent, StaleOverlayState& state, bool show)
+{
+    if (show == state.visible) return;
+    state.visible = show;
+
+    if (show)
+    {
+        if (!state.cross_a)
+        {
+            static lv_point_precise_t cross_a_pts[2] = {{60, 60}, {406, 406}};
+            state.cross_a = lv_line_create(parent);
+            lv_line_set_points(state.cross_a, cross_a_pts, 2);
+            lv_obj_set_style_line_width(state.cross_a, 10, 0);
+            lv_obj_set_style_line_color(state.cross_a, lv_palette_main(LV_PALETTE_RED), 0);
+            lv_obj_set_style_line_rounded(state.cross_a, true, 0);
+        }
+        lv_obj_remove_flag(state.cross_a, LV_OBJ_FLAG_HIDDEN);
+        if (!state.cross_b)
+        {
+            static lv_point_precise_t cross_b_pts[2] = {{406, 60}, {60, 406}};
+            state.cross_b = lv_line_create(parent);
+            lv_line_set_points(state.cross_b, cross_b_pts, 2);
+            lv_obj_set_style_line_width(state.cross_b, 10, 0);
+            lv_obj_set_style_line_color(state.cross_b, lv_palette_main(LV_PALETTE_RED), 0);
+            lv_obj_set_style_line_rounded(state.cross_b, true, 0);
+        }
+        lv_obj_remove_flag(state.cross_b, LV_OBJ_FLAG_HIDDEN);
+        return;
+    }
+
+    if (state.cross_a) lv_obj_add_flag(state.cross_a, LV_OBJ_FLAG_HIDDEN);
+    if (state.cross_b) lv_obj_add_flag(state.cross_b, LV_OBJ_FLAG_HIDDEN);
+}
 
 inline float get_ias_kmh(const FlightData& state)
 {
