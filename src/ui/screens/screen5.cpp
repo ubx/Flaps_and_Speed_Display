@@ -5,7 +5,7 @@
 
 /* ================= CONFIG ================= */
 
-#define TAPE_WIDTH     140
+#define TAPE_WIDTH     160
 #define TAPE_HEIGHT    400
 #define PIXELS_PER_M   2.0f     // scaling (adjust!)
 #define MAJOR_STEP     100      // major tick (m)
@@ -187,7 +187,7 @@ void screen5_create()
 
     /* Center box (current altitude) */
     s_center_box = lv_obj_create(s_screen);
-    lv_obj_set_size(s_center_box, TAPE_WIDTH + 140, 140);
+    lv_obj_set_size(s_center_box, TAPE_WIDTH + 180, 140);
     lv_obj_align(s_center_box, LV_ALIGN_CENTER, 0, 0);
 
     lv_obj_set_style_bg_color(s_center_box, lv_color_black(), 0);
@@ -201,7 +201,7 @@ void screen5_create()
     s_alt_label = lv_label_create(s_center_box);
     lv_obj_set_style_text_font(s_alt_label, &digits_120, 0);
     lv_obj_set_style_text_color(s_alt_label, lv_color_white(), 0);
-    lv_obj_align(s_alt_label, LV_ALIGN_CENTER, -20, 0);
+    lv_obj_align(s_alt_label, LV_ALIGN_CENTER, 0, 0);
 
     s_unit_label = lv_label_create(s_screen);
     lv_obj_set_style_text_font(s_unit_label, &lv_font_montserrat_28, 0);
