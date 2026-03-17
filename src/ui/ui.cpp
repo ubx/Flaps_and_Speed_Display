@@ -13,7 +13,6 @@
 #define ESP_LOGE(tag, fmt, ...) std::fprintf(stderr, "E (%s) " fmt "\n", tag, ##__VA_ARGS__)
 #endif
 
-static const char* TAG = "ui";
 static lv_obj_t* s_label1 = nullptr;
 static lv_obj_t* s_label2 = nullptr;
 static lv_obj_t* s_label3 = nullptr;

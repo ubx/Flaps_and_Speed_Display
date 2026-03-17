@@ -31,7 +31,6 @@ static void tape_draw_event(lv_event_t* e)
     lv_obj_get_coords(obj, &coords);
 
     int center_y = (coords.y1 + coords.y2) / 2;
-    int center_x = (coords.x1 + coords.x2) / 2;
 
     float alt = s_alt_filtered;
 
@@ -142,6 +141,7 @@ void screen5_create()
     lv_obj_set_style_border_width(s_center_box, 3, 0);
 
     /* Altitude text */
+    LV_FONT_DECLARE(lv_font_montserrat_28);
     s_alt_label = lv_label_create(s_center_box);
     lv_obj_set_style_text_font(s_alt_label, &lv_font_montserrat_28, 0);
     lv_obj_set_style_text_color(s_alt_label, lv_color_white(), 0);
