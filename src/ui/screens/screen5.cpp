@@ -13,7 +13,7 @@
 #define MINOR_STEP     10
 
 #define DIGIT_COUNT    5
-#define DIGIT_WIDTH    80
+#define DIGIT_WIDTH    60
 #define DIGIT_HEIGHT   120
 #define DIGIT_SPACING  4
 
@@ -107,9 +107,11 @@ static void update_altitude(float alt)
     /* Leading zero blanking */
     bool leading = true;
 
+    static const int k_divisors[DIGIT_COUNT] = {10000, 1000, 100, 10, 1};
+
     for (int i = 0; i < DIGIT_COUNT; i++)
     {
-        int div = (int)pow(10, DIGIT_COUNT - 1 - i);
+        int div = k_divisors[i];
         int d = (alt_int / div) % 10;
 
         if (d != 0 || i == DIGIT_COUNT - 1)
@@ -193,6 +195,7 @@ void screen5_create()
 
     lv_obj_set_style_bg_opa(digit_container, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(digit_container, 0, 0);
+    lv_obj_set_style_pad_all(digit_container, 0, 0);
     lv_obj_clear_flag(digit_container, LV_OBJ_FLAG_SCROLLABLE);
 
     /* Create digits */
