@@ -8,22 +8,28 @@
 
 #define TAPE_WIDTH     160
 #define TAPE_HEIGHT    400
-#define PIXELS_PER_M   2.0f     // scaling (adjust!)
-#define MAJOR_STEP     100      // major tick (m)
-#define MINOR_STEP     10       // minor tick (m)
+#define PIXELS_PER_M   2.0f
+#define MAJOR_STEP     100
+#define MINOR_STEP     10
+
+#define DIGIT_COUNT    5
+#define DIGIT_WIDTH    80
+#define DIGIT_HEIGHT   120
+#define DIGIT_SPACING  4
 
 /* ================= STATE ================= */
 
+extern const lv_font_t mono_digits_120;
 static lv_obj_t* s_screen = nullptr;
 static lv_obj_t* s_tape = nullptr;
 static lv_obj_t* s_center_box = nullptr;
-static lv_obj_t* s_alt_label = nullptr;
 static lv_obj_t* s_unit_label = nullptr;
+
+static lv_obj_t* s_digit[DIGIT_COUNT] = {0};
+
 static StaleOverlayState s_stale_overlay;
 
 static float s_alt_filtered = 0;
-
-/* ================= DRAW EVENT ================= */
 
 static void tape_draw_event(lv_event_t* e)
 {
@@ -37,7 +43,6 @@ static void tape_draw_event(lv_event_t* e)
 
     float alt = s_alt_filtered;
 
-    /* find base altitude aligned to MINOR_STEP */
     int base_alt = ((int)alt / MINOR_STEP) * MINOR_STEP;
 
     for (int a = base_alt - 500; a <= base_alt + 500; a += MINOR_STEP)
@@ -48,10 +53,8 @@ static void tape_draw_event(lv_event_t* e)
         if (y < coords.y1 || y > coords.y2) continue;
 
         bool major = (a % MAJOR_STEP == 0);
-
         int line_len = major ? 30 : 15;
 
-        /* draw tick */
         lv_draw_line_dsc_t line;
         lv_draw_line_dsc_init(&line);
         line.color = lv_color_white();
@@ -64,7 +67,6 @@ static void tape_draw_event(lv_event_t* e)
 
         lv_draw_line(layer, &line);
 
-        /* draw label */
         if (major)
         {
             char buf[16];
@@ -93,15 +95,40 @@ static void tape_draw_event(lv_event_t* e)
 
 static void update_altitude(float alt)
 {
-    /* low-pass filter */
+    /* Low-pass filter */
     s_alt_filtered = 0.9f * s_alt_filtered + 0.1f * alt;
 
-    if (s_alt_label)
+    int alt_int = (int)roundf(s_alt_filtered);
+
+    /* Clamp */
+    if (alt_int < 0) alt_int = 0;
+    if (alt_int > 99999) alt_int = 99999;
+
+    /* Leading zero blanking */
+    bool leading = true;
+
+    for (int i = 0; i < DIGIT_COUNT; i++)
     {
-        char buf[32];
-        snprintf(buf, sizeof(buf), "%.0f", s_alt_filtered);
-        lv_label_set_text(s_alt_label, buf);
+        int div = (int)pow(10, DIGIT_COUNT - 1 - i);
+        int d = (alt_int / div) % 10;
+
+        if (d != 0 || i == DIGIT_COUNT - 1)
+            leading = false;
+
+        if (s_digit[i])
+        {
+            if (leading)
+            {
+                lv_label_set_text(s_digit[i], " ");
+            }
+            else
+            {
+                char c[2] = { (char)('0' + d), '\0' };
+                lv_label_set_text(s_digit[i], c);
+            }
+        }
     }
+
     if (s_unit_label)
     {
         lv_label_set_text(s_unit_label, "m");
@@ -109,7 +136,6 @@ static void update_altitude(float alt)
 
     lv_obj_invalidate(s_tape);
 }
-
 
 /* ================= UTILS ================= */
 
@@ -149,7 +175,7 @@ void screen5_create()
 
     lv_obj_add_event_cb(s_tape, tape_draw_event, LV_EVENT_DRAW_MAIN, NULL);
 
-    /* Center box (current altitude) */
+    /* Center box */
     s_center_box = lv_obj_create(s_screen);
     lv_obj_set_size(s_center_box, TAPE_WIDTH + 180, 140);
     lv_obj_align(s_center_box, LV_ALIGN_CENTER, 0, 0);
@@ -158,15 +184,35 @@ void screen5_create()
     lv_obj_set_style_border_color(s_center_box, lv_color_white(), 0);
     lv_obj_set_style_border_width(s_center_box, 3, 0);
 
-    /* Altitude text */
-    extern const lv_font_t digits_120;
-    LV_FONT_DECLARE(lv_font_montserrat_28);
+    /* Digit container */
+    lv_obj_t* digit_container = lv_obj_create(s_center_box);
+    lv_obj_set_size(digit_container,
+                    DIGIT_COUNT * DIGIT_WIDTH + (DIGIT_COUNT - 1) * DIGIT_SPACING,
+                    DIGIT_HEIGHT);
+    lv_obj_center(digit_container);
 
-    s_alt_label = lv_label_create(s_center_box);
-    lv_obj_set_style_text_font(s_alt_label, &digits_120, 0);
-    lv_obj_set_style_text_color(s_alt_label, lv_color_white(), 0);
-    lv_obj_align(s_alt_label, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_set_style_bg_opa(digit_container, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(digit_container, 0, 0);
+    lv_obj_clear_flag(digit_container, LV_OBJ_FLAG_SCROLLABLE);
 
+    /* Create digits */
+    for (int i = 0; i < DIGIT_COUNT; i++)
+    {
+        s_digit[i] = lv_label_create(digit_container);
+
+        lv_obj_set_size(s_digit[i], DIGIT_WIDTH, DIGIT_HEIGHT);
+        lv_obj_set_style_text_align(s_digit[i], LV_TEXT_ALIGN_CENTER, 0);
+
+        lv_obj_set_style_text_font(s_digit[i], &mono_digits_120, 0);
+        lv_obj_set_style_text_color(s_digit[i], lv_color_white(), 0);
+
+        lv_label_set_text(s_digit[i], "0");
+
+        lv_obj_align(s_digit[i], LV_ALIGN_LEFT_MID,
+                     i * (DIGIT_WIDTH + DIGIT_SPACING), 0);
+    }
+
+    /* Unit label */
     s_unit_label = lv_label_create(s_screen);
     lv_obj_set_style_text_font(s_unit_label, &lv_font_montserrat_28, 0);
     lv_obj_set_style_text_color(s_unit_label, lv_color_white(), 0);

@@ -13,6 +13,7 @@ idf_component_register(
         "../components/ui/fonts/digits_80.c"
         "../components/ui/fonts/digits_96.c"
         "../components/ui/fonts/digits_120.c"
+        "../components/ui/fonts/mono_digits_120.c"
         INCLUDE_DIRS
         "."
         "ui"
