@@ -5,7 +5,7 @@
 #include "flaputils.hpp"
 
 // UI objects
-extern const lv_font_t digits_120;
+extern const lv_font_t mono_digits_120;
 static lv_obj_t* s_screen = nullptr;
 static lv_obj_t* s_scale = nullptr;
 static lv_obj_t* s_needle = nullptr;
@@ -234,7 +234,7 @@ static void ui_create_gauge()
     // Center value
     s_label = lv_label_create(s_screen);
     lv_obj_set_style_text_color(s_label, lv_color_white(), 0);
-    lv_obj_set_style_text_font(s_label, &digits_120, 0);
+    lv_obj_set_style_text_font(s_label, &mono_digits_120, 0);
     lv_label_set_text(s_label, "--");
     lv_obj_center(s_label);
 
