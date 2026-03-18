@@ -6,7 +6,7 @@
 
 /* ================= CONFIG ================= */
 
-#define TAPE_WIDTH     180
+#define TAPE_WIDTH     200
 #define TAPE_HEIGHT    400
 #define PIXELS_PER_M   2.0f     // scaling (adjust!)
 #define MAJOR_STEP     100      // major tick (m)
@@ -172,7 +172,7 @@ void screen5_create()
     s_unit_label = lv_label_create(s_screen);
     lv_obj_set_style_text_font(s_unit_label, &lv_font_montserrat_28, 0);
     lv_obj_set_style_text_color(s_unit_label, lv_color_white(), 0);
-    lv_obj_align_to(s_unit_label, s_center_box, LV_ALIGN_OUT_RIGHT_BOTTOM, 5, -20);
+    lv_obj_align_to(s_unit_label, s_center_box, LV_ALIGN_OUT_BOTTOM_RIGHT, 10, 0);
 
     /* Title */
     lv_obj_t* title = lv_label_create(s_screen);
