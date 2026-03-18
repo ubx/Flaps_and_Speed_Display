@@ -107,6 +107,7 @@ private:
             case 316: flight_data.update_float("tas", CANDecoder::decode_float(msg.data)); break;
             case 321: flight_data.update_float("heading", CANDecoder::decode_float(msg.data)); break;
             case 322: flight_data.update_float("alt", CANDecoder::decode_float(msg.data)); break;
+            case 1519: flight_data.update_float("alt_corr", CANDecoder::decode_float(msg.data)); break;
             case 333: flight_data.update_float("wind_speed", CANDecoder::decode_float(msg.data)); break;
             case 334: flight_data.update_float("wind_direction", CANDecoder::decode_float(msg.data)); break;
             case 340: flight_data.update_int("flap", CANDecoder::decode_char(msg.data)); break;
@@ -329,6 +330,7 @@ static void can_receiver_task(std::string iface)
         case 316: g_flight_state.tas = CANDecoder::decode_float(frame.data); break;
         case 321: g_flight_state.heading = CANDecoder::decode_float(frame.data); break;
         case 322: g_flight_state.alt = CANDecoder::decode_float(frame.data); break;
+        case 1519: g_flight_state.alt_corr = CANDecoder::decode_float(frame.data); break;
         case 333: g_flight_state.wind_speed = CANDecoder::decode_float(frame.data); break;
         case 334: g_flight_state.wind_direction = CANDecoder::decode_float(frame.data); break;
         case 340:

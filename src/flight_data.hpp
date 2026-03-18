@@ -16,6 +16,7 @@ struct FlightData
     float ias = 0;
     float tas = 0;
     float alt = 0;
+    float alt_corr = 0;
     float vario = 0;
     int flap = 0;
     double lat = 0;
@@ -49,6 +50,7 @@ struct FlightData
         }
         else if (key == "tas") tas = value;
         else if (key == "alt") alt = value;
+        else if (key == "alt_corr") alt_corr = value;
         else if (key == "vario") vario = value;
         else if (key == "gps_ground_speed")
         {

@@ -60,7 +60,7 @@ inline float get_weight_kg(const FlightData& state)
 inline float get_alt_m(const FlightData& state)
 {
     std::lock_guard<std::mutex> lock(state.mtx);
-    return state.alt;
+    return state.alt + state.alt_corr;
 }
 
 inline float get_heading(const FlightData& state)
@@ -110,8 +110,8 @@ inline void print_flight_data(const FlightData& state)
 {
     std::lock_guard lock(state.mtx);
     printf(
-        "FlightData: IAS=%.2f, TAS=%.2f, ALT=%.2f, Vario=%.2f, Flap=%d, Lat=%.7f, Lon=%.7f, GPS Ground Speed=%.2f, GPS True Track=%.2f, Dry + Ballast Mass=%u, ENL=%u, Wind Speed=%.2f, Wind Dir=%.2f, Heading=%.2f\n",
-        state.ias * 3.6, state.tas * 3.6, state.alt, state.vario, state.flap, state.lat, state.lon, state.gps_ground_speed, state.gps_true_track, state.dry_and_ballast_mass / 10, state.enl, state.wind_speed, state.wind_direction, state.heading);
+        "FlightData: IAS=%.2f, TAS=%.2f, ALT=%.2f, ALT_CORR=%.2f, Vario=%.2f, Flap=%d, Lat=%.7f, Lon=%.7f, GPS Ground Speed=%.2f, GPS True Track=%.2f, Dry + Ballast Mass=%u, ENL=%u, Wind Speed=%.2f, Wind Dir=%.2f, Heading=%.2f\n",
+        state.ias * 3.6, state.tas * 3.6, state.alt, state.alt_corr, state.vario, state.flap, state.lat, state.lon, state.gps_ground_speed, state.gps_true_track, state.dry_and_ballast_mass / 10, state.enl, state.wind_speed, state.wind_direction, state.heading);
 
     const auto [index] = flaputils::get_optimal_flap(
         state.dry_and_ballast_mass / 10.0f + 84.0f, state.ias * 3.6f);
