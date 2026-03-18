@@ -9,6 +9,7 @@ import argparse
 CAN_FRAME_FMT = "=IB3x8s"
 
 IAS_CAN_ID = 315
+ALT_CAN_ID = 322
 FLAPS_CAN_ID = 340
 DRY_AND_BALLAST_MASS_CAN_ID = 1515
 
@@ -35,6 +36,10 @@ def build_ias_frame(ias_kmh):
     return b"\x00\x00\x00\x00" + struct.pack(">f", ias_kmh / 3.6)
 
 
+def build_alt_frame(alt_m):
+    return b"\x00\x00\x00\x00" + struct.pack(">f", alt_m)
+
+
 def build_flaps_frame(flaps):
     return bytes([0, 0, 0, 0, flaps])
 
@@ -44,6 +49,7 @@ def build_dry_and_ballast_mass_frame(mass):
 
 
 def emit_sweep(sock, time_gap):
+    alt = 0.0
     for dry_and_ballast_mass in range(3800, 6001, 200):
         for flaps in FLAPS_VALUES:
             for ias in range(10, 281, 10):
@@ -63,11 +69,18 @@ def emit_sweep(sock, time_gap):
                         build_ias_frame(ias),
                         f"ias: {ias:.0f} km/h",
                     ),
+                    (
+                        ALT_CAN_ID,
+                        build_alt_frame(alt),
+                        f"alt: {alt:.0f} m",
+                    ),
                 ]
 
                 for can_id, data, msg_info in messages:
                     send_can_frame(sock, can_id, data)
                     print(f"Sent ID {can_id:03X} Data {data.hex().upper()} ({msg_info})")
+                
+                alt += 10.0
                 if time_gap and time_gap > 0:
                     time.sleep(time_gap)
 
