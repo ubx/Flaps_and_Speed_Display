@@ -10,6 +10,7 @@ The **Flaps & Speed Display** is a touchscreen flight display for the ESP32-S3 A
 - indicated airspeed (IAS)
 - current flap setting
 - recommended flap setting
+- flight altitude
 - display brightness settings
 
 The display is controlled entirely by touch gestures and on-screen buttons.
@@ -26,9 +27,9 @@ It then switches to the normal operating screens.
 
 ## Touch Navigation
 
-The display has four screens. Navigation is done with swipe gestures:
+The display has five screens. Navigation is done with swipe gestures:
 
-- **Swipe up or down**: switch between the two main flying screens
+- **Swipe up or down**: switch between the three main flying screens (Speed, Flaps, Altitude)
 - **Swipe right**: open the settings/detail screens
 - **Swipe right again**: switch between the two settings/detail screens
 - **Swipe left**: return from the settings/detail screens to the main flying screen
@@ -72,7 +73,18 @@ The current configuration also defines a special **lowspeed** setting in [`spiff
 
 This lowspeed setting is intended for takeoff and landing and is handled separately from the normal flap speed bands.
 
-### 3. Settings / Brightness Screen
+### 3. Altitude Screen
+
+![Altitude screen](./Altitude_round.png)
+
+This screen displays the current flight altitude.
+
+- The large number in the center is the **altitude** in **meters**
+- The moving tape on the left provides a visual representation of altitude changes
+- The tape has major markings every **100 meters** and minor markings every **20 meters**
+- The current altitude is also shown as a digital value on the tape for better readability
+
+### 4. Settings / Brightness Screen
 
 ![Brightness screen](./Brightness_round.png)
 
@@ -86,7 +98,7 @@ Brightness changes in **10% steps**.
 - minimum brightness: **30%**
 - maximum brightness: **100%**
 
-### 4. Live Params Screen
+### 5. Live Params Screen
 
 ![Live parameters screen](./Life_Params_round.png)
 
@@ -124,8 +136,9 @@ This indicates that the shown IAS/flap information should no longer be trusted u
 2. Wait until the splash screen finishes.
 3. Use the **Speed** screen for normal IAS monitoring.
 4. Swipe to the **Flaps** screen when flap guidance is needed.
-5. Open **Live Params** if you want to verify actual/target flap values.
-6. Open **Settings** to adjust brightness for cockpit conditions.
+5. Swipe to the **Altitude** screen for height monitoring.
+6. Open **Live Params** if you want to verify actual/target flap values.
+7. Open **Settings** to adjust brightness for cockpit conditions.
 
 ## Notes
 
