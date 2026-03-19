@@ -143,7 +143,7 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
     float heading = get_heading();
 
     // Relative direction
-    float rel_dir = wind_dir - heading;
+    float rel_dir = wind_dir - heading + 180.0f;
     while (rel_dir > 180.0f) rel_dir -= 360.0f;
     while (rel_dir < -180.0f) rel_dir += 360.0f;
 
