@@ -7,8 +7,9 @@
 #define WIND_MIN -180.0f
 #define WIND_MAX 180.0f
 
-#define NEEDLE_INNER_RADIUS 110
+#define NEEDLE_INNER_RADIUS 100
 #define NEEDLE_OUTER_RADIUS 210
+#define ARROW_LENGTH 20
 
 /* ================= STATE ================= */
 static lv_obj_t* s_screen = nullptr;
@@ -52,13 +53,29 @@ static void ui_set_line_needle_value(lv_obj_t* scale_obj, lv_obj_t* needle_line,
 
     int32_t total_angle = rotation + angle;
 
-    static lv_point_precise_t points[2];
-    points[0].x = (width / 2) + ((inner_length * lv_trigo_cos(total_angle)) >> LV_TRIGO_SHIFT);
-    points[0].y = (height / 2) + ((inner_length * lv_trigo_sin(total_angle)) >> LV_TRIGO_SHIFT);
-    points[1].x = (width / 2) + ((outer_length * lv_trigo_cos(total_angle)) >> LV_TRIGO_SHIFT);
-    points[1].y = (height / 2) + ((outer_length * lv_trigo_sin(total_angle)) >> LV_TRIGO_SHIFT);
+    static lv_point_precise_t arrow_points[5];
+    // 0: Outer end
+    arrow_points[0].x = (width / 2) + ((outer_length * lv_trigo_cos(total_angle)) >> LV_TRIGO_SHIFT);
+    arrow_points[0].y = (height / 2) + ((outer_length * lv_trigo_sin(total_angle)) >> LV_TRIGO_SHIFT);
 
-    lv_line_set_points(needle_line, points, 2);
+    // 1: Inner tip
+    arrow_points[1].x = (width / 2) + ((inner_length * lv_trigo_cos(total_angle)) >> LV_TRIGO_SHIFT);
+    arrow_points[1].y = (height / 2) + ((inner_length * lv_trigo_sin(total_angle)) >> LV_TRIGO_SHIFT);
+
+    // Arrow wings: (inner_length + ARROW_LENGTH) at +/- some angle.
+    // In LVGL, lv_trigo_cos/sin use degrees (0..360) but some versions might use different scales.
+    // Based on the code, they seem to use degrees (total_angle is 90 + angle).
+    // Angle offset of 10 degrees for wings.
+    arrow_points[2].x = (width / 2) + (((inner_length + ARROW_LENGTH) * lv_trigo_cos(total_angle + 10)) >> LV_TRIGO_SHIFT);
+    arrow_points[2].y = (height / 2) + (((inner_length + ARROW_LENGTH) * lv_trigo_sin(total_angle + 10)) >> LV_TRIGO_SHIFT);
+
+    arrow_points[3].x = arrow_points[1].x;
+    arrow_points[3].y = arrow_points[1].y;
+
+    arrow_points[4].x = (width / 2) + (((inner_length + ARROW_LENGTH) * lv_trigo_cos(total_angle - 10)) >> LV_TRIGO_SHIFT);
+    arrow_points[4].y = (height / 2) + (((inner_length + ARROW_LENGTH) * lv_trigo_sin(total_angle - 10)) >> LV_TRIGO_SHIFT);
+
+    lv_line_set_points(needle_line, arrow_points, 5);
 }
 
 /* ================= GAUGE ================= */
