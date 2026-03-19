@@ -28,6 +28,9 @@ class ControlPanel(QWidget):
     iasChanged = Signal(int)     # km/h
     massChanged = Signal(int)    # kg
     flapsChanged = Signal(int)   # V
+    windSpeedChanged = Signal(int) # km/h
+    windDirectionChanged = Signal(int) # deg
+    headingChanged = Signal(int)       # deg
 
     # Combined signal: dict with current values
     valuesChanged = Signal(dict)
@@ -40,6 +43,9 @@ class ControlPanel(QWidget):
             "ias": 40,
             "mass": 390,
             "flaps": FLAPS_VALUES[0],
+            "wind_speed": 0,
+            "wind_direction": 0,
+            "heading": 0,
         }
         self._initializing = True
 
@@ -104,6 +110,57 @@ class ControlPanel(QWidget):
         grid.addWidget(self.flaps_value, 2, 2)
         grid.addWidget(self.flaps_unit, 2, 3)
 
+        # ---------- Wind Speed (0..100 km/h) ----------
+        self.wind_speed_slider = QSlider(Qt.Horizontal)
+        self.wind_speed_slider.setRange(0, 100)
+        self.wind_speed_spin = QSpinBox()
+        self.wind_speed_spin.setRange(0, 100)
+        self.wind_speed_unit = QLabel("km/h")
+        self.wind_speed_unit.setMinimumWidth(45)
+
+        self.wind_speed_slider.valueChanged.connect(self.wind_speed_spin.setValue)
+        self.wind_speed_spin.valueChanged.connect(self.wind_speed_slider.setValue)
+        self.wind_speed_spin.valueChanged.connect(self._on_wind_speed_changed)
+
+        grid.addWidget(QLabel("Wind Speed"), 3, 0)
+        grid.addWidget(self.wind_speed_slider, 3, 1)
+        grid.addWidget(self.wind_speed_spin, 3, 2)
+        grid.addWidget(self.wind_speed_unit, 3, 3)
+
+        # ---------- Wind Direction (-180..180 deg) ----------
+        self.wind_dir_slider = QSlider(Qt.Horizontal)
+        self.wind_dir_slider.setRange(-180, 180)
+        self.wind_dir_spin = QSpinBox()
+        self.wind_dir_spin.setRange(-180, 180)
+        self.wind_dir_unit = QLabel("deg")
+        self.wind_dir_unit.setMinimumWidth(45)
+
+        self.wind_dir_slider.valueChanged.connect(self.wind_dir_spin.setValue)
+        self.wind_dir_spin.valueChanged.connect(self.wind_dir_slider.setValue)
+        self.wind_dir_spin.valueChanged.connect(self._on_wind_direction_changed)
+
+        grid.addWidget(QLabel("Wind Direction"), 4, 0)
+        grid.addWidget(self.wind_dir_slider, 4, 1)
+        grid.addWidget(self.wind_dir_spin, 4, 2)
+        grid.addWidget(self.wind_dir_unit, 4, 3)
+
+        # ---------- Heading (0..360 deg) ----------
+        self.heading_slider = QSlider(Qt.Horizontal)
+        self.heading_slider.setRange(0, 360)
+        self.heading_spin = QSpinBox()
+        self.heading_spin.setRange(0, 360)
+        self.heading_unit = QLabel("deg")
+        self.heading_unit.setMinimumWidth(45)
+
+        self.heading_slider.valueChanged.connect(self.heading_spin.setValue)
+        self.heading_spin.valueChanged.connect(self.heading_slider.setValue)
+        self.heading_spin.valueChanged.connect(self._on_heading_changed)
+
+        grid.addWidget(QLabel("Heading"), 5, 0)
+        grid.addWidget(self.heading_slider, 5, 1)
+        grid.addWidget(self.heading_spin, 5, 2)
+        grid.addWidget(self.heading_unit, 5, 3)
+
         root.addWidget(box)
         root.addStretch(1)
 
@@ -112,6 +169,9 @@ class ControlPanel(QWidget):
         self.mass_spin.setValue(390)
         self.flaps_slider.setValue(0)
         self._update_flaps_label(0)
+        self.wind_speed_spin.setValue(0)
+        self.wind_dir_spin.setValue(0)
+        self.heading_spin.setValue(0)
 
         # Emit initial snapshot once
         self._initializing = False
@@ -132,6 +192,21 @@ class ControlPanel(QWidget):
         if not self._initializing:
             self._emit_all()
 
+    def _on_wind_speed_changed(self, v: int):
+        self._state["wind_speed"] = int(v)
+        if not self._initializing:
+            self._emit_all()
+
+    def _on_wind_direction_changed(self, v: int):
+        self._state["wind_direction"] = int(v)
+        if not self._initializing:
+            self._emit_all()
+
+    def _on_heading_changed(self, v: int):
+        self._state["heading"] = int(v)
+        if not self._initializing:
+            self._emit_all()
+
     def _on_flaps_index_changed(self, idx: int):
         self._update_flaps_label(idx)
         self._state["flaps"] = int(self._current_flaps_value())
@@ -143,6 +218,9 @@ class ControlPanel(QWidget):
         self.iasChanged.emit(vals["ias"])
         self.massChanged.emit(vals["mass"])
         self.flapsChanged.emit(vals["flaps"])
+        self.windSpeedChanged.emit(vals["wind_speed"])
+        self.windDirectionChanged.emit(vals["wind_direction"])
+        self.headingChanged.emit(vals["heading"])
         self.valuesChanged.emit(vals)
         self._send_all_can_frames(vals)
 
@@ -165,6 +243,21 @@ class ControlPanel(QWidget):
         flaps_data = bytearray(8)
         flaps_data[4] = vals["flaps"] & 0xFF
         send_can_frame(self.sock, 340, flaps_data)
+
+        # ID 333: wind_speed (km/h)
+        wind_speed_data = bytearray(8)
+        struct.pack_into(">f", wind_speed_data, 4, float(vals["wind_speed"] / 3.6))
+        send_can_frame(self.sock, 333, wind_speed_data)
+
+        # ID 334: wind_direction (deg)
+        wind_dir_data = bytearray(8)
+        struct.pack_into(">f", wind_dir_data, 4, float(vals["wind_direction"]))
+        send_can_frame(self.sock, 334, wind_dir_data)
+
+        # ID 321: heading (deg)
+        heading_data = bytearray(8)
+        struct.pack_into(">f", heading_data, 4, float(vals["heading"]))
+        send_can_frame(self.sock, 321, heading_data)
 
     # ---- Flaps helpers ----
     def _current_flaps_value(self) -> int:
@@ -202,13 +295,25 @@ def main():
     def on_flaps_changed(v):
         print(f"Flaps changed: {v} V")
 
+    def on_wind_speed_changed(v):
+        print(f"Wind speed changed: {v} km/h")
+
+    def on_wind_direction_changed(v):
+        print(f"Wind direction changed: {v} deg")
+
+    def on_heading_changed(v):
+        print(f"Heading changed: {v} deg")
+
     # Example callbacks (replace with your logic / Node-RED / MQTT / etc.)
     w.iasChanged.connect(on_ias_changed)
     w.massChanged.connect(on_mass_changed)
     w.flapsChanged.connect(on_flaps_changed)
+    w.windSpeedChanged.connect(on_wind_speed_changed)
+    w.windDirectionChanged.connect(on_wind_direction_changed)
+    w.headingChanged.connect(on_heading_changed)
     w.valuesChanged.connect(lambda d: print(f"ALL: {d}"))
 
-    w.resize(780, 210)
+    w.resize(780, 330)
     w.show()
     sys.exit(app.exec())
 
