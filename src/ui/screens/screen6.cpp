@@ -78,7 +78,7 @@ static void ui_create_gauge()
     lv_scale_set_total_tick_count(s_scale, 37); // every 10 deg (360/10 + 1)
     lv_scale_set_major_tick_every(s_scale, 3);  // major each 30 deg
     lv_scale_set_angle_range(s_scale, 360);
-    lv_scale_set_rotation(s_scale, 270); // 0 deg is UP
+    lv_scale_set_rotation(s_scale, 90); // 0 deg is UP
     lv_scale_set_label_show(s_scale, true);
 
     lv_obj_set_style_text_color(s_scale, lv_color_white(), 0);
@@ -120,6 +120,8 @@ static void ui_create_gauge()
     lv_label_set_text(title, "Wind");
     lv_obj_set_style_text_color(title, lv_color_white(), 0);
     lv_obj_set_style_text_font(title, &lv_font_montserrat_16, 0);
+    lv_obj_set_style_bg_color(title, lv_color_black(), 0);
+    lv_obj_set_style_bg_opa(title, LV_OPA_COVER, 0);
     lv_obj_align(title, LV_ALIGN_BOTTOM_MID, 0, -10);
 
     // Initial position
