@@ -147,9 +147,29 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
     while (rel_dir > 180.0f) rel_dir -= 360.0f;
     while (rel_dir < -180.0f) rel_dir += 360.0f;
 
+    // Smooth rel_dir (Exponential Moving Average)
+    static float s_smoothed_rel_dir = 0.0f;
+    static bool s_first_run = true;
+    if (s_first_run)
+    {
+        s_smoothed_rel_dir = rel_dir;
+        s_first_run = false;
+    }
+    else
+    {
+        float diff = rel_dir - s_smoothed_rel_dir;
+        while (diff > 180.0f) diff -= 360.0f;
+        while (diff < -180.0f) diff += 360.0f;
+        s_smoothed_rel_dir += diff * 0.15f; // Alpha = 0.15 for smoothing
+
+        // Normalize smoothed value
+        while (s_smoothed_rel_dir > 180.0f) s_smoothed_rel_dir -= 360.0f;
+        while (s_smoothed_rel_dir < -180.0f) s_smoothed_rel_dir += 360.0f;
+    }
+
     if (s_scale && s_needle)
     {
-        ui_set_line_needle_value(s_scale, s_needle, NEEDLE_INNER_RADIUS, NEEDLE_OUTER_RADIUS, (int32_t)lroundf(rel_dir));
+        ui_set_line_needle_value(s_scale, s_needle, NEEDLE_INNER_RADIUS, NEEDLE_OUTER_RADIUS, (int32_t)lroundf(s_smoothed_rel_dir));
     }
 
     // Update label slower
