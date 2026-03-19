@@ -1,7 +1,7 @@
 import sys
 import socket
 import struct
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QGroupBox, QGridLayout,
     QLabel, QSlider, QSpinBox
@@ -173,6 +173,12 @@ class ControlPanel(QWidget):
         self.wind_dir_spin.setValue(0)
         self.heading_spin.setValue(0)
 
+        # Timer for re-sending all values every 5 seconds when nothing changes
+        self.resend_timer = QTimer(self)
+        self.resend_timer.setInterval(5000)
+        self.resend_timer.timeout.connect(self._emit_all)
+        self.resend_timer.start()
+
         # Emit initial snapshot once
         self._initializing = False
         self._emit_all()
@@ -214,6 +220,9 @@ class ControlPanel(QWidget):
             self._emit_all()
 
     def _emit_all(self):
+        # Reset timer whenever we emit (on change or timeout)
+        self.resend_timer.start()
+
         vals = self.current_values()
         self.iasChanged.emit(vals["ias"])
         self.massChanged.emit(vals["mass"])
