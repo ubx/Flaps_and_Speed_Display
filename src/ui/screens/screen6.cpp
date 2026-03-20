@@ -18,6 +18,7 @@ static lv_obj_t* s_needle = nullptr;
 static lv_obj_t* s_label = nullptr;
 static lv_obj_t* s_inner_circle = nullptr;
 static StaleOverlayState s_stale_overlay;
+static lv_point_precise_t s_needle_pts[3];
 
 extern const lv_font_t mono_digits_120;
 
@@ -32,12 +33,33 @@ static inline void make_noninteractive(lv_obj_t* o)
 /**
  * Custom needle update that supports an inner radius (gap from center)
  */
-static void ui_set_line_needle_value(lv_obj_t* scale_obj, lv_obj_t* needle_line,
-                                     const int32_t inner_length,
-                                     const int32_t outer_length,
-                                     int32_t value)
+static void needle_draw_event(lv_event_t* e)
 {
-    lv_obj_align(needle_line, LV_ALIGN_TOP_LEFT, 0, 0);
+    lv_obj_t* obj = lv_event_get_target_obj(e);
+    lv_area_t coords;
+    lv_obj_get_coords(obj, &coords);
+
+    lv_draw_triangle_dsc_t tri_dsc;
+    lv_draw_triangle_dsc_init(&tri_dsc);
+
+    tri_dsc.p[0].x = s_needle_pts[0].x + coords.x1;
+    tri_dsc.p[0].y = s_needle_pts[0].y + coords.y1;
+    tri_dsc.p[1].x = s_needle_pts[1].x + coords.x1;
+    tri_dsc.p[1].y = s_needle_pts[1].y + coords.y1;
+    tri_dsc.p[2].x = s_needle_pts[2].x + coords.x1;
+    tri_dsc.p[2].y = s_needle_pts[2].y + coords.y1;
+    tri_dsc.color = lv_palette_main(LV_PALETTE_BLUE);
+    tri_dsc.opa = LV_OPA_COVER;
+
+    lv_draw_triangle(lv_event_get_layer(e), &tri_dsc);
+}
+
+static void ui_set_needle_value(lv_obj_t* scale_obj, lv_obj_t* needle_obj,
+                                const int32_t inner_length,
+                                const int32_t outer_length,
+                                int32_t value)
+{
+    lv_obj_align(needle_obj, LV_ALIGN_TOP_LEFT, 0, 0);
 
     int32_t rotation = lv_scale_get_rotation(scale_obj);
     int32_t angle_range = lv_scale_get_angle_range(scale_obj);
@@ -67,32 +89,26 @@ static void ui_set_line_needle_value(lv_obj_t* scale_obj, lv_obj_t* needle_line,
     int32_t sin_p = lv_trigo_sin(total_angle + 90);
 
     // ===== Points =====
-    static lv_point_precise_t pts[4];
-
     // Tip (pointing to inner ring)
-    pts[0].x = (width / 2) + ((inner_length * cos_a) >> LV_TRIGO_SHIFT);
-    pts[0].y = (height / 2) + ((inner_length * sin_a) >> LV_TRIGO_SHIFT);
+    s_needle_pts[0].x = (width / 2) + ((inner_length * cos_a) >> LV_TRIGO_SHIFT);
+    s_needle_pts[0].y = (height / 2) + ((inner_length * sin_a) >> LV_TRIGO_SHIFT);
 
     // Base - left (at outer ring)
-    pts[1].x = (width / 2)
+    s_needle_pts[1].x = (width / 2)
         + ((outer_length * cos_a) >> LV_TRIGO_SHIFT)
         + (((triangle_base_width / 2) * cos_p) >> LV_TRIGO_SHIFT);
-    pts[1].y = (height / 2)
+    s_needle_pts[1].y = (height / 2)
         + ((outer_length * sin_a) >> LV_TRIGO_SHIFT)
         + (((triangle_base_width / 2) * sin_p) >> LV_TRIGO_SHIFT);
 
     // Base - right (at outer ring)
-    pts[2].x = (width / 2)
+    s_needle_pts[2].x = (width / 2)
         + ((outer_length * cos_a) >> LV_TRIGO_SHIFT)
         - (((triangle_base_width / 2) * cos_p) >> LV_TRIGO_SHIFT);
-    pts[2].y = (height / 2)
+    s_needle_pts[2].y = (height / 2)
         + ((outer_length * sin_a) >> LV_TRIGO_SHIFT)
         - (((triangle_base_width / 2) * sin_p) >> LV_TRIGO_SHIFT);
-
-    // Close shape
-    pts[3] = pts[0];
-
-    lv_line_set_points(needle_line, pts, 4);
+    lv_obj_invalidate(needle_obj);
 }
 
 /* ================= GAUGE ================= */
@@ -119,10 +135,11 @@ static void ui_create_gauge()
     lv_obj_set_style_text_font(s_scale, &lv_font_montserrat_20, 0);
 
     // Needle
-    s_needle = lv_line_create(s_scale);
-    lv_obj_set_style_line_width(s_needle, 8, 0);
-    lv_obj_set_style_line_color(s_needle, lv_color_white(), 0);
-    lv_obj_set_style_line_rounded(s_needle, true, 0);
+    s_needle = lv_obj_create(s_scale);
+    lv_obj_remove_style_all(s_needle);
+    lv_obj_set_size(s_needle, lv_pct(100), lv_pct(100));
+    make_noninteractive(s_needle);
+    lv_obj_add_event_cb(s_needle, needle_draw_event, LV_EVENT_DRAW_MAIN, nullptr);
 
     // Inner circle
     s_inner_circle = lv_obj_create(s_screen);
@@ -159,7 +176,7 @@ static void ui_create_gauge()
     lv_obj_align(title, LV_ALIGN_BOTTOM_MID, 0, -10);
 
     // Initial position
-    ui_set_line_needle_value(s_scale, s_needle, NEEDLE_INNER_RADIUS, NEEDLE_OUTER_RADIUS, 0);
+    ui_set_needle_value(s_scale, s_needle, NEEDLE_INNER_RADIUS, NEEDLE_OUTER_RADIUS, 0);
 
     s_stale_overlay = {};
 }
@@ -203,7 +220,7 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
 
     if (s_scale && s_needle)
     {
-        ui_set_line_needle_value(s_scale, s_needle, NEEDLE_INNER_RADIUS, NEEDLE_OUTER_RADIUS, (int32_t)lroundf(s_smoothed_rel_dir));
+        ui_set_needle_value(s_scale, s_needle, NEEDLE_INNER_RADIUS, NEEDLE_OUTER_RADIUS, (int32_t)lroundf(s_smoothed_rel_dir));
     }
 
     // Update label slower
