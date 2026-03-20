@@ -103,7 +103,7 @@ def emit_sweep(sock, time_gap):
                     print(f"Sent ID {can_id:03X} Data {data.hex().upper()} ({msg_info})")
                 
                 alt += 10.0
-                wind_speed += 1.0
+                wind_speed = (wind_speed + 1.0) % 101
                 wind_direction = (wind_direction + 10.0) % 360
                 if time_gap and time_gap > 0:
                     time.sleep(time_gap)
