@@ -32,8 +32,10 @@ static inline void make_noninteractive(lv_obj_t* o)
 /**
  * Custom needle update that supports an inner radius (gap from center)
  */
-static void ui_set_line_needle_value(lv_obj_t* scale_obj, lv_obj_t* needle_line, const int32_t inner_length,
-                                     const int32_t outer_length, int32_t value)
+static void ui_set_line_needle_value(lv_obj_t* scale_obj, lv_obj_t* needle_line,
+                                     const int32_t inner_length,
+                                     const int32_t outer_length,
+                                     int32_t value)
 {
     lv_obj_align(needle_line, LV_ALIGN_TOP_LEFT, 0, 0);
 
@@ -48,34 +50,49 @@ static void ui_set_line_needle_value(lv_obj_t* scale_obj, lv_obj_t* needle_line,
     if (value > min)
     {
         if (value > max) angle = angle_range;
-        else angle = static_cast<int32_t>((int64_t)angle_range * (value - min) / (max - min));
+        else angle = (int32_t)((int64_t)angle_range * (value - min) / (max - min));
     }
 
     int32_t total_angle = rotation + angle;
 
-    static lv_point_precise_t arrow_points[5];
-    // 0: Outer end
-    arrow_points[0].x = (width / 2) + ((outer_length * lv_trigo_cos(total_angle)) >> LV_TRIGO_SHIFT);
-    arrow_points[0].y = (height / 2) + ((outer_length * lv_trigo_sin(total_angle)) >> LV_TRIGO_SHIFT);
+    // ===== Geometry tuning =====
+    const int32_t triangle_base_width = 24; // Width of the base at outer ring
 
-    // 1: Inner tip
-    arrow_points[1].x = (width / 2) + ((inner_length * lv_trigo_cos(total_angle)) >> LV_TRIGO_SHIFT);
-    arrow_points[1].y = (height / 2) + ((inner_length * lv_trigo_sin(total_angle)) >> LV_TRIGO_SHIFT);
+    // Precompute sin/cos
+    int32_t cos_a = lv_trigo_cos(total_angle);
+    int32_t sin_a = lv_trigo_sin(total_angle);
 
-    // Arrow wings: (inner_length + ARROW_LENGTH) at +/- some angle.
-    // In LVGL, lv_trigo_cos/sin use degrees (0..360) but some versions might use different scales.
-    // Based on the code, they seem to use degrees (total_angle is 90 + angle).
-    // Angle offset of 10 degrees for wings.
-    arrow_points[2].x = (width / 2) + (((inner_length + ARROW_LENGTH) * lv_trigo_cos(total_angle + 10)) >> LV_TRIGO_SHIFT);
-    arrow_points[2].y = (height / 2) + (((inner_length + ARROW_LENGTH) * lv_trigo_sin(total_angle + 10)) >> LV_TRIGO_SHIFT);
+    // Perpendicular vector (for base width)
+    int32_t cos_p = lv_trigo_cos(total_angle + 90);
+    int32_t sin_p = lv_trigo_sin(total_angle + 90);
 
-    arrow_points[3].x = arrow_points[1].x;
-    arrow_points[3].y = arrow_points[1].y;
+    // ===== Points =====
+    static lv_point_precise_t pts[4];
 
-    arrow_points[4].x = (width / 2) + (((inner_length + ARROW_LENGTH) * lv_trigo_cos(total_angle - 10)) >> LV_TRIGO_SHIFT);
-    arrow_points[4].y = (height / 2) + (((inner_length + ARROW_LENGTH) * lv_trigo_sin(total_angle - 10)) >> LV_TRIGO_SHIFT);
+    // Tip (pointing to inner ring)
+    pts[0].x = (width / 2) + ((inner_length * cos_a) >> LV_TRIGO_SHIFT);
+    pts[0].y = (height / 2) + ((inner_length * sin_a) >> LV_TRIGO_SHIFT);
 
-    lv_line_set_points(needle_line, arrow_points, 5);
+    // Base - left (at outer ring)
+    pts[1].x = (width / 2)
+        + ((outer_length * cos_a) >> LV_TRIGO_SHIFT)
+        + (((triangle_base_width / 2) * cos_p) >> LV_TRIGO_SHIFT);
+    pts[1].y = (height / 2)
+        + ((outer_length * sin_a) >> LV_TRIGO_SHIFT)
+        + (((triangle_base_width / 2) * sin_p) >> LV_TRIGO_SHIFT);
+
+    // Base - right (at outer ring)
+    pts[2].x = (width / 2)
+        + ((outer_length * cos_a) >> LV_TRIGO_SHIFT)
+        - (((triangle_base_width / 2) * cos_p) >> LV_TRIGO_SHIFT);
+    pts[2].y = (height / 2)
+        + ((outer_length * sin_a) >> LV_TRIGO_SHIFT)
+        - (((triangle_base_width / 2) * sin_p) >> LV_TRIGO_SHIFT);
+
+    // Close shape
+    pts[3] = pts[0];
+
+    lv_line_set_points(needle_line, pts, 4);
 }
 
 /* ================= GAUGE ================= */
@@ -103,7 +120,7 @@ static void ui_create_gauge()
 
     // Needle
     s_needle = lv_line_create(s_scale);
-    lv_obj_set_style_line_width(s_needle, 12, 0);
+    lv_obj_set_style_line_width(s_needle, 8, 0);
     lv_obj_set_style_line_color(s_needle, lv_color_white(), 0);
     lv_obj_set_style_line_rounded(s_needle, true, 0);
 
