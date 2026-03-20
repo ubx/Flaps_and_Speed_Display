@@ -9,7 +9,6 @@
 
 #define NEEDLE_INNER_RADIUS 100
 #define NEEDLE_OUTER_RADIUS 210
-#define ARROW_LENGTH 20
 
 /* ================= STATE ================= */
 static lv_obj_t* s_screen = nullptr;
@@ -18,6 +17,7 @@ static lv_obj_t* s_needle = nullptr;
 static lv_obj_t* s_label = nullptr;
 static lv_obj_t* s_inner_circle = nullptr;
 static StaleOverlayState s_stale_overlay;
+
 static lv_point_precise_t s_needle_pts[3];
 
 extern const lv_font_t mono_digits_120;
@@ -30,33 +30,61 @@ static inline void make_noninteractive(lv_obj_t* o)
     lv_obj_remove_flag(o, LV_OBJ_FLAG_SCROLLABLE);
 }
 
-/**
- * Custom needle update that supports an inner radius (gap from center)
- */
+/* ================= DRAW NEEDLE ================= */
 static void needle_draw_event(lv_event_t* e)
 {
     lv_obj_t* obj = lv_event_get_target_obj(e);
+    lv_layer_t* layer = lv_event_get_layer(e);
+
     lv_area_t coords;
     lv_obj_get_coords(obj, &coords);
 
-    lv_draw_triangle_dsc_t tri_dsc;
-    lv_draw_triangle_dsc_init(&tri_dsc);
+    lv_point_precise_t p[3];
 
-    tri_dsc.p[0].x = s_needle_pts[0].x + coords.x1;
-    tri_dsc.p[0].y = s_needle_pts[0].y + coords.y1;
-    tri_dsc.p[1].x = s_needle_pts[1].x + coords.x1;
-    tri_dsc.p[1].y = s_needle_pts[1].y + coords.y1;
-    tri_dsc.p[2].x = s_needle_pts[2].x + coords.x1;
-    tri_dsc.p[2].y = s_needle_pts[2].y + coords.y1;
-    tri_dsc.color = lv_palette_main(LV_PALETTE_BLUE);
-    tri_dsc.opa = LV_OPA_COVER;
+    for (int i = 0; i < 3; i++)
+    {
+        p[i].x = s_needle_pts[i].x + coords.x1;
+        p[i].y = s_needle_pts[i].y + coords.y1;
+    }
 
-    lv_draw_triangle(lv_event_get_layer(e), &tri_dsc);
+    /* ===== Fill (main color) ===== */
+    lv_draw_triangle_dsc_t fill_dsc;
+    lv_draw_triangle_dsc_init(&fill_dsc);
+
+    fill_dsc.p[0] = p[0];
+    fill_dsc.p[1] = p[1];
+    fill_dsc.p[2] = p[2];
+
+    fill_dsc.color = lv_color_mix(
+        lv_palette_main(LV_PALETTE_BLUE),
+        lv_color_white(),
+        LV_OPA_20   // subtle highlight → smoother look
+    );
+    fill_dsc.opa = LV_OPA_COVER;
+
+    lv_draw_triangle(layer, &fill_dsc);
+
+    /* ===== Soft outline (anti-alias effect) ===== */
+    lv_draw_line_dsc_t line_dsc;
+    lv_draw_line_dsc_init(&line_dsc);
+
+    line_dsc.color = lv_color_white();
+    line_dsc.width = 2;
+    line_dsc.opa   = LV_OPA_60;
+
+    for (int i = 0; i < 3; i++)
+    {
+        line_dsc.p1 = p[i];
+        line_dsc.p2 = p[(i + 1) % 3];
+        lv_draw_line(layer, &line_dsc);
+    }
 }
 
-static void ui_set_needle_value(lv_obj_t* scale_obj, lv_obj_t* needle_obj,
+/* ================= NEEDLE GEOMETRY ================= */
+static void ui_set_needle_value(lv_obj_t* scale_obj,
+                                lv_obj_t* needle_obj,
                                 const int32_t inner_length,
-                                const int32_t outer_length,
+                                const int32_t /*outer_length*/,
                                 int32_t value)
 {
     lv_obj_align(needle_obj, LV_ALIGN_TOP_LEFT, 0, 0);
@@ -77,37 +105,38 @@ static void ui_set_needle_value(lv_obj_t* scale_obj, lv_obj_t* needle_obj,
 
     int32_t total_angle = rotation + angle;
 
-    // ===== Geometry tuning =====
-    const int32_t triangle_base_width = 24; // Width of the base at outer ring
+    /* ===== Improved geometry ===== */
+    const int32_t head_length = 28;
+    const int32_t head_width  = 14;
 
-    // Precompute sin/cos
     int32_t cos_a = lv_trigo_cos(total_angle);
     int32_t sin_a = lv_trigo_sin(total_angle);
 
-    // Perpendicular vector (for base width)
     int32_t cos_p = lv_trigo_cos(total_angle + 90);
     int32_t sin_p = lv_trigo_sin(total_angle + 90);
 
-    // ===== Points =====
-    // Tip (pointing to inner ring)
+    /* Tip (inner ring) */
     s_needle_pts[0].x = (width / 2) + ((inner_length * cos_a) >> LV_TRIGO_SHIFT);
     s_needle_pts[0].y = (height / 2) + ((inner_length * sin_a) >> LV_TRIGO_SHIFT);
 
-    // Base - left (at outer ring)
+    /* Left */
     s_needle_pts[1].x = (width / 2)
-        + ((outer_length * cos_a) >> LV_TRIGO_SHIFT)
-        + (((triangle_base_width / 2) * cos_p) >> LV_TRIGO_SHIFT);
-    s_needle_pts[1].y = (height / 2)
-        + ((outer_length * sin_a) >> LV_TRIGO_SHIFT)
-        + (((triangle_base_width / 2) * sin_p) >> LV_TRIGO_SHIFT);
+        + (((inner_length + head_length) * cos_a) >> LV_TRIGO_SHIFT)
+        + ((head_width * cos_p) >> LV_TRIGO_SHIFT);
 
-    // Base - right (at outer ring)
+    s_needle_pts[1].y = (height / 2)
+        + (((inner_length + head_length) * sin_a) >> LV_TRIGO_SHIFT)
+        + ((head_width * sin_p) >> LV_TRIGO_SHIFT);
+
+    /* Right */
     s_needle_pts[2].x = (width / 2)
-        + ((outer_length * cos_a) >> LV_TRIGO_SHIFT)
-        - (((triangle_base_width / 2) * cos_p) >> LV_TRIGO_SHIFT);
+        + (((inner_length + head_length) * cos_a) >> LV_TRIGO_SHIFT)
+        - ((head_width * cos_p) >> LV_TRIGO_SHIFT);
+
     s_needle_pts[2].y = (height / 2)
-        + ((outer_length * sin_a) >> LV_TRIGO_SHIFT)
-        - (((triangle_base_width / 2) * sin_p) >> LV_TRIGO_SHIFT);
+        + (((inner_length + head_length) * sin_a) >> LV_TRIGO_SHIFT)
+        - ((head_width * sin_p) >> LV_TRIGO_SHIFT);
+
     lv_obj_invalidate(needle_obj);
 }
 
@@ -118,30 +147,29 @@ static void ui_create_gauge()
     lv_obj_set_style_bg_color(s_screen, lv_color_black(), 0);
     lv_obj_set_style_bg_opa(s_screen, LV_OPA_COVER, 0);
 
-    // Round scale -180..180 deg
     s_scale = lv_scale_create(s_screen);
     lv_obj_set_size(s_scale, 466, 466);
     lv_obj_center(s_scale);
 
     lv_scale_set_mode(s_scale, LV_SCALE_MODE_ROUND_INNER);
     lv_scale_set_range(s_scale, (int32_t)WIND_MIN, (int32_t)WIND_MAX);
-    lv_scale_set_total_tick_count(s_scale, 37); // every 10 deg (360/10 + 1)
-    lv_scale_set_major_tick_every(s_scale, 3);  // major each 30 deg
+    lv_scale_set_total_tick_count(s_scale, 37);
+    lv_scale_set_major_tick_every(s_scale, 3);
     lv_scale_set_angle_range(s_scale, 360);
-    lv_scale_set_rotation(s_scale, 90); // 0 deg is UP
+    lv_scale_set_rotation(s_scale, 90);
     lv_scale_set_label_show(s_scale, true);
 
     lv_obj_set_style_text_color(s_scale, lv_color_white(), 0);
     lv_obj_set_style_text_font(s_scale, &lv_font_montserrat_20, 0);
 
-    // Needle
+    /* Needle object */
     s_needle = lv_obj_create(s_scale);
     lv_obj_remove_style_all(s_needle);
     lv_obj_set_size(s_needle, lv_pct(100), lv_pct(100));
     make_noninteractive(s_needle);
     lv_obj_add_event_cb(s_needle, needle_draw_event, LV_EVENT_DRAW_MAIN, nullptr);
 
-    // Inner circle
+    /* Inner circle */
     s_inner_circle = lv_obj_create(s_screen);
     lv_obj_set_size(s_inner_circle, NEEDLE_INNER_RADIUS * 2, NEEDLE_INNER_RADIUS * 2);
     lv_obj_center(s_inner_circle);
@@ -151,14 +179,14 @@ static void ui_create_gauge()
     lv_obj_set_style_border_width(s_inner_circle, 4, 0);
     make_noninteractive(s_inner_circle);
 
-    // Center value (Wind Speed)
+    /* Label */
     s_label = lv_label_create(s_screen);
     lv_obj_set_style_text_color(s_label, lv_color_white(), 0);
     lv_obj_set_style_text_font(s_label, &mono_digits_120, 0);
     lv_label_set_text(s_label, "--");
     lv_obj_center(s_label);
 
-    // Unit
+    /* Unit */
     lv_obj_t* unit = lv_label_create(s_screen);
     lv_obj_set_style_text_color(unit, lv_color_white(), 0);
     lv_obj_set_style_text_font(unit, &lv_font_montserrat_16, 0);
@@ -175,14 +203,16 @@ static void ui_create_gauge()
     lv_obj_set_style_bg_opa(title, LV_OPA_COVER, 0);
     lv_obj_align(title, LV_ALIGN_BOTTOM_MID, 0, -10);
 
-    // Initial position
-    ui_set_needle_value(s_scale, s_needle, NEEDLE_INNER_RADIUS, NEEDLE_OUTER_RADIUS, 0);
+    ui_set_needle_value(s_scale, s_needle,
+                        NEEDLE_INNER_RADIUS,
+                        NEEDLE_OUTER_RADIUS,
+                        0);
 
     s_stale_overlay = {};
 }
 
 /* ================= TIMER ================= */
-static void ui_update_timer_cb(lv_timer_t* /*t*/)
+static void ui_update_timer_cb(lv_timer_t*)
 {
     if (lv_screen_active() != s_screen) return;
 
@@ -193,14 +223,13 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
     float wind_dir = get_wind_direction();
     float heading = get_heading();
 
-    // Relative direction
     float rel_dir = wind_dir - heading + 180.0f;
     while (rel_dir > 180.0f) rel_dir -= 360.0f;
     while (rel_dir < -180.0f) rel_dir += 360.0f;
 
-    // Smooth rel_dir (Exponential Moving Average)
     static float s_smoothed_rel_dir = 0.0f;
     static bool s_first_run = true;
+
     if (s_first_run)
     {
         s_smoothed_rel_dir = rel_dir;
@@ -211,32 +240,27 @@ static void ui_update_timer_cb(lv_timer_t* /*t*/)
         float diff = rel_dir - s_smoothed_rel_dir;
         while (diff > 180.0f) diff -= 360.0f;
         while (diff < -180.0f) diff += 360.0f;
-        s_smoothed_rel_dir += diff * 0.15f; // Alpha = 0.15 for smoothing
 
-        // Normalize smoothed value
+        s_smoothed_rel_dir += diff * 0.15f;
+
         while (s_smoothed_rel_dir > 180.0f) s_smoothed_rel_dir -= 360.0f;
         while (s_smoothed_rel_dir < -180.0f) s_smoothed_rel_dir += 360.0f;
     }
 
-    if (s_scale && s_needle)
-    {
-        ui_set_needle_value(s_scale, s_needle, NEEDLE_INNER_RADIUS, NEEDLE_OUTER_RADIUS, (int32_t)lroundf(s_smoothed_rel_dir));
-    }
+    ui_set_needle_value(s_scale, s_needle,
+                        NEEDLE_INNER_RADIUS,
+                        NEEDLE_OUTER_RADIUS,
+                        (int32_t)lroundf(s_smoothed_rel_dir));
 
-    // Update label slower
     static uint8_t div = 0;
-    div++;
-    if (div >= 5)
+    if (++div >= 5)
     {
         div = 0;
-        if (s_label)
-        {
-            lv_label_set_text_fmt(s_label, "%d", (int)lroundf(wind_speed));
-        }
+        lv_label_set_text_fmt(s_label, "%d", (int)lroundf(wind_speed));
     }
 }
 
-/* ================= PUBLIC API ================= */
+/* ================= PUBLIC ================= */
 void screen6_create()
 {
     ui_create_gauge();
