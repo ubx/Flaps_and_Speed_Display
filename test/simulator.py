@@ -88,7 +88,7 @@ def emit_sweep(sock, time_gap):
                     ),
                     (
                         WIND_SPEED_CAN_ID,
-                        build_wind_speed_frame(wind_speed),
+                        build_wind_speed_frame(wind_speed / 3.6),
                         f"wind_speed: {wind_speed:.0f} km/h",
                     ),
                     (
