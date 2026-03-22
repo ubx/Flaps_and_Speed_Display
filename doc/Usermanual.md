@@ -11,6 +11,7 @@ The **Flaps & Speed Display** is a touchscreen flight display for the ESP32-S3 A
 - current flap setting
 - recommended flap setting
 - flight altitude
+- wind information (speed and relative direction)
 - display brightness settings
 
 The display is controlled entirely by touch gestures and on-screen buttons.
@@ -27,9 +28,9 @@ It then switches to the normal operating screens.
 
 ## Touch Navigation
 
-The display has five screens. Navigation is done with swipe gestures:
+The display has six screens. Navigation is done with swipe gestures:
 
-- **Swipe up or down**: switch between the three main flying screens (Speed, Flaps, Altitude)
+- **Swipe up or down**: cycle between the four main flying screens (Speed, Flaps, Altitude, Wind)
 - **Swipe right**: open the settings/detail screens
 - **Swipe right again**: switch between the two settings/detail screens
 - **Swipe left**: return from the settings/detail screens to the main flying screen
@@ -80,11 +81,22 @@ This lowspeed setting is intended for takeoff and landing and is handled separat
 This screen displays the current flight altitude.
 
 - The large number in the center is the **altitude** in **meters**
-- The moving tape on the left provides a visual representation of altitude changes
-- The tape has major markings every **100 meters** and minor markings every **20 meters**
-- The current altitude is also shown as a digital value on the tape for better readability
+- The moving tape in the center provides a visual representation of altitude changes
+- The tape has major markings every **100 meters** and minor markings every **10 meters**
+- The current altitude is also shown as a digital value in the center box for better readability
 
-### 4. Settings / Brightness Screen
+### 4. Wind Screen
+
+![Wind screen](./wind_round.png)
+
+This screen displays the current wind information relative to the aircraft's heading.
+
+- The large number in the center is the **wind speed** in **km/h**
+- The blue arrow on the circular scale shows the **relative wind direction**
+- The scale range is **-180° to +180°** (0° is straight ahead)
+- The arrow points in the direction the wind is coming from relative to the nose of the aircraft
+
+### 5. Settings / Brightness Screen
 
 ![Brightness screen](./Brightness_round.png)
 
@@ -98,18 +110,23 @@ Brightness changes in **10% steps**.
 - minimum brightness: **30%**
 - maximum brightness: **100%**
 
-### 5. Live Params Screen
+### 6. Live Params Screen
 
 ![Live parameters screen](./Life_Params_round.png)
 
-This screen shows the values used internally for flap guidance.
+This screen shows the values used internally for flap guidance and navigation.
 
 - **IAS**: indicated airspeed in km/h
 - **Weight**: current flying weight used for the flap calculation
 - **Flap Actual**: current detected flap symbol and index
 - **Flap Target**: recommended flap symbol and index
+- **Alt**: current altitude in meters
+- **HDG**: current heading in degrees
+- **Wind**: wind speed and absolute direction
+- **GS**: ground speed in km/h
+- **TRK**: GPS true track in degrees
 
-This is the best screen for troubleshooting or checking why a flap recommendation is being made.
+This is the best screen for troubleshooting or checking why a flap recommendation or wind calculation is being made.
 
 ## How Flap Guidance Works
 
@@ -137,8 +154,9 @@ This indicates that the shown IAS/flap information should no longer be trusted u
 3. Use the **Speed** screen for normal IAS monitoring.
 4. Swipe to the **Flaps** screen when flap guidance is needed.
 5. Swipe to the **Altitude** screen for height monitoring.
-6. Open **Live Params** if you want to verify actual/target flap values.
-7. Open **Settings** to adjust brightness for cockpit conditions.
+6. Swipe to the **Wind** screen to check wind conditions.
+7. Open **Live Params** if you want to verify internal values.
+8. Open **Settings** to adjust brightness for cockpit conditions.
 
 ## Notes
 
