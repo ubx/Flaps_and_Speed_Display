@@ -1,7 +1,7 @@
 # Flaps & Speed Display User Manual
 
 **Document version:** 1.0  
-**Date:** 10.03.2026
+**Date:** 22.03.2026
 
 ## Purpose
 
@@ -37,22 +37,8 @@ The display has six screens. Navigation is done with swipe gestures:
 
 ## Screen Overview
 
-### 1. Speed Screen
-
-![Speed screen](./Speed_round.png)
-
-This is the primary airspeed display.
-
-- The large number in the center is the **indicated airspeed** in **km/h**
-- The white pointer shows the same IAS on the circular scale
-- The scale range is **40 to 280 km/h**
-- The pointer movement is intentionally damped for stable, instrument-like motion
-
-Use this screen when you want the clearest possible IAS indication.
-
-### 2. Flaps Screen
-
-![Flaps screen](./flaps_round.png)
+### 1. Flaps Screen
+<img src="./flaps_round.png"  style="width:40%;">
 
 This screen combines airspeed with flap guidance.
 
@@ -74,9 +60,20 @@ The current configuration also defines a special **lowspeed** setting in [`spiff
 
 This lowspeed setting is intended for takeoff and landing and is handled separately from the normal flap speed bands.
 
-### 3. Altitude Screen
+### 2. Speed Screen
+<img src="./Speed_round.png"  style="width:40%;">
 
-![Altitude screen](./Altitude_round.png)
+This is the airspeed display.
+
+- The large number in the center is the **indicated airspeed** in **km/h**
+- The white pointer shows the same IAS on the circular scale
+- The scale range is **40 to 280 km/h**
+- The pointer movement is intentionally damped for stable, instrument-like motion
+
+Use this screen when you want the clearest possible IAS indication.
+
+### 3. Altitude Screen
+<img src="./Altitude_round.png"  style="width:40%;">
 
 This screen displays the current flight altitude.
 
@@ -86,8 +83,7 @@ This screen displays the current flight altitude.
 - The current altitude is also shown as a digital value in the center box for better readability
 
 ### 4. Wind Screen
-
-![Wind screen](./wind_round.png)
+<img src="./wind_round.png"  style="width:40%;">
 
 This screen displays the current wind information relative to the aircraft's heading.
 
@@ -96,23 +92,9 @@ This screen displays the current wind information relative to the aircraft's hea
 - The scale range is **-180° to +180°** (0° is straight ahead)
 - The arrow points in the direction the wind is coming from relative to the nose of the aircraft
 
-### 5. Settings / Brightness Screen
 
-![Brightness screen](./Brightness_round.png)
-
-This screen is used to adjust the display brightness.
-
-- Press `+` to increase brightness
-- Press `-` to decrease brightness
-
-Brightness changes in **10% steps**.
-
-- minimum brightness: **30%**
-- maximum brightness: **100%**
-
-### 6. Live Params Screen
-
-![Live parameters screen](./Life_Params_round.png)
+### 5. Live Params Screen
+<img src="./Life_Params_round.png"  style="width:40%;">
 
 This screen shows the values used internally for flap guidance and navigation.
 
@@ -128,6 +110,18 @@ This screen shows the values used internally for flap guidance and navigation.
 
 This is the best screen for troubleshooting or checking why a flap recommendation or wind calculation is being made.
 
+### 6. Settings / Brightness Screen
+<img src="./Brightness_round.png"  style="width:40%;">
+
+This screen is used to adjust the display brightness.
+
+- Press `+` to increase brightness
+- Press `-` to decrease brightness
+
+Brightness changes in **10% steps**.
+
+- minimum brightness: **30%**
+- maximum brightness: **100%**
 ## How Flap Guidance Works
 
 The unit compares:
@@ -141,7 +135,7 @@ The unit compares:
 
 If no relevant live data is received for **10 seconds**, the display marks the active flying screen as stale.
 
-![Stale indication on flaps screen](./Flaps-Stale_round.png)
+<img src="./Flaps-Stale_round.png"  style="width:40%;">
 
 The stale condition is shown by a large **red X** across the active screen.
 
@@ -164,4 +158,4 @@ This indicates that the shown IAS/flap information should no longer be trusted u
 - Flap recommendations depend on the flap polar stored in the JSON configuration
 - If flap input data does not match a known position, the flap indication may show no valid symbol
 - The current `flapDescriptor` and the guidance described in this manual are based on the Ventus 3 reference shown below
-- ![Ventus 3 reference](./Ventus3-OptSpeed.png)
+- <img src="./Ventus3-OptSpeed.png" style="width:80%;">
