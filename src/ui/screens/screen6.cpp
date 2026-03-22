@@ -87,7 +87,8 @@ static void ui_set_needle_value(lv_obj_t* scale_obj,
                                 lv_obj_t* needle_obj,
                                 const int32_t inner_length,
                                 const int32_t outer_length,
-                                int32_t value)
+                                int32_t value,
+                                float wind_speed)
 {
     lv_obj_align(needle_obj, LV_ALIGN_TOP_LEFT, 0, 0);
 
@@ -107,10 +108,16 @@ static void ui_set_needle_value(lv_obj_t* scale_obj,
 
     int32_t total_angle = rotation + angle;
 
-    /* ===== Improved arrow geometry ===== */
-    const int32_t head_length = 50;
-    const int32_t head_width  = 30;
-    const int32_t indent_len  = 15;
+    /* ===== Improved arrow geometry, scaled by wind speed ===== */
+    // Base dimensions for a wind speed of 20 km/h (approx)
+    // We'll scale from 0.4x (at 0 km/h) to 2.5x (at 100 km/h)
+    float scale = 0.4f + (wind_speed / 40.0f); // 20 km/h is 0.9x, 40 km/h is 1.4x, etc.
+    if (scale < 0.4f) scale = 0.4f;
+    if (scale > 2.5f) scale = 2.5f;
+
+    const int32_t head_length = (int32_t)(50.0f * scale);
+    const int32_t head_width  = (int32_t)(30.0f * scale);
+    const int32_t indent_len  = (int32_t)(15.0f * scale);
 
     int32_t cos_a = lv_trigo_cos(total_angle);
     int32_t sin_a = lv_trigo_sin(total_angle);
@@ -216,7 +223,8 @@ static void ui_create_gauge()
     ui_set_needle_value(s_scale, s_needle,
                         NEEDLE_INNER_RADIUS,
                         NEEDLE_OUTER_RADIUS,
-                        0);
+                        0,
+                        0.0f);
 
     s_stale_overlay = {};
 }
@@ -260,7 +268,8 @@ static void ui_update_timer_cb(lv_timer_t*)
     ui_set_needle_value(s_scale, s_needle,
                         NEEDLE_INNER_RADIUS,
                         NEEDLE_OUTER_RADIUS,
-                        (int32_t)lroundf(s_smoothed_rel_dir));
+                        (int32_t)lroundf(s_smoothed_rel_dir),
+                        wind_speed);
 
     static uint8_t div = 0;
     if (++div >= 5)
