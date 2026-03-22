@@ -10,6 +10,8 @@ CAN_FRAME_FMT = "=IB3x8s"
 
 IAS_CAN_ID = 315
 ALT_CAN_ID = 322
+WIND_SPEED_CAN_ID = 333
+WIND_DIRECTION_CAN_ID = 334
 FLAPS_CAN_ID = 340
 DRY_AND_BALLAST_MASS_CAN_ID = 1515
 
@@ -40,6 +42,14 @@ def build_alt_frame(alt_m):
     return b"\x00\x00\x00\x00" + struct.pack(">f", alt_m)
 
 
+def build_wind_speed_frame(wind_speed_kmh):
+    return b"\x00\x00\x00\x00" + struct.pack(">f", wind_speed_kmh)
+
+
+def build_wind_direction_frame(wind_dir):
+    return b"\x00\x00\x00\x00" + struct.pack(">f", wind_dir)
+
+
 def build_flaps_frame(flaps):
     return bytes([0, 0, 0, 0, flaps])
 
@@ -50,6 +60,8 @@ def build_dry_and_ballast_mass_frame(mass):
 
 def emit_sweep(sock, time_gap):
     alt = 0.0
+    wind_speed = 0.0
+    wind_direction = 0.0
     for dry_and_ballast_mass in range(3800, 6001, 200):
         for flaps in FLAPS_VALUES:
             for ias in range(10, 281, 10):
@@ -74,6 +86,16 @@ def emit_sweep(sock, time_gap):
                         build_alt_frame(alt),
                         f"alt: {alt:.0f} m",
                     ),
+                    (
+                        WIND_SPEED_CAN_ID,
+                        build_wind_speed_frame(wind_speed / 3.6),
+                        f"wind_speed: {wind_speed:.0f} km/h",
+                    ),
+                    (
+                        WIND_DIRECTION_CAN_ID,
+                        build_wind_direction_frame(wind_direction),
+                        f"wind_direction: {wind_direction:.0f}°",
+                    ),
                 ]
 
                 for can_id, data, msg_info in messages:
@@ -81,6 +103,8 @@ def emit_sweep(sock, time_gap):
                     print(f"Sent ID {can_id:03X} Data {data.hex().upper()} ({msg_info})")
                 
                 alt += 10.0
+                wind_speed = (wind_speed + 1.0) % 101
+                wind_direction = (wind_direction + 10.0) % 360
                 if time_gap and time_gap > 0:
                     time.sleep(time_gap)
 

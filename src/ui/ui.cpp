@@ -5,6 +5,7 @@
 #include "screens/screen3.hpp"
 #include "screens/screen4.hpp"
 #include "screens/screen5.hpp"
+#include "screens/screen6.hpp"
 #include "../platform/ui_platform.hpp"
 
 #ifdef NATIVE_SIMULATOR
@@ -82,6 +83,7 @@ void ui_init()
         screen3_create();
         screen4_create();
         screen5_create();
+        screen6_create();
 
         /* Gestures:
            - UP/DOWN: cycle between screen1 <-> screen2
@@ -101,6 +103,8 @@ void ui_init()
                 } else if (lv_screen_active() == screen2_get()) {
                     lv_screen_load_anim(screen5_get(), LV_SCR_LOAD_ANIM_MOVE_BOTTOM, kLoadAnimDurationMs, kLoadAnimDelayMs, false);
                 } else if (lv_screen_active() == screen5_get()) {
+                    lv_screen_load_anim(screen6_get(), LV_SCR_LOAD_ANIM_MOVE_BOTTOM, kLoadAnimDurationMs, kLoadAnimDelayMs, false);
+                } else if (lv_screen_active() == screen6_get()) {
                     lv_screen_load_anim(screen1_get(), LV_SCR_LOAD_ANIM_MOVE_BOTTOM, kLoadAnimDurationMs, kLoadAnimDelayMs, false);
                 } else {
                     /* If currently on screen3 or screen4, ignore up/down or go back to screen1 */
@@ -109,6 +113,8 @@ void ui_init()
             }
             else if (dir == LV_DIR_TOP) {
                 if (lv_screen_active() == screen1_get()) {
+                    lv_screen_load_anim(screen6_get(), LV_SCR_LOAD_ANIM_MOVE_TOP, kLoadAnimDurationMs, kLoadAnimDelayMs, false);
+                } else if (lv_screen_active() == screen6_get()) {
                     lv_screen_load_anim(screen5_get(), LV_SCR_LOAD_ANIM_MOVE_TOP, kLoadAnimDurationMs, kLoadAnimDelayMs, false);
                 } else if (lv_screen_active() == screen5_get()) {
                     lv_screen_load_anim(screen2_get(), LV_SCR_LOAD_ANIM_MOVE_TOP, kLoadAnimDurationMs, kLoadAnimDelayMs, false);
@@ -142,6 +148,7 @@ void ui_init()
         lv_obj_add_event_cb(screen3_get(), gesture_cb, LV_EVENT_GESTURE, nullptr);
         lv_obj_add_event_cb(screen4_get(), gesture_cb, LV_EVENT_GESTURE, nullptr);
         lv_obj_add_event_cb(screen5_get(), gesture_cb, LV_EVENT_GESTURE, nullptr);
+        lv_obj_add_event_cb(screen6_get(), gesture_cb, LV_EVENT_GESTURE, nullptr);
 
         // After some delay, we'll switch to screen2.
         // But for now, just stay on the current screen where s_label1/2 was created.
