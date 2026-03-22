@@ -18,7 +18,7 @@ static lv_obj_t* s_label = nullptr;
 static lv_obj_t* s_inner_circle = nullptr;
 static StaleOverlayState s_stale_overlay;
 
-static lv_point_precise_t s_needle_pts[3];
+static lv_point_precise_t s_needle_pts[4];
 
 extern const lv_font_t mono_digits_120;
 
@@ -39,9 +39,9 @@ static void needle_draw_event(lv_event_t* e)
     lv_area_t coords;
     lv_obj_get_coords(obj, &coords);
 
-    lv_point_precise_t p[3];
+    lv_point_precise_t p[4];
 
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 4; i++)
     {
         p[i].x = s_needle_pts[i].x + coords.x1;
         p[i].y = s_needle_pts[i].y + coords.y1;
@@ -51,17 +51,19 @@ static void needle_draw_event(lv_event_t* e)
     lv_draw_triangle_dsc_t fill_dsc;
     lv_draw_triangle_dsc_init(&fill_dsc);
 
+    fill_dsc.color = lv_palette_main(LV_PALETTE_BLUE);
+    fill_dsc.opa = LV_OPA_COVER;
+
+    // First triangle: tip, corner1, base_center
     fill_dsc.p[0] = p[0];
     fill_dsc.p[1] = p[1];
     fill_dsc.p[2] = p[2];
+    lv_draw_triangle(layer, &fill_dsc);
 
-    fill_dsc.color = lv_color_mix(
-        lv_palette_main(LV_PALETTE_BLUE),
-        lv_color_white(),
-        LV_OPA_20   // subtle highlight → smoother look
-    );
-    fill_dsc.opa = LV_OPA_COVER;
-
+    // Second triangle: tip, base_center, corner2
+    fill_dsc.p[0] = p[0];
+    fill_dsc.p[1] = p[2];
+    fill_dsc.p[2] = p[3];
     lv_draw_triangle(layer, &fill_dsc);
 
     /* ===== Soft outline (anti-alias effect) ===== */
@@ -72,10 +74,10 @@ static void needle_draw_event(lv_event_t* e)
     line_dsc.width = 2;
     line_dsc.opa   = LV_OPA_60;
 
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 4; i++)
     {
         line_dsc.p1 = p[i];
-        line_dsc.p2 = p[(i + 1) % 3];
+        line_dsc.p2 = p[(i + 1) % 4];
         lv_draw_line(layer, &line_dsc);
     }
 }
@@ -84,7 +86,7 @@ static void needle_draw_event(lv_event_t* e)
 static void ui_set_needle_value(lv_obj_t* scale_obj,
                                 lv_obj_t* needle_obj,
                                 const int32_t inner_length,
-                                const int32_t /*outer_length*/,
+                                const int32_t outer_length,
                                 int32_t value)
 {
     lv_obj_align(needle_obj, LV_ALIGN_TOP_LEFT, 0, 0);
@@ -105,9 +107,10 @@ static void ui_set_needle_value(lv_obj_t* scale_obj,
 
     int32_t total_angle = rotation + angle;
 
-    /* ===== Improved geometry ===== */
-    const int32_t head_length = 28;
-    const int32_t head_width  = 14;
+    /* ===== Improved arrow geometry ===== */
+    const int32_t head_length = 50;
+    const int32_t head_width  = 30;
+    const int32_t indent_len  = 15;
 
     int32_t cos_a = lv_trigo_cos(total_angle);
     int32_t sin_a = lv_trigo_sin(total_angle);
@@ -115,11 +118,11 @@ static void ui_set_needle_value(lv_obj_t* scale_obj,
     int32_t cos_p = lv_trigo_cos(total_angle + 90);
     int32_t sin_p = lv_trigo_sin(total_angle + 90);
 
-    /* Tip (inner ring) */
+    /* Point 0: Tip (inner ring) */
     s_needle_pts[0].x = (width / 2) + ((inner_length * cos_a) >> LV_TRIGO_SHIFT);
     s_needle_pts[0].y = (height / 2) + ((inner_length * sin_a) >> LV_TRIGO_SHIFT);
 
-    /* Left */
+    /* Point 1: Corner Left (base) */
     s_needle_pts[1].x = (width / 2)
         + (((inner_length + head_length) * cos_a) >> LV_TRIGO_SHIFT)
         + ((head_width * cos_p) >> LV_TRIGO_SHIFT);
@@ -128,12 +131,19 @@ static void ui_set_needle_value(lv_obj_t* scale_obj,
         + (((inner_length + head_length) * sin_a) >> LV_TRIGO_SHIFT)
         + ((head_width * sin_p) >> LV_TRIGO_SHIFT);
 
-    /* Right */
+    /* Point 2: Indented base center */
     s_needle_pts[2].x = (width / 2)
+        + (((inner_length + head_length - indent_len) * cos_a) >> LV_TRIGO_SHIFT);
+
+    s_needle_pts[2].y = (height / 2)
+        + (((inner_length + head_length - indent_len) * sin_a) >> LV_TRIGO_SHIFT);
+
+    /* Point 3: Corner Right (base) */
+    s_needle_pts[3].x = (width / 2)
         + (((inner_length + head_length) * cos_a) >> LV_TRIGO_SHIFT)
         - ((head_width * cos_p) >> LV_TRIGO_SHIFT);
 
-    s_needle_pts[2].y = (height / 2)
+    s_needle_pts[3].y = (height / 2)
         + (((inner_length + head_length) * sin_a) >> LV_TRIGO_SHIFT)
         - ((head_width * sin_p) >> LV_TRIGO_SHIFT);
 
