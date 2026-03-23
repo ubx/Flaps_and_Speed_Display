@@ -38,7 +38,7 @@ The display has six screens. Navigation is done with swipe gestures:
 ## Screen Overview
 
 ### 1. Flaps Screen
-<img src="./flaps_round.png"  style="width:40%;">
+<img src="./flaps_round.png"  style="width:50%;">
 
 This screen combines airspeed with flap guidance.
 
@@ -61,7 +61,7 @@ The current configuration also defines a special **lowspeed** setting in [`spiff
 This lowspeed setting is intended for takeoff and landing and is handled separately from the normal flap speed bands.
 
 ### 2. Speed Screen
-<img src="./Speed_round.png"  style="width:40%;">
+<img src="./Speed_round.png"  style="width:50%;">
 
 This is the airspeed display.
 
@@ -73,7 +73,7 @@ This is the airspeed display.
 Use this screen when you want the clearest possible IAS indication.
 
 ### 3. Altitude Screen
-<img src="./Altitude_round.png"  style="width:40%;">
+<img src="./Altitude_round.png"  style="width:50%;">
 
 This screen displays the current flight altitude.
 
@@ -83,7 +83,7 @@ This screen displays the current flight altitude.
 - The current altitude is also shown as a digital value in the center box for better readability
 
 ### 4. Wind Screen
-<img src="./wind_round.png"  style="width:40%;">
+<img src="./wind_round.png"  style="width:50%;">
 
 This screen displays the current wind information relative to the aircraft's heading.
 
@@ -94,7 +94,7 @@ This screen displays the current wind information relative to the aircraft's hea
 
 
 ### 5. Live Params Screen
-<img src="./Life_Params_round.png"  style="width:40%;">
+<img src="./Life_Params_round.png"  style="width:50%;">
 
 This screen shows the values used internally for flap guidance and navigation.
 
@@ -111,7 +111,7 @@ This screen shows the values used internally for flap guidance and navigation.
 This is the best screen for troubleshooting or checking why a flap recommendation or wind calculation is being made.
 
 ### 6. Settings / Brightness Screen
-<img src="./Brightness_round.png"  style="width:40%;">
+<img src="./Brightness_round.png"  style="width:50%;">
 
 This screen is used to adjust the display brightness.
 
@@ -135,7 +135,7 @@ The unit compares:
 
 If no relevant live data is received for **10 seconds**, the display marks the active flying screen as stale.
 
-<img src="./Flaps-Stale_round.png"  style="width:40%;">
+<img src="./Flaps-Stale_round.png"  style="width:50%;">
 
 The stale condition is shown by a large **red X** across the active screen.
 
