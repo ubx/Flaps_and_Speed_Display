@@ -17,6 +17,7 @@
 static lv_obj_t* s_label1 = nullptr;
 static lv_obj_t* s_label2 = nullptr;
 static lv_obj_t* s_label3 = nullptr;
+static lv_obj_t* s_label4 = nullptr;
 
 void set_label1(const char* text)
 {
@@ -41,6 +42,15 @@ void set_label3(const char* text)
     if (ui_platform_lock(-1))
     {
         if (s_label3) lv_label_set_text(s_label3, text);
+        ui_platform_unlock();
+    }
+}
+
+void set_label4(const char* text)
+{
+    if (ui_platform_lock(-1))
+    {
+        if (s_label4) lv_label_set_text(s_label4, text);
         ui_platform_unlock();
     }
 }
@@ -77,6 +87,12 @@ void ui_init()
         lv_obj_set_style_text_font(s_label3, &lv_font_montserrat_16, 0);
         lv_obj_align(s_label3, LV_ALIGN_CENTER, 0, 40);
         lv_label_set_text(s_label3, "");
+
+        s_label4 = lv_label_create(act_scr);
+        lv_obj_set_style_text_color(s_label4, lv_color_white(), 0);
+        lv_obj_set_style_text_font(s_label4, &lv_font_montserrat_16, 0);
+        lv_obj_align(s_label4, LV_ALIGN_CENTER, 0, 70);
+        lv_label_set_text(s_label4, "");
 
         screen1_create();
         screen2_create();

@@ -209,7 +209,10 @@ extern "C" void app_main(void)
         ui_init();
         set_label1(APP_NAME);
         set_label2("Version: " APP_VERSION);
-        set_label3("Git Rev: " GIT_REVISION);
+        char lvgl_ver[32];
+        std::snprintf(lvgl_ver, sizeof(lvgl_ver), "LVGL v%d.%d.%d", LVGL_VERSION_MAJOR, LVGL_VERSION_MINOR, LVGL_VERSION_PATCH);
+        set_label3(lvgl_ver);
+        set_label4("Git Rev: " GIT_REVISION);
         vTaskDelay(pdMS_TO_TICKS(5000));
 
         if (bsp_display_lock(-1) == ESP_OK)
@@ -385,7 +388,10 @@ int main(int argc, char** argv)
     ui_init();
     set_label1(APP_NAME);
     set_label2("Version: " APP_VERSION);
-    set_label3("Git Rev: " GIT_REVISION);
+    char lvgl_ver[32];
+    std::snprintf(lvgl_ver, sizeof(lvgl_ver), "LVGL v%d.%d.%d", LVGL_VERSION_MAJOR, LVGL_VERSION_MINOR, LVGL_VERSION_PATCH);
+    set_label3(lvgl_ver);
+    set_label4("Git Rev: " GIT_REVISION);
 
     if (cfg.splash_ms > 0) pump_ui_for(std::chrono::milliseconds(cfg.splash_ms));
     load_screen(cfg.start_screen, LV_SCR_LOAD_ANIM_FADE_ON);
