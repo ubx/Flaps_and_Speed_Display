@@ -100,7 +100,7 @@ dependencies:
       type: service
     version: 1.2.1
   espressif/esp_lv_decoder:
-    component_hash: 864a3aee87eab3e2ff4ee69527050c543570cd92bd156b2c32009d9231414a63
+    component_hash: 992e26273dd680cc6b82fe031232e046d9e31a448335c950af7782152033d7fa
     dependencies:
     - name: espressif/esp_new_jpeg
       registry_url: https://components.espressif.com
@@ -129,7 +129,7 @@ dependencies:
     - esp32c3
     - esp32c5
     - esp32c6
-    version: 0.3.4
+    version: 0.3.5
   espressif/esp_lv_fs:
     component_hash: 66896007884b817df34c964f9a114fff538ee2674e99fee7159162498b93f94b
     dependencies:
@@ -283,6 +283,6 @@ direct_dependencies:
 - lvgl/lvgl
 - waveshare/esp32_s3_touch_amoled_1_75
 - waveshare/esp_lcd_touch_cst9217
-manifest_hash: 6b258c0ee42836de1c81fb6be1edb4463d57dd733a56c36d80d33933bc6b4754
+manifest_hash: 101b810f35d7e31cdc364ff0e2dcde8fac20ec59150a6e0eeece0cfec9959aa6
 target: esp32s3
 version: 2.0.0
