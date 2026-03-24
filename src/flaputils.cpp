@@ -24,6 +24,7 @@ namespace flaputils
     static std::vector<int> kWeights;
     static float kEmptyMassKg = 0.0f;
     static std::string kLowSpeedWk;
+    static std::string kCurrentPolar;
 
     struct Range
     {
@@ -97,6 +98,18 @@ namespace flaputils
         kBereiche.clear();
         kLowSpeedWk.clear();
         kLowSpeedRange = {-1.0f, -1.0f};
+
+        // Extract filename from path
+        std::string path(filepath);
+        size_t last_slash = path.find_last_of("/\\");
+        if (last_slash != std::string::npos)
+        {
+            kCurrentPolar = path.substr(last_slash + 1);
+        }
+        else
+        {
+            kCurrentPolar = path;
+        }
 
         // 1. flap2symbol
         if (const cJSON* f2s = cJSON_GetObjectItem(root, "flap2symbol"))
@@ -359,5 +372,10 @@ namespace flaputils
     {
         if (index < 0 || static_cast<std::size_t>(index) >= kBereiche.size()) return nullptr;
         return kBereiche[index].wk.c_str();
+    }
+
+    const char* get_polar()
+    {
+        return kCurrentPolar.c_str();
     }
 } // namespace flaputils

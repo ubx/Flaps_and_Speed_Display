@@ -14,6 +14,7 @@ static lv_obj_t* s_label_heading = nullptr;
 static lv_obj_t* s_label_wind = nullptr;
 static lv_obj_t* s_label_gps_ground_speed = nullptr;
 static lv_obj_t* s_label_gps_true_track = nullptr;
+static lv_obj_t* s_label_polar = nullptr;
 static StaleOverlayState s_stale_overlay;
 
 
@@ -63,6 +64,10 @@ static void ui_update_timer_cb(lv_timer_t* timer)
     // GPS True Track
     snprintf(buf, sizeof(buf), "TRK: %.0f deg", get_gps_true_track());
     lv_label_set_text(s_label_gps_true_track, buf);
+
+    // Polar
+    snprintf(buf, sizeof(buf), "Polar: %s", flaputils::get_polar());
+    lv_label_set_text(s_label_polar, buf);
 }
 
 void screen4_create()
@@ -80,47 +85,52 @@ void screen4_create()
     s_label_ias = lv_label_create(s_screen);
     lv_obj_set_style_text_color(s_label_ias, lv_color_white(), 0);
     lv_obj_set_style_text_font(s_label_ias, &lv_font_montserrat_20, 0);
-    lv_obj_align(s_label_ias, LV_ALIGN_TOP_MID, 0, 70);
+    lv_obj_align(s_label_ias, LV_ALIGN_TOP_MID, 0, 10);
 
     s_label_weight = lv_label_create(s_screen);
     lv_obj_set_style_text_color(s_label_weight, lv_color_white(), 0);
     lv_obj_set_style_text_font(s_label_weight, &lv_font_montserrat_20, 0);
-    lv_obj_align(s_label_weight, LV_ALIGN_TOP_MID, 0, 110);
+    lv_obj_align(s_label_weight, LV_ALIGN_TOP_MID, 0, 50);
 
     s_label_flap_actual = lv_label_create(s_screen);
     lv_obj_set_style_text_color(s_label_flap_actual, lv_color_white(), 0);
     lv_obj_set_style_text_font(s_label_flap_actual, &lv_font_montserrat_20, 0);
-    lv_obj_align(s_label_flap_actual, LV_ALIGN_TOP_MID, 0, 150);
+    lv_obj_align(s_label_flap_actual, LV_ALIGN_TOP_MID, 0, 90);
 
     s_label_flap_target = lv_label_create(s_screen);
     lv_obj_set_style_text_color(s_label_flap_target, lv_color_white(), 0);
     lv_obj_set_style_text_font(s_label_flap_target, &lv_font_montserrat_20, 0);
-    lv_obj_align(s_label_flap_target, LV_ALIGN_TOP_MID, 0, 190);
+    lv_obj_align(s_label_flap_target, LV_ALIGN_TOP_MID, 0, 130);
 
     s_label_alt = lv_label_create(s_screen);
     lv_obj_set_style_text_color(s_label_alt, lv_color_white(), 0);
     lv_obj_set_style_text_font(s_label_alt, &lv_font_montserrat_20, 0);
-    lv_obj_align(s_label_alt, LV_ALIGN_TOP_MID, 0, 230);
+    lv_obj_align(s_label_alt, LV_ALIGN_TOP_MID, 0, 170);
 
     s_label_heading = lv_label_create(s_screen);
     lv_obj_set_style_text_color(s_label_heading, lv_color_white(), 0);
     lv_obj_set_style_text_font(s_label_heading, &lv_font_montserrat_20, 0);
-    lv_obj_align(s_label_heading, LV_ALIGN_TOP_MID, 0, 270);
+    lv_obj_align(s_label_heading, LV_ALIGN_TOP_MID, 0, 210);
 
     s_label_wind = lv_label_create(s_screen);
     lv_obj_set_style_text_color(s_label_wind, lv_color_white(), 0);
     lv_obj_set_style_text_font(s_label_wind, &lv_font_montserrat_20, 0);
-    lv_obj_align(s_label_wind, LV_ALIGN_TOP_MID, 0, 310);
+    lv_obj_align(s_label_wind, LV_ALIGN_TOP_MID, 0, 250);
 
     s_label_gps_ground_speed = lv_label_create(s_screen);
     lv_obj_set_style_text_color(s_label_gps_ground_speed, lv_color_white(), 0);
     lv_obj_set_style_text_font(s_label_gps_ground_speed, &lv_font_montserrat_20, 0);
-    lv_obj_align(s_label_gps_ground_speed, LV_ALIGN_TOP_MID, 0, 350);
+    lv_obj_align(s_label_gps_ground_speed, LV_ALIGN_TOP_MID, 0, 290);
 
     s_label_gps_true_track = lv_label_create(s_screen);
     lv_obj_set_style_text_color(s_label_gps_true_track, lv_color_white(), 0);
     lv_obj_set_style_text_font(s_label_gps_true_track, &lv_font_montserrat_20, 0);
-    lv_obj_align(s_label_gps_true_track, LV_ALIGN_TOP_MID, 0, 390);
+    lv_obj_align(s_label_gps_true_track, LV_ALIGN_TOP_MID, 0, 330);
+
+    s_label_polar = lv_label_create(s_screen);
+    lv_obj_set_style_text_color(s_label_polar, lv_color_white(), 0);
+    lv_obj_set_style_text_font(s_label_polar, &lv_font_montserrat_20, 0);
+    lv_obj_align(s_label_polar, LV_ALIGN_TOP_MID, 0, 370);
 
     s_stale_overlay = {};
 

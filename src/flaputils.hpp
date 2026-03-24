@@ -33,6 +33,9 @@ namespace flaputils
     // Returns the symbol for a given speed range index.
     const char* get_range_symbol_name(int index);
 
+    // Returns the current loaded polar filename.
+    const char* get_polar();
+
     // std::vector<FlapSymbolResult> get_flap_params();
 
     struct FlapSpeedRange
