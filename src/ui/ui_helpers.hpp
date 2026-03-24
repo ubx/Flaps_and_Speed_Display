@@ -114,7 +114,7 @@ inline void print_flight_data(const FlightData& state)
         state.ias * 3.6, state.tas * 3.6, state.alt, state.alt_corr, state.vario, state.flap, state.lat, state.lon, state.gps_ground_speed, state.gps_true_track, state.dry_and_ballast_mass / 10, state.enl, state.wind_speed, state.wind_direction, state.heading);
 
     const auto [index] = flaputils::get_optimal_flap(
-        state.dry_and_ballast_mass / 10.0f + 84.0f, state.ias * 3.6f);
+        state.dry_and_ballast_mass / 10.0f, state.ias * 3.6f);
     const flaputils::FlapSymbolResult actual = flaputils::get_flap_symbol(state.flap);
     const char* opt_sym = flaputils::get_range_symbol_name(index);
     const char* act_sym = flaputils::get_flap_symbol_name(actual.index);
