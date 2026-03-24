@@ -1,7 +1,7 @@
 # Flaps & Speed Display User Manual
 
-**Document version:** 1.0  
-**Date:** 22.03.2026
+**Document version:** 1.1  
+**Date:** 24.03.2026
 
 ## Purpose
 
@@ -28,11 +28,11 @@ It then switches to the normal operating screens.
 
 ## Touch Navigation
 
-The display has six screens. Navigation is done with swipe gestures:
+The display has seven screens. Navigation is done with swipe gestures:
 
 - **Swipe up or down**: cycle between the four main flying screens (Speed, Flaps, Altitude, Wind)
 - **Swipe right**: open the settings/detail screens
-- **Swipe right again**: switch between the two settings/detail screens
+- **Swipe right again**: cycle between the three settings/detail screens (Settings, Live Params, Polar Files)
 - **Swipe left**: return from the settings/detail screens to the main flying screen
 
 ## Screen Overview
@@ -53,7 +53,7 @@ This screen combines airspeed with flap guidance.
 
 Typical flap symbols are `L`, `+2`, `+1`, `0`, `-1`, `-2`, `S`, and `S1`.
 
-The current configuration also defines a special **lowspeed** setting in [`spiffs_data/ventus3_defaut.json`](/media/andreas/data2/workspace2/Flaps_and_Speed_Display/spiffs_data/ventus3_defaut.json):
+The current configuration also defines a special **lowspeed** setting in the selected polar file (e.g., `ventus3_defaut.json`):
 
 - flap setting: `-1`
 - speed range: `0 to 40 km/h`
@@ -107,6 +107,7 @@ This screen shows the values used internally for flap guidance and navigation.
 - **Wind**: wind speed and absolute direction
 - **GS**: ground speed in km/h
 - **TRK**: GPS true track in degrees
+- **Polar**: currently active flap schedule (polar file name)
 
 This is the best screen for troubleshooting or checking why a flap recommendation or wind calculation is being made.
 
@@ -122,6 +123,17 @@ Brightness changes in **10% steps**.
 
 - minimum brightness: **30%**
 - maximum brightness: **100%**
+
+### 7. Polar Files Screen
+<img src="./Polar_Files_round.png"  style="width:50%;">
+
+This screen allows you to select the aircraft's polar file (flap schedule) from the files stored in the unit's internal memory (SPIFFS).
+
+- The **roller** in the center lists all available `.json` files
+- Use your finger to scroll through the list
+- Press the **Select** button to load the highlighted polar
+
+Once selected, the new polar is active immediately and will be remembered across power cycles.
 ## How Flap Guidance Works
 
 The unit compares:
@@ -129,7 +141,7 @@ The unit compares:
 - current IAS from CAN bus data
 - current flap position from CAN bus data
 - current weight from CAN bus data
-- the configured flap schedule in [`spiffs_data/ventus3_defaut.json`](/media/andreas/data2/workspace2/Flaps_and_Speed_Display/spiffs_data/ventus3_defaut.json)
+- the flap schedule in the selected polar file (stored in SPIFFS)
 
 ## Stale Data Indication
 
@@ -150,12 +162,13 @@ This indicates that the shown IAS/flap information should no longer be trusted u
 5. Swipe to the **Altitude** screen for height monitoring.
 6. Swipe to the **Wind** screen to check wind conditions.
 7. Open **Live Params** if you want to verify internal values.
-8. Open **Settings** to adjust brightness for cockpit conditions.
+8. Open **Polar Files** to select the correct aircraft model.
+9. Open **Settings** to adjust brightness for cockpit conditions.
 
 ## Notes
 
 - All speed values are displayed in **km/h**
 - Flap recommendations depend on the flap polar stored in the JSON configuration
 - If flap input data does not match a known position, the flap indication may show no valid symbol
-- The current `ventus3_defaut` and the guidance described in this manual are based on the Ventus 3 reference shown below
+- The guidance described in this manual is based on the Ventus 3 reference shown below (typically found in `ventus3_defaut.json`)
 - <img src="./Ventus3-OptSpeed.png" style="width:80%;">
