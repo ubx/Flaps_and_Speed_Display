@@ -28,7 +28,7 @@ async def main():
     ap.add_argument("--address", help="Device address (skip scan)")
     ap.add_argument("--bin", help="Firmware .bin path (app OTA)")
     ap.add_argument("--spiffs-file", help="Local file to upload into SPIFFS over BLE")
-    ap.add_argument("--spiffs-remote", default="/spiffs/flapDescriptor.json",
+    ap.add_argument("--spiffs-remote", default="/spiffs/ventus3_defaut.json",
                     help="Destination path on device for --spiffs-file")
     ap.add_argument("--chunk", type=int, default=240, help="Chunk size (try 240, fallback 180)")
     ap.add_argument("--data-with-response", action="store_true",

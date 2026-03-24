@@ -442,7 +442,7 @@ namespace flaputils
             std::string filename = ent->d_name;
             if (filename.length() > 5 && filename.substr(filename.length() - 5) == ".json")
             {
-                //if (filename == "flapDescriptor.json") continue;
+                //if (filename == "ventus3_defaut.json") continue;
                 first_file = std::string(dir_path) + "/" + filename;
                 break;
             }

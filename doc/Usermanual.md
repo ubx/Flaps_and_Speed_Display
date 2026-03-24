@@ -53,7 +53,7 @@ This screen combines airspeed with flap guidance.
 
 Typical flap symbols are `L`, `+2`, `+1`, `0`, `-1`, `-2`, `S`, and `S1`.
 
-The current configuration also defines a special **lowspeed** setting in [`spiffs_data/flapDescriptor.json`](/media/andreas/data2/workspace2/Flaps_and_Speed_Display/spiffs_data/flapDescriptor.json):
+The current configuration also defines a special **lowspeed** setting in [`spiffs_data/ventus3_defaut.json`](/media/andreas/data2/workspace2/Flaps_and_Speed_Display/spiffs_data/ventus3_defaut.json):
 
 - flap setting: `-1`
 - speed range: `0 to 40 km/h`
@@ -129,7 +129,7 @@ The unit compares:
 - current IAS from CAN bus data
 - current flap position from CAN bus data
 - current weight from CAN bus data
-- the configured flap schedule in [`spiffs_data/flapDescriptor.json`](/media/andreas/data2/workspace2/Flaps_and_Speed_Display/spiffs_data/flapDescriptor.json)
+- the configured flap schedule in [`spiffs_data/ventus3_defaut.json`](/media/andreas/data2/workspace2/Flaps_and_Speed_Display/spiffs_data/ventus3_defaut.json)
 
 ## Stale Data Indication
 
@@ -157,5 +157,5 @@ This indicates that the shown IAS/flap information should no longer be trusted u
 - All speed values are displayed in **km/h**
 - Flap recommendations depend on the flap polar stored in the JSON configuration
 - If flap input data does not match a known position, the flap indication may show no valid symbol
-- The current `flapDescriptor` and the guidance described in this manual are based on the Ventus 3 reference shown below
+- The current `ventus3_defaut` and the guidance described in this manual are based on the Ventus 3 reference shown below
 - <img src="./Ventus3-OptSpeed.png" style="width:80%;">

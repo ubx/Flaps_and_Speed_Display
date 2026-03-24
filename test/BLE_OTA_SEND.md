@@ -31,24 +31,24 @@ Behavior:
 - Sends `FINISH`.
 - Sends `REBOOT` unless `--no-reboot` is set.
 
-### 2) Upload SPIFFS file (`flapDescriptor.json`)
+### 2) Upload SPIFFS file (`ventus3_defaut.json`)
 
 ```bash
 cd ..
-python test/ble_ota_send.py --spiffs-file spiffs_data/flapDescriptor.json
+python test/ble_ota_send.py --spiffs-file spiffs_data/ventus3_defaut.json
 ```
 
 Default remote target path:
 
-- `/spiffs/flapDescriptor.json`
+- `/spiffs/ventus3_defaut.json`
 
 Custom remote path:
 
 ```bash
 cd ..
 python test/ble_ota_send.py \
-  --spiffs-file spiffs_data/flapDescriptor.json \
-  --spiffs-remote /spiffs/flapDescriptor.json
+  --spiffs-file spiffs_data/ventus3_defaut.json \
+  --spiffs-remote /spiffs/ventus3_defaut.json
 ```
 
 Behavior:
@@ -64,7 +64,7 @@ Behavior:
 - `--address <mac_or_addr>`: connect directly without scanning
 - `--bin <firmware.bin>`: firmware OTA mode
 - `--spiffs-file <local_path>`: SPIFFS upload mode
-- `--spiffs-remote <remote_path>`: destination path on device (default: `/spiffs/flapDescriptor.json`)
+- `--spiffs-remote <remote_path>`: destination path on device (default: `/spiffs/ventus3_defaut.json`)
 - `--chunk <n>`: transfer chunk size in bytes (default: `240`)
 - `--data-with-response`: send DATA writes with response (slower, can be more reliable)
 - `--no-reboot`: skip reboot after firmware upload

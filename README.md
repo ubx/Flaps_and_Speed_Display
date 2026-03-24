@@ -13,7 +13,7 @@ and flaps position, receiving real-time data via the CAN bus (TWAI).
 - ~~design a graphical actual/optimal display~~
 - ~~on start show about screenwith firmware and version~~
 - setup screen ~~with brightness~~, select polare...
-- ~~implement update flapDescriptor.json OTA with BLE~~
+- ~~implement update ventus3_defaut.json OTA with BLE~~
 - demo mode
 - ~~special flap positions for start and landing~~
 - 3D print housing

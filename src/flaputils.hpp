@@ -5,7 +5,7 @@
 
 namespace flaputils
 {
-    // Returns the empty mass of the aircraft in kg (taken from flapDescriptor.json)
+    // Returns the empty mass of the aircraft in kg (taken from ventus3_defaut.json)
     float get_empty_mass();
 
     // Loads the flap data from a JSON file. Returns true on success.

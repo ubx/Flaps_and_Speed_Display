@@ -399,7 +399,7 @@ int main(int argc, char** argv)
     std::signal(SIGTERM, handle_signal);
     const SimulatorConfig cfg = parse_args(argc, argv);
 
-    if (!flaputils::load_data("spiffs_data/flapDescriptor.json")) return 1;
+    if (!flaputils::load_data("spiffs_data/ventus3_defaut.json")) return 1;
 
     std::thread can_thread(can_receiver_task, cfg.can_iface);
     std::thread print_thread(print_task_native, &g_flight_state);

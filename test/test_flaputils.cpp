@@ -12,15 +12,15 @@ static int run_tests()
 
 #ifdef NATIVE_TEST_BUILD
     const char* candidates[] = {
-        "spiffs_data/flapDescriptor.json",
-        "flapDescriptor.json",
-        "/spiffs/flapDescriptor.json"
+        "spiffs_data/ventus3_defaut.json",
+        "ventus3_defaut.json",
+        "/spiffs/ventus3_defaut.json"
     };
 #else
     // On-device: usually only the mounted FS path is meaningful
     const char* candidates[] = {
-        "/spiffs/flapDescriptor.json",
-        "flapDescriptor.json"
+        "/spiffs/ventus3_defaut.json",
+        "ventus3_defaut.json"
     };
 #endif
 
@@ -36,7 +36,7 @@ static int run_tests()
 
     if (!loaded)
     {
-        std::printf("WARNING: Failed to load flapDescriptor.json. Functions may return no data.\n");
+        std::printf("WARNING: Failed to load ventus3_defaut.json. Functions may return no data.\n");
     }
 
     int fails = 0;
