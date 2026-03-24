@@ -529,7 +529,7 @@ static lv_display_t *bsp_display_lcd_init(const bsp_display_cfg_t *cfg)
 #endif
 
     const bsp_display_config_t disp_config = {
-        .max_transfer_sz = BSP_LCD_H_RES * BSP_LCD_V_RES * BSP_LCD_BITS_PER_PIXEL / 8,
+        .max_transfer_sz = 32 * 1024,
     };
 
     BSP_ERROR_CHECK_RETURN_NULL(bsp_display_new(&disp_config, &panel_handle, &io_handle));
@@ -544,9 +544,9 @@ static lv_display_t *bsp_display_lcd_init(const bsp_display_cfg_t *cfg)
             .hor_res = BSP_LCD_H_RES,
             .ver_res = BSP_LCD_V_RES,
             .buffer_height = buffer_height,
-            .use_psram = use_psram,
+            .use_psram = false,
             .enable_ppa_accel = false,
-            .require_double_buffer = require_double_buffer,
+            .require_double_buffer = false,
         },
         .tear_avoid_mode = cfg->tear_avoid_mode,
     };
