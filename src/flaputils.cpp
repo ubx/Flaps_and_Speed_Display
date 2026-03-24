@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <algorithm>
 #include <dirent.h>
+#include <cstring>
 #if __has_include(<cjson/cJSON.h>)
 #include <cjson/cJSON.h>
 #else
@@ -14,6 +15,10 @@
 #ifndef NATIVE_TEST_BUILD
 #include "nvs_flash.h"
 #include "nvs.h"
+#endif
+
+#ifdef NATIVE_TEST_BUILD
+#define NVS_SIMULATION_FILE ".nvs_simulation"
 #endif
 
 namespace flaputils
@@ -398,7 +403,10 @@ namespace flaputils
         nvs_close(my_handle);
         return (err == ESP_OK);
 #else
-        (void)filepath;
+        FILE* f = fopen(NVS_SIMULATION_FILE, "w");
+        if (!f) return false;
+        fprintf(f, "%s", filepath);
+        fclose(f);
         return true;
 #endif
     }
@@ -420,7 +428,17 @@ namespace flaputils
         }
         return false;
 #else
-        return false;
+        FILE* f = fopen(NVS_SIMULATION_FILE, "r");
+        if (!f) return false;
+        char path[256];
+        bool success = false;
+        if (fgets(path, sizeof(path), f)) {
+            // Remove trailing newline if any
+            path[strcspn(path, "\r\n")] = 0;
+            success = load_data(path);
+        }
+        fclose(f);
+        return success;
 #endif
     }
 
