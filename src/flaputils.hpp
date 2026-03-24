@@ -36,6 +36,15 @@ namespace flaputils
     // Returns the current loaded polar filename.
     const char* get_polar();
 
+    // Persists the current polar path to NVS.
+    bool save_polar_path(const char* filepath);
+
+    // Loads the polar data from the persisted path in NVS. Returns true on success.
+    bool load_persisted_data();
+
+    // Returns the first available polar file path in SPIFFS.
+    std::string find_first_polar_path();
+
     // std::vector<FlapSymbolResult> get_flap_params();
 
     struct FlapSpeedRange

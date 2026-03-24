@@ -60,7 +60,9 @@ static void select_event_cb(lv_event_t* e)
             path = "/spiffs/";
 #endif
             path += filename + ".json";
-            flaputils::load_data(path.c_str());
+            if (flaputils::load_data(path.c_str())) {
+                flaputils::save_polar_path(path.c_str());
+            }
         }
     }
 }

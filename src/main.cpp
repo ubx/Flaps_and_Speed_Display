@@ -195,10 +195,20 @@ extern "C" void app_main(void)
     esp_err_t ret = esp_vfs_spiffs_register(&conf);
     if (ret == ESP_OK)
     {
-        if (flaputils::load_data("/spiffs/flapDescriptor.json"))
-            ESP_LOGI(TAG, "Flap data loaded successfully");
+        if (flaputils::load_persisted_data())
+            ESP_LOGI(TAG, "Persisted polar data loaded successfully");
         else
-            ESP_LOGE(TAG, "Failed to load flap data from SPIFFS");
+        {
+            std::string first_polar = flaputils::find_first_polar_path();
+            if (!first_polar.empty())
+            {
+                if (flaputils::load_data(first_polar.c_str()))
+                {
+                    ESP_LOGI(TAG, "No persisted polar, loaded first available: %s", first_polar.c_str());
+                    flaputils::save_polar_path(first_polar.c_str());
+                }
+            }
+        }
     }
 
     ble_ota_init();

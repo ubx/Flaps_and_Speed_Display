@@ -5,10 +5,15 @@
 #include <cstdio>
 #include <cstdlib>
 #include <algorithm>
+#include <dirent.h>
 #if __has_include(<cjson/cJSON.h>)
 #include <cjson/cJSON.h>
 #else
 #include "cJSON.h"
+#endif
+#ifndef NATIVE_TEST_BUILD
+#include "nvs_flash.h"
+#include "nvs.h"
 #endif
 
 namespace flaputils
@@ -377,5 +382,72 @@ namespace flaputils
     const char* get_polar()
     {
         return kCurrentPolar.c_str();
+    }
+
+    bool save_polar_path(const char* filepath)
+    {
+#ifndef NATIVE_TEST_BUILD
+        nvs_handle_t my_handle;
+        esp_err_t err = nvs_open("storage", NVS_READWRITE, &my_handle);
+        if (err != ESP_OK) return false;
+
+        err = nvs_set_str(my_handle, "polar_path", filepath);
+        if (err == ESP_OK) {
+            err = nvs_commit(my_handle);
+        }
+        nvs_close(my_handle);
+        return (err == ESP_OK);
+#else
+        (void)filepath;
+        return true;
+#endif
+    }
+
+    bool load_persisted_data()
+    {
+#ifndef NATIVE_TEST_BUILD
+        nvs_handle_t my_handle;
+        esp_err_t err = nvs_open("storage", NVS_READONLY, &my_handle);
+        if (err != ESP_OK) return false;
+
+        char path[256];
+        size_t required_size = sizeof(path);
+        err = nvs_get_str(my_handle, "polar_path", path, &required_size);
+        nvs_close(my_handle);
+
+        if (err == ESP_OK) {
+            return load_data(path);
+        }
+        return false;
+#else
+        return false;
+#endif
+    }
+
+    std::string find_first_polar_path()
+    {
+#ifdef NATIVE_TEST_BUILD
+        const char* dir_path = "spiffs_data";
+#else
+        const char* dir_path = "/spiffs";
+#endif
+        DIR* dir = opendir(dir_path);
+        if (!dir) return "";
+
+        struct dirent* ent;
+        std::string first_file;
+        while ((ent = readdir(dir)) != nullptr)
+        {
+            if (ent->d_name[0] == '.') continue;
+            std::string filename = ent->d_name;
+            if (filename.length() > 5 && filename.substr(filename.length() - 5) == ".json")
+            {
+                //if (filename == "flapDescriptor.json") continue;
+                first_file = std::string(dir_path) + "/" + filename;
+                break;
+            }
+        }
+        closedir(dir);
+        return first_file;
     }
 } // namespace flaputils
