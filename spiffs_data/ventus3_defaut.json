@@ -1,6 +1,7 @@
 {
+  "description": "Ventus3 from SH",
   "flap2symbol": {
-    "Description": "Flap position to symbol",
+    "description": "Flap position to symbol",
     "tolerance": 6,
     "table": [
       [
