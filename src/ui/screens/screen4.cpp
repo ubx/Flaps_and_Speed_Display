@@ -3,6 +3,7 @@
 #include "../ui_helpers.hpp"
 #include "flaputils.hpp"
 #include <cstdio>
+#include <string>
 
 static lv_obj_t* s_screen = nullptr;
 static lv_obj_t* s_label_ias = nullptr;
@@ -66,7 +67,12 @@ static void ui_update_timer_cb(lv_timer_t* timer)
     lv_label_set_text(s_label_gps_true_track, buf);
 
     // Polar
-    snprintf(buf, sizeof(buf), "Polar: %s", flaputils::get_polar());
+    std::string polar_name = flaputils::get_polar();
+    size_t last_dot = polar_name.find_last_of('.');
+    if (last_dot != std::string::npos) {
+        polar_name = polar_name.substr(0, last_dot);
+    }
+    snprintf(buf, sizeof(buf), "Polar: %s", polar_name.c_str());
     lv_label_set_text(s_label_polar, buf);
 }
 

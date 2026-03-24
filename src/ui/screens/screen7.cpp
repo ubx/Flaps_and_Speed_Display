@@ -29,7 +29,12 @@ static std::string get_spiffs_file_list()
             if (!file_list.empty()) {
                 file_list += "\n";
             }
-            file_list += ent->d_name;
+            std::string filename = ent->d_name;
+            size_t last_dot = filename.find_last_of('.');
+            if (last_dot != std::string::npos) {
+                filename = filename.substr(0, last_dot);
+            }
+            file_list += filename;
         }
     }
     closedir(dir);
@@ -54,7 +59,7 @@ static void select_event_cb(lv_event_t* e)
 #else
             path = "/spiffs/";
 #endif
-            path += filename;
+            path += filename + ".json";
             flaputils::load_data(path.c_str());
         }
     }
