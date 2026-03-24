@@ -87,17 +87,18 @@ static void ui_create_polar()
     std::string files = get_spiffs_file_list();
     lv_roller_set_options(s_roller, files.c_str(), LV_ROLLER_MODE_NORMAL);
     lv_roller_set_visible_row_count(s_roller, 4);
-    lv_obj_set_width(s_roller, 200);
+    lv_obj_set_width(s_roller, 300);
     lv_obj_align(s_roller, LV_ALIGN_CENTER, 0, -20);
-    lv_obj_set_style_text_font(s_roller, &lv_font_montserrat_16, 0);
+    lv_obj_set_style_text_font(s_roller, &lv_font_montserrat_28, 0);
     lv_obj_set_style_bg_color(s_roller, lv_color_hex(0x333333), 0);
     lv_obj_set_style_text_color(s_roller, lv_color_white(), 0);
     lv_obj_set_style_bg_color(s_roller, lv_color_hex(0x0078D7), LV_PART_SELECTED);
 
     /* Select Button */
     lv_obj_t* btn = lv_button_create(s_screen);
-    lv_obj_set_size(btn, 100, 40);
+    lv_obj_set_size(btn, 200, 60);
     lv_obj_align(btn, LV_ALIGN_BOTTOM_MID, 0, -100);
+    lv_obj_set_style_text_font(btn, &lv_font_montserrat_48, 0);
     lv_obj_add_event_cb(btn, select_event_cb, LV_EVENT_CLICKED, nullptr);
 
     lv_obj_t* label = lv_label_create(btn);
