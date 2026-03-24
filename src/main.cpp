@@ -23,6 +23,7 @@
 #include "esp_log.h"
 #include "esp_spiffs.h"
 #include "esp_task_wdt.h"
+#include "nvs_flash.h"
 #ifdef ENABLE_DIAGNOSTICS
 #include "esp_partition.h"
 #include <dirent.h>
@@ -183,6 +184,15 @@ static void configure_task_wdt_for_ui(void)
 extern "C" void app_main(void)
 {
     configure_task_wdt_for_ui();
+
+    esp_err_t err = nvs_flash_init();
+    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND)
+    {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        err = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(err);
+
     vTaskDelay(pdMS_TO_TICKS(2000));
 
     esp_vfs_spiffs_conf_t conf = {
