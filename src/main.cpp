@@ -3,7 +3,13 @@
 #include "flaputils.hpp"
 #include "ui/ui.h"
 #include "ui/ui_helpers.hpp"
+#include "ui/screens/screen1.hpp"
 #include "ui/screens/screen2.hpp"
+#include "ui/screens/screen3.hpp"
+#include "ui/screens/screen4.hpp"
+#include "ui/screens/screen5.hpp"
+#include "ui/screens/screen6.hpp"
+#include "ui/screens/screen7.hpp"
 
 #ifndef NATIVE_TEST_BUILD
 #include <cstdio>
@@ -245,7 +251,7 @@ static SimulatorConfig parse_args(int argc, char** argv)
     for (int i = 1; i < argc; ++i)
     {
         if (std::strcmp(argv[i], "--screen") == 0 && i + 1 < argc)
-            cfg.start_screen = std::clamp(parse_int_arg(argv[++i], cfg.start_screen), 1, 4);
+            cfg.start_screen = std::clamp(parse_int_arg(argv[++i], cfg.start_screen), 1, 7);
         else if (std::strcmp(argv[i], "--auto-cycle") == 0)
             cfg.auto_cycle = true;
         else if (std::strcmp(argv[i], "--cycle-seconds") == 0 && i + 1 < argc)
@@ -256,7 +262,7 @@ static SimulatorConfig parse_args(int argc, char** argv)
             cfg.splash_ms = 0;
         else if (std::strcmp(argv[i], "--help") == 0)
         {
-            std::printf("Usage: %s [--screen 1..4] [--auto-cycle] [--cycle-seconds N] [--can-iface can0] [--no-splash]\n", argv[0]);
+            std::printf("Usage: %s [--screen 1..7] [--auto-cycle] [--cycle-seconds N] [--can-iface can0] [--no-splash]\n", argv[0]);
             std::exit(0);
         }
     }
@@ -271,6 +277,9 @@ static lv_obj_t* get_screen_by_index(int screen)
     case 2: return screen2_get();
     case 3: return screen3_get();
     case 4: return screen4_get();
+    case 5: return screen5_get();
+    case 6: return screen6_get();
+    case 7: return screen7_get();
     default: return screen2_get();
     }
 }

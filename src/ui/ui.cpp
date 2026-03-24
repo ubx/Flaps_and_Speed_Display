@@ -6,6 +6,7 @@
 #include "screens/screen4.hpp"
 #include "screens/screen5.hpp"
 #include "screens/screen6.hpp"
+#include "screens/screen7.hpp"
 #include "../platform/ui_platform.hpp"
 
 #ifdef NATIVE_SIMULATOR
@@ -100,6 +101,7 @@ void ui_init()
         screen4_create();
         screen5_create();
         screen6_create();
+        screen7_create();
 
         /* Gestures:
            - UP/DOWN: cycle between screen1 <-> screen2
@@ -141,19 +143,21 @@ void ui_init()
                 }
             }
             else if (dir == LV_DIR_RIGHT) {
-                /* Right swipe toggles between screen3 and screen4 */
+                /* Right swipe toggles between screen3, screen4 and screen7 */
                 if (lv_screen_active() == screen3_get()) {
                     lv_screen_load_anim(screen4_get(), LV_SCR_LOAD_ANIM_MOVE_LEFT, kLoadAnimDurationMs, kLoadAnimDelayMs, false);
                 } else if (lv_screen_active() == screen4_get()) {
-                    lv_screen_load_anim(screen3_get(), LV_SCR_LOAD_ANIM_MOVE_RIGHT, kLoadAnimDurationMs, kLoadAnimDelayMs, false);
+                    lv_screen_load_anim(screen7_get(), LV_SCR_LOAD_ANIM_MOVE_LEFT, kLoadAnimDurationMs, kLoadAnimDelayMs, false);
+                } else if (lv_screen_active() == screen7_get()) {
+                    lv_screen_load_anim(screen3_get(), LV_SCR_LOAD_ANIM_MOVE_LEFT, kLoadAnimDurationMs, kLoadAnimDelayMs, false);
                 } else {
                     /* From screen1 or screen2, enter screen3 via right swipe */
                     lv_screen_load_anim(screen3_get(), LV_SCR_LOAD_ANIM_MOVE_LEFT, kLoadAnimDurationMs, kLoadAnimDelayMs, false);
                 }
             }
             else if (dir == LV_DIR_LEFT) {
-                /* Left swipe to return from sub-screens (3 or 4) to the main cycle */
-                if (lv_screen_active() == screen3_get() || lv_screen_active() == screen4_get()) {
+                /* Left swipe to return from sub-screens (3, 4 or 7) to the main cycle */
+                if (lv_screen_active() == screen3_get() || lv_screen_active() == screen4_get() || lv_screen_active() == screen7_get()) {
                     lv_screen_load_anim(screen1_get(), LV_SCR_LOAD_ANIM_MOVE_RIGHT, kLoadAnimDurationMs, kLoadAnimDelayMs, false);
                 }
             }
@@ -165,6 +169,7 @@ void ui_init()
         lv_obj_add_event_cb(screen4_get(), gesture_cb, LV_EVENT_GESTURE, nullptr);
         lv_obj_add_event_cb(screen5_get(), gesture_cb, LV_EVENT_GESTURE, nullptr);
         lv_obj_add_event_cb(screen6_get(), gesture_cb, LV_EVENT_GESTURE, nullptr);
+        lv_obj_add_event_cb(screen7_get(), gesture_cb, LV_EVENT_GESTURE, nullptr);
 
         // After some delay, we'll switch to screen2.
         // But for now, just stay on the current screen where s_label1/2 was created.
