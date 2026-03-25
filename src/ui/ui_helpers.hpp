@@ -54,7 +54,7 @@ inline float get_ias_kmh(const FlightData& state)
 inline float get_weight_kg(const FlightData& state)
 {
     std::lock_guard<std::mutex> lock(state.mtx);
-    return state.dry_and_ballast_mass / 10.0f + 84.0f;
+    return state.dry_and_ballast_mass / 10.0f;
 }
 
 inline float get_alt_m(const FlightData& state)
