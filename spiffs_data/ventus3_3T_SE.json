@@ -43,184 +43,184 @@
     "empty_mass_kg": 373.15,
     "optimale_fluggeschwindigkeit_kmh": {
       "gewicht_kg": [
-        390,
-        430,
-        550,
-        600
+        450,
+        480,
+        520,
+        582
       ],
       "bereiche": [
         {
-          "verwendung": "Langsamflug (Geradeausflug)",
+          "verwendung": "Langsamflug (WK3 CST)",
           "wk": "L",
           "geschwindigkeit": {
-            "390": [
-              40,
-              76
+            "450": [
+              "<w450_L_0>",
+              "<w450_L_1>"
             ],
-            "430": [
-              40,
-              80
+            "480": [
+              "<w480_L_0>",
+              "<w480_L_1>"
             ],
-            "550": [
-              40,
-              90
+            "520": [
+              "<w520_L_0>",
+              "<w520_L_1>"
             ],
-            "600": [
-              40,
+            "582": [
+              87,
               94
             ]
           }
         },
         {
-          "verwendung": "Langsamflug (Geradeausflug)",
+          "verwendung": "Langsamflug (WK2 CEST)",
           "wk": "+2",
           "geschwindigkeit": {
-            "390": [
-              76,
-              80
+            "450": [
+              "<w450_+2_0>",
+              "<w450_+2_1>"
             ],
-            "430": [
-              80,
-              83
+            "480": [
+              "<w480_+2_0>",
+              "<w480_+2_1>"
             ],
-            "550": [
-              90,
-              94
+            "520": [
+              "<w520_+2_0>",
+              "<w520_+2_1>"
             ],
-            "600": [
+            "582": [
               94,
-              98
+              100
             ]
           }
         },
         {
-          "verwendung": "Langsamflug (Geradeausflug)",
+          "verwendung": "Langsamflug (WK1 CEST)",
           "wk": "+1",
           "geschwindigkeit": {
-            "390": [
-              80,
-              90
+            "450": [
+              "<w450_+1_0>",
+              "<w450_+1_1>"
             ],
-            "430": [
-              83,
-              94
+            "480": [
+              "<w480_+1_0>",
+              "<w480_+1_1>"
             ],
-            "550": [
-              94,
-              106
+            "520": [
+              "<w520_+1_0>",
+              "<w520_+1_1>"
             ],
-            "600": [
-              98,
-              111
+            "582": [
+              100,
+              104
             ]
           }
         },
         {
-          "verwendung": "Bestes Gleiten",
+          "verwendung": "Bestes Gleiten (WK0.5 CEST)",
           "wk": "0",
           "geschwindigkeit": {
-            "390": [
-              90,
-              122
+            "450": [
+              "<w450_0_0>",
+              "<w450_0_1>"
             ],
-            "430": [
-              94,
-              128
+            "480": [
+              "<w480_0_0>",
+              "<w480_0_1>"
             ],
-            "550": [
-              106,
-              145
+            "520": [
+              "<w520_0_0>",
+              "<w520_0_1>"
             ],
-            "600": [
-              111,
-              151
+            "582": [
+              104,
+              130
             ]
           }
         },
         {
-          "verwendung": "Vorfliegen zwischen Thermik und Schnellflug",
+          "verwendung": "Vorfliegen zwischen Thermik und Schnellflug (WK0 CEST)",
           "wk": "-1",
           "geschwindigkeit": {
-            "390": [
-              122,
-              150
+            "450": [
+              "<w450_-1_0>",
+              "<w450_-1_1>"
             ],
-            "430": [
-              128,
-              158
+            "480": [
+              "<w480_-1_0>",
+              "<w480_-1_1>"
             ],
-            "550": [
-              145,
-              179
+            "520": [
+              "<w520_-1_0>",
+              "<w520_-1_1>"
             ],
-            "600": [
-              151,
-              187
+            "582": [
+              130,
+              144
             ]
           }
         },
         {
-          "verwendung": "Vorfliegen zwischen Thermik und Schnellflug",
+          "verwendung": "Vorfliegen zwischen Thermik und Schnellflug (WK0-1 CEST)",
           "wk": "-2",
           "geschwindigkeit": {
-            "390": [
-              150,
-              169
+            "450": [
+              "<w450_-2_0>",
+              "<w450_-2_1>"
             ],
-            "430": [
-              158,
-              178
+            "480": [
+              "<w480_-2_0>",
+              "<w480_-2_1>"
             ],
-            "550": [
-              179,
-              201
+            "520": [
+              "<w520_-2_0>",
+              "<w520_-2_1>"
             ],
-            "600": [
-              187,
-              210
+            "582": [
+              144,
+              170
             ]
           }
         },
         {
-          "verwendung": "Schnellflug",
+          "verwendung": "Schnellflug (WK-2 CEST)",
           "wk": "S",
           "geschwindigkeit": {
-            "390": [
-              169,
-              188
+            "450": [
+              "<w450_S_0>",
+              "<w450_S_1>"
             ],
-            "430": [
-              178,
-              198
+            "480": [
+              "<w480_S_0>",
+              "<w480_S_1>"
             ],
-            "550": [
-              201,
-              224
+            "520": [
+              "<w520_S_0>",
+              "<w520_S_1>"
             ],
-            "600": [
-              210,
-              234
+            "582": [
+              170,
+              205
             ]
           }
         },
         {
-          "verwendung": "Schnellflug",
+          "verwendung": "Schnellflug (WK? CEST)",
           "wk": "S1",
           "geschwindigkeit": {
-            "390": [
-              188,
-              280
+            "450": [
+              "<w450_S1_0>",
+              "<w450_S1_1>"
             ],
-            "430": [
-              198,
-              280
+            "480": [
+              "<w480_S1_0>",
+              "<w480_S1_1>"
             ],
-            "550": [
-              224,
-              280
+            "520": [
+              "<w520_S1_0>",
+              "<w520_S1_1>"
             ],
-            "600": [
-              234,
+            "582": [
+              205,
               280
             ]
           }
