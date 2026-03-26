@@ -1,0 +1,64 @@
+{
+  "meta": {
+    "name": "Ventus3",
+    "span_m": 18,
+    "empty_mass_kg": 373.15
+  },
+
+  "weights": [390, 430, 550, 600],
+
+  "flaps": {
+    "positions": [94, 167, 243, 84, 156, 191, 230, 250],
+    "labels":    ["L", "+2", "+1", "0", "-1", "-2", "S", "S1"],
+    "tolerance": 6
+  },
+
+  "speedpolar": [
+    {
+      "wk": "L",
+      "usage": "Langsamflug (Geradeausflug)",
+      "ranges": [[40, 76], [40, 80], [40, 90], [40, 94]]
+    },
+    {
+      "wk": "+2",
+      "usage": "Langsamflug (Geradeausflug)",
+      "ranges": [[76, 80], [80, 83], [90, 94], [94, 98]]
+    },
+    {
+      "wk": "+1",
+      "usage": "Langsamflug (Geradeausflug)",
+      "ranges": [[80, 90], [83, 94], [94, 106], [98, 111]]
+    },
+    {
+      "wk": "0",
+      "usage": "Bestes Gleiten",
+      "ranges": [[90, 122], [94, 128], [106, 145], [111, 151]]
+    },
+    {
+      "wk": "-1",
+      "usage": "Vorfliegen zwischen Thermik und Schnellflug",
+      "ranges": [[122, 150], [128, 158], [145, 179], [151, 187]]
+    },
+    {
+      "wk": "-2",
+      "usage": "Vorfliegen zwischen Thermik und Schnellflug",
+      "ranges": [[150, 169], [158, 178], [179, 201], [187, 210]]
+    },
+    {
+      "wk": "S",
+      "usage": "Schnellflug",
+      "ranges": [[169, 188], [178, 198], [201, 224], [210, 234]]
+    },
+    {
+      "wk": "S1",
+      "usage": "Schnellflug",
+      "ranges": [[188, 280], [198, 280], [224, 280], [234, 280]]
+    }
+  ],
+
+  "lowspeed": {
+    "wk": "-1",
+    "usage": "Takeoff and Landing",
+    "range": [0, 40]
+  }
+}
