@@ -1,113 +1,64 @@
 {
-  "description": "Ventus3 measured with 3T-SE",
-  "flap2symbol": {
-    "description": "Flap position to symbol",
-    "tolerance": 6,
-    "table": [
-      [94, "L"],
-      [167, "+2"],
-      [243, "+1"],
-      [84, "0"],
-      [156, "-1"],
-      [191, "-2"],
-      [230, "S"],
-      [250, "S1"]
-    ]
+  "meta": {
+    "name": "Ventus3 measured with 3T-SE",
+    "span_m": 18,
+    "empty_mass_kg": 373.15
   },
-  "speedpolar": {
-    "flugelspannweite_m": 18,
-    "empty_mass_kg": 373.15,
-    "optimale_fluggeschwindigkeit_kmh": {
-      "gewicht_kg": [450, 480, 520, 582],
-      "bereiche": [
-        {
-          "verwendung": "Langsamflug (WK3 CST)",
-          "wk": "L",
-          "geschwindigkeit": {
-            "450": [77, 83],
-            "480": [79, 85],
-            "520": [82, 89],
-            "582": [87, 94]
-          }
-        },
-        {
-          "verwendung": "Langsamflug (WK2 CEST)",
-          "wk": "+2",
-          "geschwindigkeit": {
-            "450": [83, 88],
-            "480": [85, 91],
-            "520": [89, 95],
-            "582": [94, 100]
-          }
-        },
-        {
-          "verwendung": "Langsamflug (WK1 CEST)",
-          "wk": "+1",
-          "geschwindigkeit": {
-            "450": [88, 91],
-            "480": [91, 94],
-            "520": [95, 98],
-            "582": [100, 104]
-          }
-        },
-        {
-          "verwendung": "Bestes Gleiten (WK0.5 CEST)",
-          "wk": "0",
-          "geschwindigkeit": {
-            "450": [91, 114],
-            "480": [94, 118],
-            "520": [98, 123],
-            "582": [104, 130]
-          }
-        },
-        {
-          "verwendung": "Vorfliegen zwischen Thermik und Schnellflug (WK0 CEST)",
-          "wk": "-1",
-          "geschwindigkeit": {
-            "450": [114, 127],
-            "480": [118, 131],
-            "520": [123, 136],
-            "582": [130, 144]
-          }
-        },
-        {
-          "verwendung": "Vorfliegen zwischen Thermik und Schnellflug (WK0-1 CEST)",
-          "wk": "-2",
-          "geschwindigkeit": {
-            "450": [127, 149],
-            "480": [131, 154],
-            "520": [136, 161],
-            "582": [144, 170]
-          }
-        },
-        {
-          "verwendung": "Schnellflug (WK-2 CEST)",
-          "wk": "S",
-          "geschwindigkeit": {
-            "450": [149, 180],
-            "480": [154, 186],
-            "520": [161, 194],
-            "582": [170, 205]
-          }
-        },
-        {
-          "verwendung": "Schnellflug (WK? CEST)",
-          "wk": "S1",
-          "geschwindigkeit": {
-            "450": [180, 246],
-            "480": [186, 254],
-            "520": [194, 265],
-            "582": [205, 280]
-          }
-        }
-      ]
+
+  "weights": [450, 480, 520, 582],
+
+  "flaps": {
+    "positions": [94, 167, 243, 84, 156, 191, 230, 250],
+    "labels":    ["L", "+2", "+1", "0", "-1", "-2", "S", "S1"],
+    "tolerance": 6
+  },
+
+  "speedpolar": [
+    {
+      "wk": "L",
+      "usage": "Langsamflug (WK3 CST)",
+      "ranges": [[40, 83], [40, 85], [40, 89], [40, 94]]
+    },
+    {
+      "wk": "+2",
+      "usage": "Langsamflug (WK2 CEST)",
+      "ranges": [[83, 88], [85, 91], [89, 95], [94, 100]]
+    },
+    {
+      "wk": "+1",
+      "usage": "Langsamflug (WK1 CEST)",
+      "ranges": [[88, 91], [91, 94], [95, 98], [100, 104]]
+    },
+    {
+      "wk": "0",
+      "usage": "Bestes Gleiten (WK0.5 CEST)",
+      "ranges": [[91, 114], [94, 118], [98, 123], [104, 130]]
+    },
+    {
+      "wk": "-1",
+      "usage": "Vorfliegen zwischen Thermik und Schnellflug (WK0 CEST)",
+      "ranges": [[114, 127], [118, 131], [123, 136], [130, 144]]
+    },
+    {
+      "wk": "-2",
+      "usage": "Vorfliegen zwischen Thermik und Schnellflug (WK0-1 CEST)",
+      "ranges": [[127, 149], [131, 154], [136, 161], [144, 170]]
+    },
+    {
+      "wk": "S",
+      "usage": "Schnellflug (WK-2 CEST)",
+      "ranges": [[149, 180], [154, 186], [161, 194], [170, 205]]
+    },
+    {
+      "wk": "S1",
+      "usage": "Schnellflug (WK? CEST)",
+      "ranges": [[180, 280], [186, 280], [194, 280], [205, 280]]
     }
-  },
+  ],
+
   "lowspeed": {
-    "Description": "Takeoff and Landing",
     "wk": "-1",
-    "geschwindigkeit": {
-      "*": [0, 40]
-    }
+    "usage": "Takeoff and Landing",
+    "range": [0, 40]
   }
 }

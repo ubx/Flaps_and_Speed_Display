@@ -121,86 +121,84 @@ namespace flaputils
             kCurrentPolar = path;
         }
 
-        // 1. flap2symbol
-        if (const cJSON* f2s = cJSON_GetObjectItem(root, "flap2symbol"))
+        // 1. meta (previously partially in speedpolar)
+        if (const cJSON* meta = cJSON_GetObjectItem(root, "meta"))
         {
-            if (cJSON* tol = cJSON_GetObjectItem(f2s, "tolerance")) kTolerance = tol->valueint;
+            if (cJSON* em = cJSON_GetObjectItem(meta, "empty_mass_kg")) kEmptyMassKg = static_cast<float>(em->valuedouble);
+        }
 
-            cJSON* table = cJSON_GetObjectItem(f2s, "table");
-            if (table && cJSON_IsArray(table))
+        // 2. weights
+        if (const cJSON* w_arr = cJSON_GetObjectItem(root, "weights"))
+        {
+            if (cJSON_IsArray(w_arr))
             {
-                int sz = cJSON_GetArraySize(table);
+                int sz = cJSON_GetArraySize(w_arr);
                 for (int i = 0; i < sz; i++)
                 {
-                    cJSON* item = cJSON_GetArrayItem(table, i);
-                    if (cJSON_IsArray(item) && cJSON_GetArraySize(item) >= 2)
+                    kWeights.push_back(cJSON_GetArrayItem(w_arr, i)->valueint);
+                }
+            }
+        }
+
+        // 3. flaps (previously flap2symbol)
+        if (const cJSON* flaps = cJSON_GetObjectItem(root, "flaps"))
+        {
+            if (cJSON* tol = cJSON_GetObjectItem(flaps, "tolerance")) kTolerance = tol->valueint;
+
+            cJSON* pos_arr = cJSON_GetObjectItem(flaps, "positions");
+            cJSON* lab_arr = cJSON_GetObjectItem(flaps, "labels");
+            if (pos_arr && cJSON_IsArray(pos_arr) && lab_arr && cJSON_IsArray(lab_arr))
+            {
+                int sz = std::min(cJSON_GetArraySize(pos_arr), cJSON_GetArraySize(lab_arr));
+                for (int i = 0; i < sz; i++)
+                {
+                    const int pos = cJSON_GetArrayItem(pos_arr, i)->valueint;
+                    cJSON* lab_item = cJSON_GetArrayItem(lab_arr, i);
+                    if (lab_item && lab_item->valuestring)
                     {
-                        const int pos = cJSON_GetArrayItem(item, 0)->valueint;
-                        cJSON* sym_item = cJSON_GetArrayItem(item, 1);
-                        if (sym_item && sym_item->valuestring)
-                        {
-                            kFlapTable.push_back({pos, sym_item->valuestring});
-                        }
+                        kFlapTable.push_back({pos, lab_item->valuestring});
                     }
                 }
             }
         }
 
-        // 2. speedpolar
-        if (const cJSON* sp = cJSON_GetObjectItem(root, "speedpolar"))
+        // 4. speedpolar
+        if (const cJSON* sp_arr = cJSON_GetObjectItem(root, "speedpolar"))
         {
-            if (cJSON* em = cJSON_GetObjectItem(sp, "empty_mass_kg")) kEmptyMassKg = static_cast<float>(em->valuedouble);
-
-            if (cJSON* opt = cJSON_GetObjectItem(sp, "optimale_fluggeschwindigkeit_kmh"))
+            if (cJSON_IsArray(sp_arr))
             {
-                cJSON* w_arr = cJSON_GetObjectItem(opt, "gewicht_kg");
-                if (w_arr && cJSON_IsArray(w_arr))
+                int b_sz = cJSON_GetArraySize(sp_arr);
+                for (int i = 0; i < b_sz; i++)
                 {
-                    int sz = cJSON_GetArraySize(w_arr);
-                    for (int i = 0; i < sz; i++)
-                    {
-                        kWeights.push_back(cJSON_GetArrayItem(w_arr, i)->valueint);
-                    }
-                }
+                    cJSON* b_item = cJSON_GetArrayItem(sp_arr, i);
+                    Bereich b;
+                    cJSON* wk = cJSON_GetObjectItem(b_item, "wk");
+                    if (wk && wk->valuestring) b.wk = wk->valuestring;
 
-                cJSON* b_arr = cJSON_GetObjectItem(opt, "bereiche");
-                if (b_arr && cJSON_IsArray(b_arr))
-                {
-                    int b_sz = cJSON_GetArraySize(b_arr);
-                    for (int i = 0; i < b_sz; i++)
+                    if (cJSON* r_arr_outer = cJSON_GetObjectItem(b_item, "ranges"))
                     {
-                        cJSON* b_item = cJSON_GetArrayItem(b_arr, i);
-                        Bereich b;
-                        cJSON* wk = cJSON_GetObjectItem(b_item, "wk");
-                        if (wk && wk->valuestring) b.wk = wk->valuestring;
-
-                        if (cJSON* g_obj = cJSON_GetObjectItem(b_item, "geschwindigkeit"))
+                        if (cJSON_IsArray(r_arr_outer))
                         {
-                            for (int w : kWeights)
+                            int r_sz = cJSON_GetArraySize(r_arr_outer);
+                            for (int j = 0; j < r_sz; j++)
                             {
-                                char w_str[16];
-                                snprintf(w_str, sizeof(w_str), "%d", w);
-                                cJSON* r_arr = cJSON_GetObjectItem(g_obj, w_str);
-                                if (r_arr && cJSON_IsArray(r_arr) && cJSON_GetArraySize(r_arr) >= 2)
+                                cJSON* r_pair = cJSON_GetArrayItem(r_arr_outer, j);
+                                if (cJSON_IsArray(r_pair) && cJSON_GetArraySize(r_pair) >= 2)
                                 {
                                     b.ranges.push_back({
-                                        static_cast<float>(cJSON_GetArrayItem(r_arr, 0)->valuedouble),
-                                        static_cast<float>(cJSON_GetArrayItem(r_arr, 1)->valuedouble)
+                                        static_cast<float>(cJSON_GetArrayItem(r_pair, 0)->valuedouble),
+                                        static_cast<float>(cJSON_GetArrayItem(r_pair, 1)->valuedouble)
                                     });
-                                }
-                                else
-                                {
-                                    b.ranges.push_back({-1.0f, -1.0f}); // NA
                                 }
                             }
                         }
-                        kBereiche.push_back(b);
                     }
+                    kBereiche.push_back(b);
                 }
             }
         }
 
-        // 3. lowspeed
+        // 5. lowspeed
         if (const cJSON* ls = cJSON_GetObjectItem(root, "lowspeed"))
         {
             if (const cJSON* wk = cJSON_GetObjectItem(ls, "wk"); wk && wk->valuestring)
@@ -208,14 +206,13 @@ namespace flaputils
                 kLowSpeedWk = wk->valuestring;
             }
 
-            if (const cJSON* geschwindigkeit = cJSON_GetObjectItem(ls, "geschwindigkeit"))
+            if (const cJSON* r_pair = cJSON_GetObjectItem(ls, "range"))
             {
-                if (cJSON* wildcard = cJSON_GetObjectItem(geschwindigkeit, "*");
-                    wildcard && cJSON_IsArray(wildcard) && cJSON_GetArraySize(wildcard) >= 2)
+                if (cJSON_IsArray(r_pair) && cJSON_GetArraySize(r_pair) >= 2)
                 {
                     kLowSpeedRange = {
-                        static_cast<float>(cJSON_GetArrayItem(wildcard, 0)->valuedouble),
-                        static_cast<float>(cJSON_GetArrayItem(wildcard, 1)->valuedouble)
+                        static_cast<float>(cJSON_GetArrayItem(r_pair, 0)->valuedouble),
+                        static_cast<float>(cJSON_GetArrayItem(r_pair, 1)->valuedouble)
                     };
                 }
             }

@@ -7,41 +7,44 @@ import sys
 
 
 def interpolate_speed(weight, wk, polar_data):
-    weights = polar_data["speedpolar"]["optimale_fluggeschwindigkeit_kmh"]["gewicht_kg"]
-    ranges = polar_data["speedpolar"]["optimale_fluggeschwindigkeit_kmh"]["bereiche"]
+    weights = polar_data["weights"]
+    speedpolar = polar_data["speedpolar"]
 
     # find correct flap entry
-    entry = next((r for r in ranges if r["wk"] == wk), None)
+    entry = next((r for r in speedpolar if r["wk"] == wk), None)
     if entry is None:
         raise ValueError(f"Flap setting '{wk}' not found")
 
-    speeds = entry["geschwindigkeit"]
-
     # exact match
-    if str(weight) in speeds:
-        return tuple(speeds[str(weight)])
+    try:
+        weight_idx = weights.index(weight)
+        return tuple(entry["ranges"][weight_idx])
+    except ValueError:
+        pass
 
     # find bounding weights
-    lower_w = None
-    upper_w = None
+    lower_idx = None
+    upper_idx = None
 
-    for w in weights:
+    for i, w in enumerate(weights):
         if w <= weight:
-            lower_w = w
-        if w >= weight and upper_w is None:
-            upper_w = w
+            lower_idx = i
+        if w >= weight and upper_idx is None:
+            upper_idx = i
 
     # clamp
-    if lower_w is None:
-        lower_w = weights[0]
-    if upper_w is None:
-        upper_w = weights[-1]
+    if lower_idx is None:
+        lower_idx = 0
+    if upper_idx is None:
+        upper_idx = len(weights) - 1
 
-    if lower_w == upper_w:
-        return tuple(speeds[str(lower_w)])
+    if lower_idx == upper_idx:
+        return tuple(entry["ranges"][lower_idx])
 
-    v1_min, v1_max = speeds[str(lower_w)]
-    v2_min, v2_max = speeds[str(upper_w)]
+    v1_min, v1_max = entry["ranges"][lower_idx]
+    v2_min, v2_max = entry["ranges"][upper_idx]
+    lower_w = weights[lower_idx]
+    upper_w = weights[upper_idx]
 
     # sqrt scaling interpolation
     w_ratio = (math.sqrt(weight) - math.sqrt(lower_w)) / (
