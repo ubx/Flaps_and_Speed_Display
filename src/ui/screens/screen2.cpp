@@ -735,8 +735,8 @@ void screen2_create()
     s_v = 0.0f;
     s_last_ms = 0;
 
-    // 10 Hz tick (100ms) for smooth needle; other UI updates are internally divided down
-    lv_timer_create(ui_update_timer_cb, 100, nullptr);
+    // 20 Hz tick (50ms) for smooth needle; other UI updates are internally divided down
+    lv_timer_create(ui_update_timer_cb, 50, nullptr);
 }
 
 lv_obj_t* screen2_get()
