@@ -2,7 +2,7 @@
 
 An ESP32-S3-based flight instrument displays ([ESP32-S3-Touch-AMOLED-1.75](https://www.waveshare.com/wiki/ESP32-S3-Touch-AMOLED-1.75)) for flaps and speed data.
 It uses an AMOLED display with LVGL to provide a graphical gauge for indicated airspeed (IAS) \
-and flaps position, receiving real-time data via the CAN bus (TWAI).
+and flap position, receiving real-time data via the CAN bus (TWAI).
 
 ### todo
 - ~~adjust speed gauge size and layout~~
@@ -16,7 +16,13 @@ and flaps position, receiving real-time data via the CAN bus (TWAI).
 - ~~implement update ventus3_defaut.json OTA with BLE~~
 - demo mode
 - ~~special flap positions for start and landing~~
-- 3D print housing
-- PCB board
+- ~~3D print housing~~
+- ~~PCB board~~
 - ~~User Manual~~
 - ~~Altitude screen~~
+- PCB rework, make it more professional!
+
+Next steps:
+- extent polare date (json files) with speed limits (min, nest, Vne)
+- improve speed screen with speed limits
+- improve speed screen #2 similar to a real ASI
