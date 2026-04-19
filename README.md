@@ -4,6 +4,12 @@ An ESP32-S3-based flight instrument displays ([ESP32-S3-Touch-AMOLED-1.75](https
 It uses an AMOLED display with LVGL to provide a graphical gauge for indicated airspeed (IAS) \
 and flap position, receiving real-time data via the CAN bus (TWAI).
 
+## Housing
+[3D model](housing)
+
+## PCB
+[KiCad project](https://github.com/ubx/Flaps_and_Speed_Display_HW)
+
 ### todo
 - ~~adjust speed gauge size and layout~~
 - ~~replace the numeric speed field~~
@@ -23,6 +29,6 @@ and flap position, receiving real-time data via the CAN bus (TWAI).
 - PCB rework, make it more professional!
 
 Next steps:
-- extent polare date (json files) with speed limits (min, nest, Vne)
+- extent polare data (JSON files) with speed limits (min, best, Vne)
 - improve speed screen with speed limits
 - improve speed screen #2 similar to a real ASI
