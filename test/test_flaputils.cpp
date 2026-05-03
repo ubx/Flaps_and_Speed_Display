@@ -48,13 +48,13 @@ static int run_tests()
 
     std::printf("\n--- Testing get_flap_symbol ---\n");
     {
-        int test_positions[] = {94, 95, 96, 97, 84, 85, 250, 252, 0, 230, 157, 167};
-        for (int pos : test_positions)
+        int test_indices[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, -1};
+        for (int idx : test_indices)
         {
-            FlapSymbolResult res = get_flap_symbol(pos);
+            FlapSymbolResult res = get_flap_symbol(idx);
             const char* sym = get_flap_symbol_name(res.index);
-            std::printf("Position %d -> Symbol: %s, Index: %d\n",
-                        pos, sym ? sym : "None", res.index);
+            std::printf("Index %d -> Symbol: %s, Result Index: %d\n",
+                        idx, sym ? sym : "None", res.index);
         }
     }
 

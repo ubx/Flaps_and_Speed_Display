@@ -117,7 +117,7 @@ private:
             case 1519: flight_data.update_float("alt_corr", CANDecoder::decode_float(msg.data)); break;
             case 333: flight_data.update_float("wind_speed", CANDecoder::decode_float(msg.data)); break;
             case 334: flight_data.update_float("wind_direction", CANDecoder::decode_float(msg.data)); break;
-            case 340: flight_data.update_int("flap", CANDecoder::decode_char(msg.data)); break;
+            case 340: flight_data.update_int("flap", CANDecoder::decode_flap_idx(msg.data)); break;
             case 1039: flight_data.update_float("gps_ground_speed", CANDecoder::decode_float(msg.data)); break;
             case 1040: flight_data.update_float("gps_true_track", CANDecoder::decode_float(msg.data)); break;
             case 1515: flight_data.update_uint16("dry_and_ballast_mass", CANDecoder::decode_u16(msg.data)); break;
@@ -366,7 +366,7 @@ static void can_receiver_task(std::string iface)
         case 333: g_flight_state.wind_speed = CANDecoder::decode_float(frame.data); break;
         case 334: g_flight_state.wind_direction = CANDecoder::decode_float(frame.data); break;
         case 340:
-            g_flight_state.flapIdx = CANDecoder::decode_char(frame.data);
+            g_flight_state.flapIdx = CANDecoder::decode_flap_idx(frame.data);
             g_flight_state.last_relevant_rx_ms = FlightData::monotonic_ms();
             break;
         case 354: g_flight_state.vario = CANDecoder::decode_float(frame.data); break;

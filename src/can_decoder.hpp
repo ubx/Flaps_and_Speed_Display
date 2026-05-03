@@ -34,4 +34,13 @@ public:
     {
         return static_cast<int>(data[4]);
     }
+
+    static int decode_flap_idx(const uint8_t* data)
+    {
+        // Decode 340 as 2-bytes array. Ignore Byte 0, Byte 1 is the flapIdx.
+        // In this decoder, data usually points to the start of the CAN frame data (8 bytes).
+        // However, looking at decode_char, it uses data[4].
+        // Let's check how it is used in main.cpp.
+        return static_cast<int>(data[5]);
+    }
 };

@@ -25,11 +25,9 @@ namespace flaputils
 {
     struct FlapEntry
     {
-        int position;
         std::string symbol;
     };
 
-    static int kTolerance = 6;
     static std::vector<FlapEntry> kFlapTable;
     static std::vector<int> kWeights;
     static float kEmptyMassKg = 0.0f;
@@ -143,20 +141,16 @@ namespace flaputils
         // 3. flaps (previously flap2symbol)
         if (const cJSON* flaps = cJSON_GetObjectItem(root, "flaps"))
         {
-            if (cJSON* tol = cJSON_GetObjectItem(flaps, "tolerance")) kTolerance = tol->valueint;
-
-            cJSON* pos_arr = cJSON_GetObjectItem(flaps, "positions");
             cJSON* lab_arr = cJSON_GetObjectItem(flaps, "labels");
-            if (pos_arr && cJSON_IsArray(pos_arr) && lab_arr && cJSON_IsArray(lab_arr))
+            if (lab_arr && cJSON_IsArray(lab_arr))
             {
-                int sz = std::min(cJSON_GetArraySize(pos_arr), cJSON_GetArraySize(lab_arr));
+                int sz = cJSON_GetArraySize(lab_arr);
                 for (int i = 0; i < sz; i++)
                 {
-                    const int pos = cJSON_GetArrayItem(pos_arr, i)->valueint;
                     cJSON* lab_item = cJSON_GetArrayItem(lab_arr, i);
                     if (lab_item && lab_item->valuestring)
                     {
-                        kFlapTable.push_back({pos, lab_item->valuestring});
+                        kFlapTable.push_back({lab_item->valuestring});
                     }
                 }
             }
@@ -225,15 +219,11 @@ namespace flaputils
 
     float get_empty_mass() { return kEmptyMassKg; }
 
-    FlapSymbolResult get_flap_symbol(int position)
+    FlapSymbolResult get_flap_symbol(int flapIdx)
     {
-        for (std::size_t i = 0; i < kFlapTable.size(); ++i)
+        if (flapIdx >= 0 && static_cast<std::size_t>(flapIdx) < kFlapTable.size())
         {
-            const auto& e = kFlapTable[i];
-            if (std::abs(position - e.position) <= kTolerance)
-            {
-                return {static_cast<int>(i)};
-            }
+            return {flapIdx};
         }
         return {-1};
     }

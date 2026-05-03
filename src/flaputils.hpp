@@ -20,7 +20,7 @@ namespace flaputils
 
 
 
-    FlapSymbolResult get_flap_symbol(int position);
+    FlapSymbolResult get_flap_symbol(int flapIdx);
 
     // Returns the optimal flap symbol (e.g. "L", "+2", "0", "S1") for a given
     // total weight (kg) and indicated airspeed (km/h).
