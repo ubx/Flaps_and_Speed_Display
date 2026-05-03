@@ -5,7 +5,7 @@ This script sends data to the ESP32 BLE OTA service.
 It supports two modes:
 
 1. App firmware OTA (`--bin`)
-2. SPIFFS file upload (`--spiffs-file`)
+2. SPIFFS file upload (`--spiffs-file` or `--spiffs-dir`)
 
 Exactly one mode must be selected.
 
@@ -31,18 +31,34 @@ Behavior:
 - Sends `FINISH`.
 - Sends `REBOOT` unless `--no-reboot` is set.
 
-### 2) Upload SPIFFS file (`ventus3_defaut.json`)
+### 2) Upload SPIFFS files
+
+#### Single file (`ventus3_defaut.json`)
 
 ```bash
 cd ..
 python test/ble_ota_send.py --spiffs-file spiffs_data/ventus3_defaut.json
 ```
 
-Default remote target path:
+Default remote target path: `/spiffs/ventus3_defaut.json`
 
-- `/spiffs/ventus3_defaut.json`
+#### Multiple files
 
-Custom remote path:
+```bash
+cd ..
+python test/ble_ota_send.py \
+  --spiffs-file spiffs_data/ventus3_defaut.json \
+  --spiffs-file spiffs_data/ventus3_3T_SE.json
+```
+
+#### All JSON files in a directory
+
+```bash
+cd ..
+python test/ble_ota_send.py --spiffs-dir spiffs_data
+```
+
+Custom remote path (only for single file):
 
 ```bash
 cd ..
@@ -63,8 +79,9 @@ Behavior:
 - `--name <ble_name>`: BLE advertised name (default: `Flaps-OTA`)
 - `--address <mac_or_addr>`: connect directly without scanning
 - `--bin <firmware.bin>`: firmware OTA mode
-- `--spiffs-file <local_path>`: SPIFFS upload mode
-- `--spiffs-remote <remote_path>`: destination path on the device (default: `/spiffs/ventus3_defaut.json`)
+- `--spiffs-file <local_path>`: SPIFFS upload mode (can be repeated)
+- `--spiffs-dir <dir_path>`: upload all .json files from directory
+- `--spiffs-remote <remote_path>`: destination path for single file (default: `/spiffs/<filename>`)
 - `--chunk <n>`: transfer chunk size in bytes (default: `240`)
 - `--data-with-response`: send DATA writes with response (slower, can be more reliable)
 - `--no-reboot`: skip reboot after firmware upload
