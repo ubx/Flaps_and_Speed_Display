@@ -18,7 +18,7 @@ struct FlightData
     float alt = 0;
     float alt_corr = 0;
     float vario = 0;
-    int flap = 0;
+    int flapIdx = 0;
     double lat = 0;
     double lon = 0;
     float gps_ground_speed = 0;
@@ -75,7 +75,7 @@ struct FlightData
         std::lock_guard lock(mtx);
         if (key == "flap")
         {
-            flap = value;
+            flapIdx = value;
             last_relevant_rx_ms = monotonic_ms();
         }
     }

@@ -62,7 +62,7 @@
 #endif
 
 #define APP_NAME "Flaps & Speed"
-#define APP_VERSION "1.0.0"
+#define APP_VERSION "1.0.1"
 
 #ifndef GIT_REVISION
 #define GIT_REVISION "unknown"
@@ -366,7 +366,7 @@ static void can_receiver_task(std::string iface)
         case 333: g_flight_state.wind_speed = CANDecoder::decode_float(frame.data); break;
         case 334: g_flight_state.wind_direction = CANDecoder::decode_float(frame.data); break;
         case 340:
-            g_flight_state.flap = CANDecoder::decode_char(frame.data);
+            g_flight_state.flapIdx = CANDecoder::decode_char(frame.data);
             g_flight_state.last_relevant_rx_ms = FlightData::monotonic_ms();
             break;
         case 354: g_flight_state.vario = CANDecoder::decode_float(frame.data); break;
