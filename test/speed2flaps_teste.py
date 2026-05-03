@@ -7,15 +7,28 @@ from PySide6.QtWidgets import (
     QLabel, QSlider, QSpinBox
 )
 
-FLAPS_VALUES = [94, 167, 243, 84, 156, 191, 230, 250]
+FLAPS_LABELS = ["L", "+2", "+1", "0", "-1", "-2", "S", "S1"]
+FLAPS_VALUES = [0, 1, 2, 3, 4, 5, 6, 7]
 
 # CAN frame format: 4 bytes ID, 1 byte length, 3 bytes padding, 8 bytes data
 CAN_FRAME_FMT = "=IB3x8s"
 
 
-def send_can_frame(sock, can_id, data):
+def send_can_frame(sock, can_id, data, node_id=99, data_type=0):
     # Padding the data to 8 bytes if needed
     data = data.ljust(8, b'\x00')
+    if isinstance(data, bytearray):
+        data[0] = node_id & 0xFF
+        if data_type != 0:
+            data[1] = data_type & 0xFF
+    else:
+        # If it's bytes, we need to recreate it to modify data[0] and data[1]
+        data_list = list(data)
+        data_list[0] = node_id & 0xFF
+        if data_type != 0:
+            data_list[1] = data_type & 0xFF
+        data = bytes(data_list)
+
     can_pkt = struct.pack(CAN_FRAME_FMT, can_id, len(data), data)
     try:
         sock.send(can_pkt)
@@ -27,7 +40,7 @@ class ControlPanel(QWidget):
     # Per-value signals
     iasChanged = Signal(int)     # km/h
     massChanged = Signal(int)    # kg
-    flapsChanged = Signal(int)   # V
+    flapsChanged = Signal(int)   # Idx
     windSpeedChanged = Signal(int) # km/h
     windDirectionChanged = Signal(int) # deg
     headingChanged = Signal(int)       # deg
@@ -100,12 +113,12 @@ class ControlPanel(QWidget):
         self.flaps_value = QLabel()
         self.flaps_value.setMinimumWidth(60)
         self.flaps_value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.flaps_unit = QLabel("V")
+        self.flaps_unit = QLabel("")
         self.flaps_unit.setMinimumWidth(45)
 
         self.flaps_slider.valueChanged.connect(self._on_flaps_index_changed)
 
-        grid.addWidget(QLabel(f"Flaps ({', '.join(map(str, FLAPS_VALUES))})"), 2, 0)
+        grid.addWidget(QLabel(f"Flaps ({', '.join(FLAPS_LABELS)})"), 2, 0)
         grid.addWidget(self.flaps_slider, 2, 1)
         grid.addWidget(self.flaps_value, 2, 2)
         grid.addWidget(self.flaps_unit, 2, 3)
@@ -241,32 +254,33 @@ class ControlPanel(QWidget):
         # main.cpp: get_float(msg.data) reads big-endian float starting at index 4
         ias_data = bytearray(8)
         struct.pack_into(">f", ias_data, 4, vals["ias"] / 3.6)
-        send_can_frame(self.sock, 315, ias_data)
+        send_can_frame(self.sock, 315, ias_data, data_type=2) # FLOAT
 
         # ID 1515: dry_and_ballast_mass (Hg -> kg * 10)
         mass_data = bytearray(8)
         struct.pack_into(">H", mass_data, 4, vals["mass"] * 10)
-        send_can_frame(self.sock, 1515, mass_data)
+        send_can_frame(self.sock, 1515, mass_data, data_type=7) # USHORT
 
         # ID 340: flap
         flaps_data = bytearray(8)
-        flaps_data[4] = vals["flaps"] & 0xFF
-        send_can_frame(self.sock, 340, flaps_data)
+        flaps_data[4] = 60
+        flaps_data[5] = vals["flaps"] & 0xFF
+        send_can_frame(self.sock, 340, flaps_data, data_type=19) # UCHAR2
 
         # ID 333: wind_speed (km/h)
         wind_speed_data = bytearray(8)
         struct.pack_into(">f", wind_speed_data, 4, float(vals["wind_speed"] / 3.6))
-        send_can_frame(self.sock, 333, wind_speed_data)
+        send_can_frame(self.sock, 333, wind_speed_data, data_type=2) # FLOAT
 
         # ID 334: wind_direction (deg)
         wind_dir_data = bytearray(8)
         struct.pack_into(">f", wind_dir_data, 4, float(vals["wind_direction"]))
-        send_can_frame(self.sock, 334, wind_dir_data)
+        send_can_frame(self.sock, 334, wind_dir_data, data_type=2) # FLOAT
 
         # ID 321: heading (deg)
         heading_data = bytearray(8)
         struct.pack_into(">f", heading_data, 4, float(vals["heading"]))
-        send_can_frame(self.sock, 321, heading_data)
+        send_can_frame(self.sock, 321, heading_data, data_type=2) # FLOAT
 
     # ---- Flaps helpers ----
     def _current_flaps_value(self) -> int:
@@ -275,8 +289,8 @@ class ControlPanel(QWidget):
         return FLAPS_VALUES[idx]
 
     def _update_flaps_label(self, idx: int):
-        idx = max(0, min(int(idx), len(FLAPS_VALUES) - 1))
-        self.flaps_value.setText(str(FLAPS_VALUES[idx]))
+        idx = max(0, min(int(idx), len(FLAPS_LABELS) - 1))
+        self.flaps_value.setText(FLAPS_LABELS[idx])
 
 
 def main():
@@ -302,7 +316,8 @@ def main():
         print(f"Mass changed: {v} kg")
 
     def on_flaps_changed(v):
-        print(f"Flaps changed: {v} V")
+        label = FLAPS_LABELS[v] if 0 <= v < len(FLAPS_LABELS) else str(v)
+        print(f"Flaps changed: {label} (index {v})")
 
     def on_wind_speed_changed(v):
         print(f"Wind speed changed: {v} km/h")
