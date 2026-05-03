@@ -64,12 +64,12 @@ Behavior:
 - `--address <mac_or_addr>`: connect directly without scanning
 - `--bin <firmware.bin>`: firmware OTA mode
 - `--spiffs-file <local_path>`: SPIFFS upload mode
-- `--spiffs-remote <remote_path>`: destination path on device (default: `/spiffs/ventus3_defaut.json`)
+- `--spiffs-remote <remote_path>`: destination path on the device (default: `/spiffs/ventus3_defaut.json`)
 - `--chunk <n>`: transfer chunk size in bytes (default: `240`)
 - `--data-with-response`: send DATA writes with response (slower, can be more reliable)
 - `--no-reboot`: skip reboot after firmware upload
 
 ## Notes
 
-- For firmware mode, a BLE disconnect right after reboot command can be normal.
+- For firmware mode, a BLE disconnect right after the reboot command can be normal.
 - For SPIFFS mode, destination must be under `/spiffs/`.
