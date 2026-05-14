@@ -1,4 +1,4 @@
-# Display-L(Vario) Settings for a Ventus3
+# Display-S(Vario) Settings for a Ventus3
 
 | Index | Volt | Symbol |
 |---|-----:|--------|
