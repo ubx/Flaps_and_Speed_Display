@@ -24,3 +24,5 @@ Service Code: SC0 (0)
 Message Code: 95
 Data: 131 %, index 2
 ````
+> [!Note]
+> ``Data: 131 %`` should read as ``Data: 1.3 V``
