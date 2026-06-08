@@ -61,6 +61,7 @@ struct __attribute__((packed)) OtaStatus
 
 static std::mutex s_mtx;
 static OtaStatus s_status = {STATE_IDLE, 0, 0, 0, 0, 0};
+static uint32_t s_internal_crc = 0;
 static bool s_initialized = false;
 static bool s_image_ready = false;
 static esp_ota_handle_t s_ota_handle = 0;
@@ -125,6 +126,7 @@ static void abort_session_locked()
     s_status.expected_size = 0;
     s_status.received_size = 0;
     s_status.running_crc32 = 0;
+    s_internal_crc = 0;
     s_expected_crc32 = 0;
     s_image_ready = false;
     s_transfer_target = TARGET_APP_OTA;
@@ -182,7 +184,8 @@ static esp_err_t start_session_locked(uint32_t image_size, uint32_t expected_crc
 
     s_status.expected_size = image_size;
     s_status.received_size = 0;
-    s_status.running_crc32 = UINT32_MAX;
+    s_status.running_crc32 = 0;
+    s_internal_crc = 0;
     s_status.reserved = 0;
     s_expected_crc32 = expected_crc32;
     s_image_ready = false;
@@ -254,7 +257,8 @@ static esp_err_t write_chunk_locked(const uint8_t* data, uint16_t len)
         return ESP_ERR_INVALID_STATE;
     }
 
-    s_status.running_crc32 = esp_crc32_le(s_status.running_crc32, data, len);
+    s_internal_crc = esp_crc32_le(s_internal_crc, data, len);
+    s_status.running_crc32 = s_internal_crc;
     s_status.received_size += len;
     return ESP_OK;
 }
