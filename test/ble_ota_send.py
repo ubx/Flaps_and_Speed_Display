@@ -124,8 +124,8 @@ async def main():
             try:
                 await client.write_gatt_char(OTA_CTRL_UUID, CMD_REBOOT, response=True)
                 print("\nReboot command sent.")
-            except Exception as exc:
-                if "ATT error: 0x0e" in str(exc) or "disconnected" in str(exc).lower():
+            except (Exception, EOFError) as exc:
+                if isinstance(exc, EOFError) or "ATT error: 0x0e" in str(exc) or "disconnected" in str(exc).lower():
                     print("\nDevice rebooted (link dropped).")
                 else:
                     raise

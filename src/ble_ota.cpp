@@ -14,6 +14,9 @@
 #include "esp_crc.h"
 #include "esp_bt.h"
 #include "nvs_flash.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/timers.h"
 
 #if defined(CONFIG_BT_ENABLED) && CONFIG_BT_ENABLED && defined(CONFIG_BT_NIMBLE_ENABLED) && CONFIG_BT_NIMBLE_ENABLED
 #include "host/ble_hs.h"
@@ -470,8 +473,19 @@ static int gatt_access_cb(uint16_t conn_handle, uint16_t attr_handle, ble_gatt_a
             else
             {
                 notify_status_if_connected();
-                ESP_LOGI(TAG, "Rebooting into updated firmware");
-                esp_restart();
+                ESP_LOGI(TAG, "Rebooting into updated firmware in 500ms...");
+                static TimerHandle_t reboot_timer;
+                reboot_timer = xTimerCreate("reboot", pdMS_TO_TICKS(500), pdFALSE, nullptr, [](TimerHandle_t) {
+                    esp_restart();
+                });
+                if (reboot_timer)
+                {
+                    xTimerStart(reboot_timer, 0);
+                }
+                else
+                {
+                    esp_restart();
+                }
             }
         }
         else
