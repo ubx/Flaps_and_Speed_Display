@@ -231,7 +231,7 @@ extern "C" void app_main(void)
     if (twai_driver_install(&g_config, &t_config, &f_config) == ESP_OK && twai_start() == ESP_OK)
     {
         receiver.start();
-        xTaskCreate(print_task, "print_task", 4096, &g_flight_state, 2, nullptr);
+        // xTaskCreate(print_task, "print_task", 4096, &g_flight_state, 2, nullptr);
         ui_init();
         set_label1(APP_NAME);
         set_label2("Version: " APP_VERSION);
