@@ -85,7 +85,7 @@ async def main():
                 payload = f.read()
             total = len(payload)
             expected_crc32 = zlib.crc32(payload, 0xFFFFFFFF) & 0xFFFFFFFF
-
+            print(f"CRC32 = 0x{expected_crc32:08X}")
             print(f"\nSending {local_path}...")
             if target_mode == TARGET_SPIFFS_FILE:
                 print(f"Target: SPIFFS -> {remote_path}")
