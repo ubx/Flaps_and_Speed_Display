@@ -199,11 +199,15 @@ extern "C" void app_main(void)
         .base_path = "/spiffs",
         .partition_label = "spiffs",
         .max_files = 5,
-        .format_if_mount_failed = false
+        .format_if_mount_failed = true
     };
 
     esp_err_t ret = esp_vfs_spiffs_register(&conf);
-    if (ret == ESP_OK)
+    if (ret != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Failed to mount or format SPIFFS (%s)", esp_err_to_name(ret));
+    }
+    else
     {
         if (flaputils::load_persisted_data())
             ESP_LOGI(TAG, "Persisted polar data loaded successfully");
