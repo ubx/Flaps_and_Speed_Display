@@ -70,6 +70,8 @@ async def main():
             print(f"  Firmware: {lp}")
 
     async with BleakClient(addr) as client:
+        # Give some time for MTU negotiation
+        await asyncio.sleep(1.0)
         try:
             mtu = await client.get_mtu()
             print(f"MTU: {mtu}")

@@ -174,7 +174,7 @@ static esp_err_t start_session_locked(uint32_t image_size, uint32_t expected_crc
         s_spiffs_file = fopen(spiffs_path, "wb");
         if (s_spiffs_file == nullptr)
         {
-            ESP_LOGE(TAG, "Failed to open SPIFFS file for write: %s", spiffs_path);
+            ESP_LOGE(TAG, "Failed to open SPIFFS file for write: %s (errno: %d)", spiffs_path, errno);
             update_status_locked(STATE_ERROR, ESP_FAIL);
             return ESP_FAIL;
         }
@@ -495,14 +495,18 @@ static int gatt_access_cb(uint16_t conn_handle, uint16_t attr_handle, ble_gatt_a
         }
 
         notify_status_if_connected();
-        return err == ESP_OK ? 0 : BLE_ATT_ERR_UNLIKELY;
+        if (err == ESP_OK) return 0;
+        if (err == ESP_ERR_INVALID_ARG) return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
+        return BLE_ATT_ERR_UNLIKELY;
     }
 
     if (ble_uuid_cmp(chr_uuid, &kDataUuid.u) == 0)
     {
         esp_err_t err = write_chunk_locked(buf.data(), len);
         notify_status_if_connected();
-        return err == ESP_OK ? 0 : BLE_ATT_ERR_UNLIKELY;
+        if (err == ESP_OK) return 0;
+        if (err == ESP_ERR_INVALID_ARG) return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
+        return BLE_ATT_ERR_UNLIKELY;
     }
 
     return BLE_ATT_ERR_UNLIKELY;
@@ -712,6 +716,7 @@ esp_err_t ble_ota_init()
 
     ble_svc_gap_init();
     ble_svc_gatt_init();
+    ble_att_set_preferred_mtu(256);
     configure_gatt_chars();
 
     int rc = ble_svc_gap_device_name_set("Flaps-OTA");
