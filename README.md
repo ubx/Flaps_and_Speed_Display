@@ -10,6 +10,9 @@ and flap position, receiving real-time data via the CAN bus (TWAI).
 ## PCB
 [KiCad project](https://github.com/ubx/Flaps_and_Speed_Display_HW)
 
+## Firmware and Polar Data Uploader
+[Android app](https://github.com/ubx/Flaps_and_Speed_Display_Uploader) to upload firmware and polar data to the device.
+
 ### todo
 - ~~adjust speed gauge size and layout~~
 - ~~replace the numeric speed field~~
