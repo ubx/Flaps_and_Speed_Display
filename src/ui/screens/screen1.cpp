@@ -222,6 +222,39 @@ static void ui_create_gauge()
     lv_scale_set_rotation(s_scale, 130);
     lv_scale_set_label_show(s_scale, true);
 
+    // Arcs
+    static lv_style_t style_white;
+    lv_style_init(&style_white);
+    lv_style_set_arc_color(&style_white, lv_color_white());
+    lv_style_set_arc_width(&style_white, 10);
+
+    static lv_style_t style_green;
+    lv_style_init(&style_green);
+    lv_style_set_arc_color(&style_green, lv_palette_main(LV_PALETTE_GREEN));
+    lv_style_set_arc_width(&style_green, 10);
+
+    static lv_style_t style_yellow;
+    lv_style_init(&style_yellow);
+    lv_style_set_arc_color(&style_yellow, lv_palette_main(LV_PALETTE_YELLOW));
+    lv_style_set_arc_width(&style_yellow, 10);
+
+    lv_scale_section_t* sec;
+
+    // White arc: Vso to Vfe (approx. 75 to 180 km/h)
+    sec = lv_scale_add_section(s_scale);
+    lv_scale_set_section_range(s_scale, sec, 75, 180);
+    lv_scale_set_section_style_main(s_scale, sec, &style_white);
+
+    // Green arc: Vs1 to Vno (approx. 90 to 200 km/h)
+    sec = lv_scale_add_section(s_scale);
+    lv_scale_set_section_range(s_scale, sec, 90, 200);
+    lv_scale_set_section_style_main(s_scale, sec, &style_green);
+
+    // Yellow arc: Vno to Vne (200 to 280 km/h)
+    sec = lv_scale_add_section(s_scale);
+    lv_scale_set_section_range(s_scale, sec, 200, 280);
+    lv_scale_set_section_style_main(s_scale, sec, &style_yellow);
+
     lv_obj_set_style_text_color(s_scale, lv_color_white(), 0);
     lv_obj_set_style_text_font(s_scale, &lv_font_montserrat_28, 0);
 
