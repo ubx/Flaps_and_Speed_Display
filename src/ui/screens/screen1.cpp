@@ -15,6 +15,7 @@ static StaleOverlayState s_stale_overlay;
 // Needle dimensions
 static constexpr int32_t NEEDLE_INNER_RADIUS = 120;
 static constexpr int32_t NEEDLE_OUTER_RADIUS = 170;
+static constexpr int32_t SCALE_LABEL_GAP = 18;
 
 // Scale range
 static constexpr float ASI_MIN = 40.0f;
@@ -221,6 +222,7 @@ static void ui_create_gauge()
     lv_scale_set_angle_range(s_scale, 280);
     lv_scale_set_rotation(s_scale, 130);
     lv_scale_set_label_show(s_scale, true);
+    lv_obj_set_style_pad_radial(s_scale, SCALE_LABEL_GAP, LV_PART_INDICATOR);
 
     // Arcs
     static lv_style_t style_white;
