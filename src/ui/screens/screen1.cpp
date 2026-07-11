@@ -14,8 +14,9 @@ static StaleOverlayState s_stale_overlay;
 
 // Needle dimensions
 static constexpr int32_t NEEDLE_INNER_RADIUS = 120;
-static constexpr int32_t NEEDLE_OUTER_RADIUS = 170;
+static constexpr int32_t NEEDLE_OUTER_RADIUS = 180;
 static constexpr int32_t SCALE_LABEL_GAP = 40;
+static constexpr int32_t ASI_ARC_WIDTH = 15;
 
 // Scale range
 static constexpr float ASI_MIN = 40.0f;
@@ -251,17 +252,17 @@ static void ui_create_gauge()
     static lv_style_t style_white;
     lv_style_init(&style_white);
     lv_style_set_arc_color(&style_white, ASI_COLOR_WHITE);
-    lv_style_set_arc_width(&style_white, 10);
+    lv_style_set_arc_width(&style_white, ASI_ARC_WIDTH);
 
     static lv_style_t style_green;
     lv_style_init(&style_green);
     lv_style_set_arc_color(&style_green, ASI_COLOR_GREEN);
-    lv_style_set_arc_width(&style_green, 10);
+    lv_style_set_arc_width(&style_green, ASI_ARC_WIDTH);
 
     static lv_style_t style_yellow;
     lv_style_init(&style_yellow);
     lv_style_set_arc_color(&style_yellow, ASI_COLOR_YELLOW);
-    lv_style_set_arc_width(&style_yellow, 10);
+    lv_style_set_arc_width(&style_yellow, ASI_ARC_WIDTH);
 
     lv_scale_section_t* sec;
 

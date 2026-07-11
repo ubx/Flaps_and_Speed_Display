@@ -26,6 +26,7 @@ static float s_last_weight = -1.0f;
 /* Needle dimensions */
 static constexpr int32_t NEEDLE_INNER_RADIUS = 130;
 static constexpr int32_t NEEDLE_OUTER_RADIUS = 170;
+static constexpr int32_t ASI_ARC_WIDTH = 20;
 
 /* IAS range */
 static constexpr float ASI_MIN = 40.0f;
@@ -441,7 +442,6 @@ static void ui_create_screen2_deferred(void)
     const int32_t rot = 135;
     const int32_t span = 270;
 
-    const int32_t ring_w = 20;
     const int32_t ring_size = 430;
 
     /* Compute weights */
@@ -490,8 +490,8 @@ static void ui_create_screen2_deferred(void)
 
                 lv_obj_remove_style(arc, nullptr, LV_PART_KNOB);
 
-                lv_obj_set_style_arc_width(arc, ring_w, LV_PART_INDICATOR);
-                lv_obj_set_style_arc_width(arc, ring_w, LV_PART_MAIN);
+                lv_obj_set_style_arc_width(arc, ASI_ARC_WIDTH, LV_PART_INDICATOR);
+                lv_obj_set_style_arc_width(arc, ASI_ARC_WIDTH, LV_PART_MAIN);
                 lv_obj_set_style_arc_opa(arc, LV_OPA_0, LV_PART_MAIN);
 
                 lv_obj_set_style_arc_color(arc, lv_palette_main(LV_PALETTE_GREEN), LV_PART_INDICATOR);
