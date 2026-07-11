@@ -32,6 +32,7 @@ static constexpr float ASI_VNE = 280.0f; // Yellow arc end
 #define ASI_COLOR_WHITE  lv_color_white()
 #define ASI_COLOR_GREEN  lv_palette_main(LV_PALETTE_GREEN)
 #define ASI_COLOR_YELLOW lv_palette_main(LV_PALETTE_YELLOW)
+#define ASI_COLOR_RED    lv_palette_main(LV_PALETTE_RED)
 
 // ---------- "Real aircraft ASI" needle dynamics ----------
 //
@@ -206,6 +207,16 @@ static void ui_update_asi(float raw_kmh)
     // 3) draw needle
     const int32_t vi = (int32_t)lroundf(s_x);
     ui_set_line_needle_value(s_scale, s_needle, NEEDLE_INNER_RADIUS, NEEDLE_OUTER_RADIUS, vi);
+
+    // Update needle color based on current displayed speed
+    lv_color_t n_color = ASI_COLOR_WHITE;
+    if(s_x >= ASI_VNE) n_color = ASI_COLOR_RED;
+    else if(s_x >= ASI_VNO) n_color = ASI_COLOR_YELLOW;
+    else if(s_x >= ASI_VS1) n_color = ASI_COLOR_GREEN;
+    else if(s_x >= ASI_VSO) n_color = ASI_COLOR_RED;
+    else n_color = ASI_COLOR_RED; // Below Vso
+
+    lv_obj_set_style_line_color(s_needle, n_color, 0);
 }
 
 
@@ -275,7 +286,7 @@ static void ui_create_gauge()
     // Needle
     s_needle = lv_line_create(s_scale);
     lv_obj_set_style_line_width(s_needle, 11, 0);
-    lv_obj_set_style_line_color(s_needle, lv_palette_main(LV_PALETTE_GREEN), 0);
+    lv_obj_set_style_line_color(s_needle, ASI_COLOR_RED, 0);
     lv_obj_set_style_line_rounded(s_needle, true, 0);
 
     // Center value
