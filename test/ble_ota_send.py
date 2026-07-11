@@ -2,11 +2,13 @@ import asyncio
 import argparse
 import os
 import zlib
+import struct
 from bleak import BleakClient, BleakScanner
 
 # UUIDs must match src/ble_ota.cpp (kControlUuid / kDataUuid).
 OTA_CTRL_UUID = "2ae4d630-7d4b-2dae-8b4f-14310bb05d39"
 OTA_DATA_UUID = "2ae4d630-7d4b-2dae-8b4f-14310cb05d39"
+OTA_STATUS_UUID = "2ae4d630-7d4b-2dae-8b4f-14310db05d39"
 CMD_START = b"\x01"
 CMD_FINISH = b"\x02"
 CMD_REBOOT = b"\x04"
@@ -20,6 +22,23 @@ async def find_by_name(name: str, timeout: float = 8.0) -> str:
         if d.name == name:
             return d.address
     raise SystemExit(f"Device '{name}' not found. Seen: {[d.name for d in devs]}")
+
+
+async def print_status(client):
+    try:
+        data = await client.read_gatt_char(OTA_STATUS_UUID)
+        if len(data) >= 16:
+            # Match struct OtaStatus in ble_ota.cpp
+            state, error_code, reserved, exp_size, recv_size, crc = struct.unpack("<BBHIII", data[:16])
+            err_map = {0: "OK", 1: "General Error", 2: "Size Mismatch", 3: "CRC Mismatch", 4: "Invalid State"}
+            err_str = err_map.get(error_code, f"Unknown({error_code})")
+            state_map = {0: "IDLE", 1: "IN_PROGRESS", 2: "READY_TO_REBOOT", 3: "ERROR"}
+            state_str = state_map.get(state, f"Unknown({state})")
+            print(f"Device Status: State={state_str}, Error={err_str}, Received={recv_size}/{exp_size}, CRC=0x{crc:08X}")
+        else:
+            print(f"Device Status (raw): {data.hex()}")
+    except Exception as e:
+        print(f"Could not read status: {e}")
 
 
 async def main():
@@ -109,16 +128,36 @@ async def main():
             # DATA
             sent = 0
             chunk = args.chunk
-            resp = True if args.data_with_response else False
-            while sent < total:
-                part = payload[sent:sent + chunk]
-                await client.write_gatt_char(OTA_DATA_UUID, part, response=resp)
+            resp_config = True if args.data_with_response else False
+            
+            # We use chunks of data. Every few chunks, we use write-with-response 
+            # to ensure the device has processed them and avoid overflowing BLE buffers.
+            for i in range(0, total, chunk):
+                part = payload[i:i + chunk]
+                # Periodic sync if not already using responses for everything
+                periodic_sync = (not resp_config and (i // chunk) % 50 == 0)
+                use_resp = resp_config or periodic_sync
+                
+                try:
+                    await client.write_gatt_char(OTA_DATA_UUID, part, response=use_resp)
+                except Exception as e:
+                    print(f"\nError sending data at offset {i}: {e}")
+                    await print_status(client)
+                    raise
+                
                 sent += len(part)
                 if sent % (64 * 1024) < chunk:
                     print(f"  Sent {sent}/{total}")
 
+            print(f"  Sent {sent}/{total}")
+
             # FINISH
-            await client.write_gatt_char(OTA_CTRL_UUID, CMD_FINISH, response=True)
+            try:
+                await client.write_gatt_char(OTA_CTRL_UUID, CMD_FINISH, response=True)
+            except Exception as e:
+                print(f"\nError during FINISH: {e}")
+                await print_status(client)
+                raise
             print(f"Finished {local_path}")
 
         if args.bin and not args.no_reboot:

@@ -96,7 +96,11 @@ static uint32_t read_le_u32(const uint8_t* p)
 
 static uint8_t err_to_status(esp_err_t err)
 {
-    return (err == ESP_OK) ? 0 : 1;
+    if (err == ESP_OK) return 0;
+    if (err == ESP_ERR_INVALID_SIZE) return 2;
+    if (err == ESP_ERR_INVALID_CRC) return 3;
+    if (err == ESP_ERR_INVALID_STATE) return 4;
+    return 1; // General error
 }
 
 static void update_status_locked(OtaState state, esp_err_t err)
@@ -126,13 +130,7 @@ static void abort_session_locked()
         fclose(s_spiffs_file);
         s_spiffs_file = nullptr;
     }
-    s_status.expected_size = 0;
-    s_status.received_size = 0;
-    s_status.running_crc32 = 0;
-    s_internal_crc = 0;
-    s_expected_crc32 = 0;
     s_image_ready = false;
-    s_transfer_target = TARGET_APP_OTA;
 }
 
 static esp_err_t start_session_locked(uint32_t image_size, uint32_t expected_crc32,
@@ -497,6 +495,8 @@ static int gatt_access_cb(uint16_t conn_handle, uint16_t attr_handle, ble_gatt_a
         notify_status_if_connected();
         if (err == ESP_OK) return 0;
         if (err == ESP_ERR_INVALID_ARG) return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
+        if (err == ESP_ERR_INVALID_STATE) return BLE_ATT_ERR_UNLIKELY;
+        if (err == ESP_ERR_INVALID_SIZE) return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
         return BLE_ATT_ERR_UNLIKELY;
     }
 
@@ -506,6 +506,7 @@ static int gatt_access_cb(uint16_t conn_handle, uint16_t attr_handle, ble_gatt_a
         notify_status_if_connected();
         if (err == ESP_OK) return 0;
         if (err == ESP_ERR_INVALID_ARG) return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
+        if (err == ESP_ERR_INVALID_SIZE) return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
         return BLE_ATT_ERR_UNLIKELY;
     }
 
