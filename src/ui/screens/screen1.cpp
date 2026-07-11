@@ -15,11 +15,23 @@ static StaleOverlayState s_stale_overlay;
 // Needle dimensions
 static constexpr int32_t NEEDLE_INNER_RADIUS = 120;
 static constexpr int32_t NEEDLE_OUTER_RADIUS = 170;
-static constexpr int32_t SCALE_LABEL_GAP = 18;
+static constexpr int32_t SCALE_LABEL_GAP = 40;
 
 // Scale range
 static constexpr float ASI_MIN = 40.0f;
 static constexpr float ASI_MAX = 280.0f;
+
+// ASI Arc ranges
+static constexpr float ASI_VSO = 75.0f;  // White arc start
+static constexpr float ASI_VFE = 180.0f; // White arc end
+static constexpr float ASI_VS1 = 90.0f;  // Green arc start
+static constexpr float ASI_VNO = 200.0f; // Green arc end / Yellow arc start
+static constexpr float ASI_VNE = 280.0f; // Yellow arc end
+
+// ASI Arc colors
+#define ASI_COLOR_WHITE  lv_color_white()
+#define ASI_COLOR_GREEN  lv_palette_main(LV_PALETTE_GREEN)
+#define ASI_COLOR_YELLOW lv_palette_main(LV_PALETTE_YELLOW)
 
 // ---------- "Real aircraft ASI" needle dynamics ----------
 //
@@ -227,34 +239,34 @@ static void ui_create_gauge()
     // Arcs
     static lv_style_t style_white;
     lv_style_init(&style_white);
-    lv_style_set_arc_color(&style_white, lv_color_white());
+    lv_style_set_arc_color(&style_white, ASI_COLOR_WHITE);
     lv_style_set_arc_width(&style_white, 10);
 
     static lv_style_t style_green;
     lv_style_init(&style_green);
-    lv_style_set_arc_color(&style_green, lv_palette_main(LV_PALETTE_GREEN));
+    lv_style_set_arc_color(&style_green, ASI_COLOR_GREEN);
     lv_style_set_arc_width(&style_green, 10);
 
     static lv_style_t style_yellow;
     lv_style_init(&style_yellow);
-    lv_style_set_arc_color(&style_yellow, lv_palette_main(LV_PALETTE_YELLOW));
+    lv_style_set_arc_color(&style_yellow, ASI_COLOR_YELLOW);
     lv_style_set_arc_width(&style_yellow, 10);
 
     lv_scale_section_t* sec;
 
-    // White arc: Vso to Vfe (approx. 75 to 180 km/h)
+    // White arc: Vso to Vfe
     sec = lv_scale_add_section(s_scale);
-    lv_scale_set_section_range(s_scale, sec, 75, 180);
+    lv_scale_set_section_range(s_scale, sec, (int32_t)ASI_VSO, (int32_t)ASI_VFE);
     lv_scale_set_section_style_main(s_scale, sec, &style_white);
 
-    // Green arc: Vs1 to Vno (approx. 90 to 200 km/h)
+    // Green arc: Vs1 to Vno
     sec = lv_scale_add_section(s_scale);
-    lv_scale_set_section_range(s_scale, sec, 90, 200);
+    lv_scale_set_section_range(s_scale, sec, (int32_t)ASI_VS1, (int32_t)ASI_VNO);
     lv_scale_set_section_style_main(s_scale, sec, &style_green);
 
-    // Yellow arc: Vno to Vne (200 to 280 km/h)
+    // Yellow arc: Vno to Vne
     sec = lv_scale_add_section(s_scale);
-    lv_scale_set_section_range(s_scale, sec, 200, 280);
+    lv_scale_set_section_range(s_scale, sec, (int32_t)ASI_VNO, (int32_t)ASI_VNE);
     lv_scale_set_section_style_main(s_scale, sec, &style_yellow);
 
     lv_obj_set_style_text_color(s_scale, lv_color_white(), 0);
