@@ -62,7 +62,7 @@
 #endif
 
 #define APP_NAME "Flaps & Speed"
-#define APP_VERSION "1.0.3"
+#define APP_VERSION "1.0.4"
 
 #ifndef GIT_REVISION
 #define GIT_REVISION "unknown"

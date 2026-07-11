@@ -13,7 +13,7 @@ static lv_obj_t* s_label = nullptr;
 static StaleOverlayState s_stale_overlay;
 
 // Needle dimensions
-static constexpr int32_t NEEDLE_INNER_RADIUS = 130;
+static constexpr int32_t NEEDLE_INNER_RADIUS = 120;
 static constexpr int32_t NEEDLE_OUTER_RADIUS = 170;
 
 // Scale range
@@ -223,12 +223,12 @@ static void ui_create_gauge()
     lv_scale_set_label_show(s_scale, true);
 
     lv_obj_set_style_text_color(s_scale, lv_color_white(), 0);
-    lv_obj_set_style_text_font(s_scale, &lv_font_montserrat_20, 0);
+    lv_obj_set_style_text_font(s_scale, &lv_font_montserrat_28, 0);
 
     // Needle
     s_needle = lv_line_create(s_scale);
-    lv_obj_set_style_line_width(s_needle, 12, 0);
-    lv_obj_set_style_line_color(s_needle, lv_color_white(), 0);
+    lv_obj_set_style_line_width(s_needle, 11, 0);
+    lv_obj_set_style_line_color(s_needle, lv_palette_main(LV_PALETTE_GREEN), 0);
     lv_obj_set_style_line_rounded(s_needle, true, 0);
 
     // Center value
