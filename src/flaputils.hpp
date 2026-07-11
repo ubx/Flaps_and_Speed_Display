@@ -55,5 +55,16 @@ namespace flaputils
     };
 
     std::vector<FlapSpeedRange> get_flap_speed_ranges(float gewicht_kg);
+    
+    struct SpeedLimits
+    {
+        float vso;
+        float vfe;
+        float vs1;
+        float vno;
+        float vne;
+    };
+
+    SpeedLimits get_speed_limits();
 
 } // namespace flaputils

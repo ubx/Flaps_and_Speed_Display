@@ -33,6 +33,7 @@ namespace flaputils
     static float kEmptyMassKg = 0.0f;
     static std::string kLowSpeedWk;
     static std::string kCurrentPolar;
+    static SpeedLimits kSpeedLimits = {75.0f, 180.0f, 90.0f, 200.0f, 280.0f};
 
     struct Range
     {
@@ -212,12 +213,24 @@ namespace flaputils
             }
         }
 
+        // 6. speedlimits
+        if (const cJSON* sl = cJSON_GetObjectItem(root, "speedlimits"))
+        {
+            if (cJSON* v = cJSON_GetObjectItem(sl, "vso")) kSpeedLimits.vso = static_cast<float>(v->valuedouble);
+            if (cJSON* v = cJSON_GetObjectItem(sl, "vfe")) kSpeedLimits.vfe = static_cast<float>(v->valuedouble);
+            if (cJSON* v = cJSON_GetObjectItem(sl, "vs1")) kSpeedLimits.vs1 = static_cast<float>(v->valuedouble);
+            if (cJSON* v = cJSON_GetObjectItem(sl, "vno")) kSpeedLimits.vno = static_cast<float>(v->valuedouble);
+            if (cJSON* v = cJSON_GetObjectItem(sl, "vne")) kSpeedLimits.vne = static_cast<float>(v->valuedouble);
+        }
+
         cJSON_Delete(root);
         free(buffer);
         return true;
     }
 
     float get_empty_mass() { return kEmptyMassKg; }
+
+    SpeedLimits get_speed_limits() { return kSpeedLimits; }
 
     FlapSymbolResult get_flap_symbol(int flapIdx)
     {

@@ -22,13 +22,6 @@ static constexpr int32_t ASI_ARC_WIDTH = 15;
 static constexpr float ASI_MIN = 40.0f;
 static constexpr float ASI_MAX = 280.0f;
 
-// ASI Arc ranges
-static constexpr float ASI_VSO = 75.0f;  // White arc start
-static constexpr float ASI_VFE = 180.0f; // White arc end
-static constexpr float ASI_VS1 = 90.0f;  // Green arc start
-static constexpr float ASI_VNO = 200.0f; // Green arc end / Yellow arc start
-static constexpr float ASI_VNE = 280.0f; // Yellow arc end
-
 // ASI Arc colors
 #define ASI_COLOR_WHITE  lv_color_white()
 #define ASI_COLOR_GREEN  lv_palette_main(LV_PALETTE_GREEN)
@@ -211,10 +204,11 @@ static void ui_update_asi(float raw_kmh)
 
     // Update needle color based on current displayed speed
     lv_color_t n_color = ASI_COLOR_WHITE;
-    if(s_x >= ASI_VNE) n_color = ASI_COLOR_RED;
-    else if(s_x >= ASI_VNO) n_color = ASI_COLOR_YELLOW;
-    else if(s_x >= ASI_VS1) n_color = ASI_COLOR_GREEN;
-    else if(s_x >= ASI_VSO) n_color = ASI_COLOR_RED;
+    flaputils::SpeedLimits sl = flaputils::get_speed_limits();
+    if(s_x >= sl.vne) n_color = ASI_COLOR_RED;
+    else if(s_x >= sl.vno) n_color = ASI_COLOR_YELLOW;
+    else if(s_x >= sl.vs1) n_color = ASI_COLOR_GREEN;
+    else if(s_x >= sl.vso) n_color = ASI_COLOR_WHITE;
     else n_color = ASI_COLOR_RED; // Below Vso
 
     lv_obj_set_style_line_color(s_needle, n_color, 0);
@@ -265,20 +259,21 @@ static void ui_create_gauge()
     lv_style_set_arc_width(&style_yellow, ASI_ARC_WIDTH);
 
     lv_scale_section_t* sec;
+    flaputils::SpeedLimits sl = flaputils::get_speed_limits();
 
     // White arc: Vso to Vfe
     sec = lv_scale_add_section(s_scale);
-    lv_scale_set_section_range(s_scale, sec, (int32_t)ASI_VSO, (int32_t)ASI_VFE);
+    lv_scale_set_section_range(s_scale, sec, (int32_t)sl.vso, (int32_t)sl.vfe);
     lv_scale_set_section_style_main(s_scale, sec, &style_white);
 
     // Green arc: Vs1 to Vno
     sec = lv_scale_add_section(s_scale);
-    lv_scale_set_section_range(s_scale, sec, (int32_t)ASI_VS1, (int32_t)ASI_VNO);
+    lv_scale_set_section_range(s_scale, sec, (int32_t)sl.vs1, (int32_t)sl.vno);
     lv_scale_set_section_style_main(s_scale, sec, &style_green);
 
     // Yellow arc: Vno to Vne
     sec = lv_scale_add_section(s_scale);
-    lv_scale_set_section_range(s_scale, sec, (int32_t)ASI_VNO, (int32_t)ASI_VNE);
+    lv_scale_set_section_range(s_scale, sec, (int32_t)sl.vno, (int32_t)sl.vne);
     lv_scale_set_section_style_main(s_scale, sec, &style_yellow);
 
     lv_obj_set_style_text_color(s_scale, lv_color_white(), 0);
@@ -287,7 +282,7 @@ static void ui_create_gauge()
     // Needle
     s_needle = lv_line_create(s_scale);
     lv_obj_set_style_line_width(s_needle, 11, 0);
-    lv_obj_set_style_line_color(s_needle, ASI_COLOR_RED, 0);
+    lv_obj_set_style_line_color(s_needle, ASI_COLOR_WHITE, 0);
     lv_obj_set_style_line_rounded(s_needle, true, 0);
 
     // Center value

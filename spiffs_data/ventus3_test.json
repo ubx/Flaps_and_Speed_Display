@@ -58,5 +58,12 @@
     "wk": "-1",
     "usage": "Takeoff and Landing",
     "range": [0, 40]
+  },
+  "speedlimits": {
+    "vso": 75.0,
+    "vfe": 180.0,
+    "vs1": 90.0,
+    "vno": 200.0,
+    "vne": 280.0
   }
 }
