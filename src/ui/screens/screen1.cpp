@@ -14,7 +14,7 @@ static StaleOverlayState s_stale_overlay;
 
 // Needle dimensions
 static constexpr int32_t NEEDLE_INNER_RADIUS = 120;
-static constexpr int32_t NEEDLE_OUTER_RADIUS = 180;
+static constexpr int32_t NEEDLE_OUTER_RADIUS = 200;
 static constexpr int32_t SCALE_LABEL_GAP = 26;
 static constexpr int32_t ASI_ARC_WIDTH = 15;
 
@@ -235,11 +235,21 @@ static void ui_create_gauge()
 
     lv_scale_set_mode(s_scale, LV_SCALE_MODE_ROUND_INNER);
     lv_scale_set_range(s_scale, (int32_t)ASI_MIN, (int32_t)ASI_MAX);
-    lv_scale_set_total_tick_count(s_scale, 13); // minor ticks
-    lv_scale_set_major_tick_every(s_scale, 2);  // major each 2nd tick
+    lv_scale_set_total_tick_count(s_scale, 25); // total ticks (40, 50, 60, ..., 280)
+    lv_scale_set_major_tick_every(s_scale, 2);  // major each 2nd tick (40, 60, 80, ...)
     lv_scale_set_angle_range(s_scale, 280);
     lv_scale_set_rotation(s_scale, 130);
     lv_scale_set_label_show(s_scale, true);
+
+    // Style the ticks (white scale lines)
+    lv_obj_set_style_line_color(s_scale, lv_color_white(), LV_PART_INDICATOR);
+    lv_obj_set_style_line_width(s_scale, 6, LV_PART_INDICATOR);
+    lv_obj_set_style_length(s_scale, 22, LV_PART_INDICATOR);
+
+    // lv_obj_set_style_line_color(s_scale, lv_color_white(), LV_PART_ITEMS);
+    // lv_obj_set_style_line_width(s_scale, 1, LV_PART_ITEMS);
+    // lv_obj_set_style_length(s_scale, 8, LV_PART_ITEMS);
+
     lv_obj_set_style_pad_radial(s_scale, SCALE_LABEL_GAP, LV_PART_INDICATOR);
 
     // Arcs
