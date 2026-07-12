@@ -244,7 +244,7 @@ static void ui_create_gauge()
     // Style the ticks (white scale lines)
     lv_obj_set_style_line_color(s_scale, lv_color_white(), LV_PART_INDICATOR);
     lv_obj_set_style_line_width(s_scale, 6, LV_PART_INDICATOR);
-    lv_obj_set_style_length(s_scale, 22, LV_PART_INDICATOR);
+    lv_obj_set_style_length(s_scale, 24, LV_PART_INDICATOR);
 
     // lv_obj_set_style_line_color(s_scale, lv_color_white(), LV_PART_ITEMS);
     // lv_obj_set_style_line_width(s_scale, 1, LV_PART_ITEMS);
@@ -256,7 +256,7 @@ static void ui_create_gauge()
     static lv_style_t style_white;
     lv_style_init(&style_white);
     lv_style_set_arc_color(&style_white, ASI_COLOR_WHITE);
-    lv_style_set_arc_width(&style_white, ASI_ARC_WIDTH);
+    lv_style_set_arc_width(&style_white, ASI_ARC_WIDTH + 5);
 
     static lv_style_t style_green;
     lv_style_init(&style_green);
