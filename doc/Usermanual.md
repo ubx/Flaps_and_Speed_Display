@@ -134,6 +134,21 @@ This screen allows you to select the aircraft's polar file (flap schedule) from 
 - Press the **Select** button to load the highlighted polar
 
 Once selected, the new polar is active immediately and will be remembered across power cycles.
+
+#### Polar File: Speed Limits (`speedlimits`)
+
+| Field   | Meaning                                                                   | Example value [km/h] |
+| ------- | ------------------------------------------------------------------------- |---------------------:|
+| **vso** | Stall speed in the landing configuration (full flaps, gear as applicable) |                   94 |
+| **vs1** | Stall speed in the clean configuration (flaps up)                         |                  103 |
+| **vfe** | Maximum flap extended speed                                               |                  180 |
+| **vno** | Maximum structural cruising speed                                         |                  180 |
+| **vne** | Never exceed speed                                                        |                  280 |
+
+See [Airspeed indicator](https://en.wikipedia.org/wiki/Airspeed_indicator). 
+Values for a [Ventus-3F](https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=https://www.easa.europa.eu/en/downloads/47847/en&ved=2ahUKEwjrqtGZlM2VAxVbzwIHHQdVKTAQFnoECCMQAQ&usg=AOvVaw1y-G0b4518pnheS_tvQv2q)
+and *FLUGHANDBUCH Ventus-3F „Sport“*
+
 ## How Flap Guidance Works
 
 The unit compares:
