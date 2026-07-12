@@ -15,7 +15,7 @@ static StaleOverlayState s_stale_overlay;
 // Needle dimensions
 static constexpr int32_t NEEDLE_INNER_RADIUS = 120;
 static constexpr int32_t NEEDLE_OUTER_RADIUS = 180;
-static constexpr int32_t SCALE_LABEL_GAP = 40;
+static constexpr int32_t SCALE_LABEL_GAP = 26;
 static constexpr int32_t ASI_ARC_WIDTH = 15;
 
 // Scale range
