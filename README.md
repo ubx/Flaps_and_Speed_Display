@@ -32,6 +32,6 @@ and flap position, receiving real-time data via the CAN bus (TWAI).
 - ~~PCB rework, make it more professional!~~
 
 Next steps:
-- extent of polar data (JSON files) including speed limitations (minimum, optimal, and never-exceed).
-- improve speed screen with speed limits
-- enhance speed screen #2 similar to a real ASI
+- ~~xtent of polar data (JSON files) including speed limitations (minimum, optimal, and never-exceed)~~
+- ~~improve speed screen with speed limits~~
+- ~~enhance speed screen #1 similar to a real ASI~~
